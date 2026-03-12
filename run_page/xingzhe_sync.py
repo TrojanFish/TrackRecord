@@ -394,9 +394,6 @@ def build_gpx_from_stream(workout_id, title, stream_data):
         if hr:
             from lxml import etree
 
-            nsmap = {
-                "gpxtpx": "http://www.garmin.com/xmlschemas/TrackPointExtension/v1"
-            }
             ext = etree.Element("extensions")
             tpe = etree.SubElement(
                 ext,
@@ -451,9 +448,6 @@ def workout_to_activity(w):
         elevation = float(w.get("elevation_gain") or 0)
         avg_spd_kmh = float(w.get("avg_speed") or 0)
         avg_spd_ms = round(avg_spd_kmh / 3.6, 4)
-        end_dt = datetime.fromtimestamp(
-            int(start_ms) / 1000 + duration_s, tz=timezone.utc
-        )
         name = w.get("title") or f"Xingzhe {act_type} {start_dt.strftime('%Y-%m-%d')}"
 
         from config import run_map as run_map_nt
