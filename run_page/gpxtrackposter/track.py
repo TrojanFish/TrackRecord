@@ -274,7 +274,7 @@ class Track:
                         ]
                     )
                     heart_rate_list = list(filter(None, heart_rate_list))
-                except lxml.etree.XMLSyntaxError:
+                except etree.XMLSyntaxError:
                     # Ignore XML syntax errors in extensions
                     # This can happen if the GPX file is malformed
                     pass
