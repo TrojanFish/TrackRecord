@@ -11,7 +11,7 @@ import os
 from collections import namedtuple
 
 import gpxpy as mod_gpxpy
-import lxml
+from lxml import etree
 import polyline
 import s2sphere as s2
 from garmin_fit_sdk import Decoder, Stream
@@ -260,7 +260,7 @@ class Track:
                 try:
                     extensions = [
                         {
-                            lxml.etree.QName(child).localname: child.text
+                            etree.QName(child).localname: child.text
                             for child in p.extensions[0]
                         }
                         for p in s.points
@@ -310,7 +310,7 @@ class Track:
             {}
             if gpx.extensions is None
             else {
-                lxml.etree.QName(extension).localname: extension.text
+                etree.QName(extension).localname: extension.text
                 for extension in gpx.extensions
             }
         )
@@ -325,7 +325,7 @@ class Track:
             {}
             if gpx.extensions is None
             else {
-                lxml.etree.QName(extension).localname: extension.text
+                etree.QName(extension).localname: extension.text
                 for extension in gpx.extensions
             }
         )
