@@ -121,18 +121,21 @@ def parse_raw_data_to_nametuple(
 
     start_time = run_data["startTime"]
     avg_heart_rate = None
+    max_heart_rate = None
     elevation_gain = None
     decoded_hr_data = []
-    if run_data["heartRate"]:
+    if run_data.get("heartRate"):
         avg_heart_rate = run_data["heartRate"].get("averageHeartRate", None)
+        max_heart_rate = run_data["heartRate"].get("maxHeartRate", None)
         heart_rate_data = run_data["heartRate"].get("heartRates", None)
         if heart_rate_data:
             decoded_hr_data = decode_runmap_data(heart_rate_data)
-        # fix #66
         if avg_heart_rate and avg_heart_rate < 0:
             avg_heart_rate = None
+        if max_heart_rate and max_heart_rate < 0:
+            max_heart_rate = None
 
-    if run_data["geoPoints"]:
+    if run_data.get("geoPoints"):
         run_points_data = decode_runmap_data(run_data["geoPoints"], True)
         run_points_data_gpx = run_points_data
         if TRANS_GCJ02_TO_WGS84:
@@ -169,11 +172,12 @@ def parse_raw_data_to_nametuple(
                 tcx_data = parse_points_to_tcx(
                     run_data, run_points_data_gpx, KEEP2TCX[run_data["dataType"]]
                 )
-                # elevation_gain = tcx_data.get_uphill_downhill().uphill
                 if str(keep_id) not in old_tcx_ids:
                     download_keep_tcx(tcx_data.toprettyxml(), str(keep_id))
     else:
-        print(f"ID {keep_id} no gps data")
+        # If no GPS points, we still want the activity if it has data
+        print(f"ID {keep_id} ({KEEP2STRAVA.get(run_data['dataType'], 'Unknown')}) has no GPS data, syncing as indoor/metric activity.")
+    
     polyline_str = polyline.encode(run_points_data) if run_points_data else ""
     start_latlng = start_point(*run_points_data[0]) if run_points_data else None
     start_date = datetime.fromtimestamp(start_time // 1000, tz=timezone.utc)
@@ -181,21 +185,31 @@ def parse_raw_data_to_nametuple(
     start_date_local = adjust_time(start_date, tz_name)
     end = datetime.fromtimestamp(run_data["endTime"] // 1000, tz=timezone.utc)
     end_local = adjust_time(end, tz_name)
-    if not run_data["duration"]:
+    
+    if not run_data.get("duration"):
         print(f"ID {keep_id} has no total time just ignore please check")
         return
+        
+    # Attempt to capture more metrics if available
+    avg_cadence = run_data.get("strideFreq", None) # common Keep field name
+    max_speed = run_data.get("maxSpeed", None) # units vary
+    if max_speed:
+        max_speed = float(max_speed)
+    
     d = {
         "id": int(keep_id),
-        "name": f"{KEEP2STRAVA[run_data['dataType']]} from keep",
-        # future to support others workout now only for run
-        "type": f"{KEEP2STRAVA[(run_data['dataType'])]}",
-        "subtype": f"{KEEP2STRAVA[(run_data['dataType'])]}",
+        "name": f"{KEEP2STRAVA.get(run_data['dataType'], 'Workout')} from keep",
+        "type": f"{KEEP2STRAVA.get(run_data['dataType'], 'Ride')}",
+        "subtype": f"{KEEP2STRAVA.get(run_data['dataType'], 'Ride')}",
         "start_date": datetime.strftime(start_date, "%Y-%m-%d %H:%M:%S"),
         "end": datetime.strftime(end, "%Y-%m-%d %H:%M:%S"),
         "start_date_local": datetime.strftime(start_date_local, "%Y-%m-%d %H:%M:%S"),
         "end_local": datetime.strftime(end_local, "%Y-%m-%d %H:%M:%S"),
         "length": run_data["distance"],
         "average_heartrate": int(avg_heart_rate) if avg_heart_rate else None,
+        "max_heartrate": int(max_heart_rate) if max_heart_rate else None,
+        "average_cadence": float(avg_cadence) if avg_cadence else None,
+        "max_speed": max_speed,
         "map": run_map(polyline_str),
         "start_latlng": start_latlng,
         "distance": run_data["distance"],
@@ -203,7 +217,7 @@ def parse_raw_data_to_nametuple(
         "elapsed_time": timedelta(
             seconds=int((run_data["endTime"] - run_data["startTime"]) // 1000)
         ),
-        "average_speed": run_data["distance"] / run_data["duration"],
+        "average_speed": run_data["distance"] / run_data["duration"] if run_data["duration"] > 0 else 0,
         "elevation_gain": elevation_gain,
         "location_country": str(run_data.get("region", "")),
     }

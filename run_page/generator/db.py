@@ -44,6 +44,11 @@ ACTIVITY_KEYS = [
     "average_heartrate",
     "average_speed",
     "elevation_gain",
+    "max_heartrate",
+    "average_cadence",
+    "average_watts",
+    "max_speed",
+    "ext_data",
 ]
 
 
@@ -64,6 +69,11 @@ class Activity(Base):
     average_heartrate = Column(Float)
     average_speed = Column(Float)
     elevation_gain = Column(Float)
+    max_heartrate = Column(Float)
+    average_cadence = Column(Float)
+    average_watts = Column(Float)
+    max_speed = Column(Float)
+    ext_data = Column(String)  # JSON string for flexible data
     streak = None
 
     def to_dict(self):
@@ -142,6 +152,11 @@ def update_or_create_activity(session, run_activity):
                 summary_polyline=(
                     run_activity.map and run_activity.map.summary_polyline or ""
                 ),
+                max_heartrate=getattr(run_activity, "max_heartrate", None),
+                average_cadence=getattr(run_activity, "average_cadence", None),
+                average_watts=getattr(run_activity, "average_watts", None),
+                max_speed=getattr(run_activity, "max_speed", None),
+                ext_data=getattr(run_activity, "ext_data", None),
             )
             session.add(activity)
             created = True
@@ -158,6 +173,11 @@ def update_or_create_activity(session, run_activity):
             activity.summary_polyline = (
                 run_activity.map and run_activity.map.summary_polyline or ""
             )
+            activity.max_heartrate = getattr(run_activity, "max_heartrate", None)
+            activity.average_cadence = getattr(run_activity, "average_cadence", None)
+            activity.average_watts = getattr(run_activity, "average_watts", None)
+            activity.max_speed = getattr(run_activity, "max_speed", None)
+            activity.ext_data = getattr(run_activity, "ext_data", None)
     except Exception as e:
         print(f"something wrong with {run_activity.id}")
         print(str(e))

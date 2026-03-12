@@ -305,14 +305,28 @@ def parse_no_gpx_data(activity):
         print(f"The activity {activity['id']} doesn't contain metrics information")
         return
     average_heartrate = None
-    summary_info = activity.get("summaries")
+    max_heartrate = None
+    average_cadence = None
+    max_speed = None
+    
+    summary_info = activity.get("summaries", [])
     distance = 0
 
     for s in summary_info:
-        if s.get("metric") == "distance":
-            distance = s.get("value", 0) * 1000
-        if s.get("metric") == "heart_rate":
-            average_heartrate = s.get("value", None)
+        metric_type = s.get("metric")
+        value = s.get("value", 0)
+        
+        if metric_type == "distance":
+            distance = value * 1000
+        elif metric_type == "heart_rate":
+            average_heartrate = value
+        elif metric_type == "heart_rate_max":
+            max_heartrate = value
+        elif metric_type == "cadence":
+            average_cadence = value
+        elif metric_type == "speed_max":
+            max_speed = value # units depend on the device, usually km/h or m/s
+
     # maybe training that no distance
     if not distance:
         return
@@ -330,7 +344,7 @@ def parse_no_gpx_data(activity):
     end_date_local = adjust_time(end_date, BASE_TIMEZONE)
     d = {
         "id": int(nike_id),
-        "name": "run from nike",
+        "name": activity.get("tags", {}).get("com.nike.name", "run from nike"),
         "type": "Run",
         "subtype": "Run",
         "start_date": datetime.strftime(start_date, "%Y-%m-%d %H:%M:%S"),
@@ -339,12 +353,15 @@ def parse_no_gpx_data(activity):
         "end_local": datetime.strftime(end_date_local, "%Y-%m-%d %H:%M:%S"),
         "length": distance,
         "average_heartrate": average_heartrate,
+        "max_heartrate": max_heartrate,
+        "average_cadence": average_cadence,
+        "max_speed": max_speed,
         "map": run_map(""),
         "start_latlng": None,
         "distance": distance,
         "moving_time": moving_time,
         "elapsed_time": elapsed_time,
-        "average_speed": distance / int(activity["active_duration_ms"] / 1000),
+        "average_speed": distance / int(activity["active_duration_ms"] / 1000) if activity.get("active_duration_ms") else 0,
         "elevation_gain": 0,
         "location_country": "",
     }
