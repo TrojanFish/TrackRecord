@@ -176,8 +176,10 @@ def parse_raw_data_to_nametuple(
                     download_keep_tcx(tcx_data.toprettyxml(), str(keep_id))
     else:
         # If no GPS points, we still want the activity if it has data
-        print(f"ID {keep_id} ({KEEP2STRAVA.get(run_data['dataType'], 'Unknown')}) has no GPS data, syncing as indoor/metric activity.")
-    
+        print(
+            f"ID {keep_id} ({KEEP2STRAVA.get(run_data['dataType'], 'Unknown')}) has no GPS data, syncing as indoor/metric activity."
+        )
+
     polyline_str = polyline.encode(run_points_data) if run_points_data else ""
     start_latlng = start_point(*run_points_data[0]) if run_points_data else None
     start_date = datetime.fromtimestamp(start_time // 1000, tz=timezone.utc)
@@ -185,17 +187,17 @@ def parse_raw_data_to_nametuple(
     start_date_local = adjust_time(start_date, tz_name)
     end = datetime.fromtimestamp(run_data["endTime"] // 1000, tz=timezone.utc)
     end_local = adjust_time(end, tz_name)
-    
+
     if not run_data.get("duration"):
         print(f"ID {keep_id} has no total time just ignore please check")
         return
-        
+
     # Attempt to capture more metrics if available
-    avg_cadence = run_data.get("strideFreq", None) # common Keep field name
-    max_speed = run_data.get("maxSpeed", None) # units vary
+    avg_cadence = run_data.get("strideFreq", None)  # common Keep field name
+    max_speed = run_data.get("maxSpeed", None)  # units vary
     if max_speed:
         max_speed = float(max_speed)
-    
+
     d = {
         "id": int(keep_id),
         "name": f"{KEEP2STRAVA.get(run_data['dataType'], 'Workout')} from keep",
@@ -217,7 +219,11 @@ def parse_raw_data_to_nametuple(
         "elapsed_time": timedelta(
             seconds=int((run_data["endTime"] - run_data["startTime"]) // 1000)
         ),
-        "average_speed": run_data["distance"] / run_data["duration"] if run_data["duration"] > 0 else 0,
+        "average_speed": (
+            run_data["distance"] / run_data["duration"]
+            if run_data["duration"] > 0
+            else 0
+        ),
         "elevation_gain": elevation_gain,
         "location_country": str(run_data.get("region", "")),
     }
