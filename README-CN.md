@@ -238,7 +238,8 @@ docker run -itd -p 80:80   running_page:latest
 > 如果你是海外用户请更改 `IS_CHINESE = false` in `src/utils/const.ts`
 
 ```typescript
-const MAPBOX_TOKEN = '';
+const MAPBOX_TOKEN =
+  'YOUR_MAPBOX_TOKEN';
 ```
 
 ## 更改默认地图服务样式

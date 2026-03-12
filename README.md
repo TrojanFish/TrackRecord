@@ -234,7 +234,8 @@ Open your browser and visit localhost:80
 > Suggested changes to your own [Mapbox token](https://www.mapbox.com/)
 
 ```typescript
-const MAPBOX_TOKEN = '';
+const MAPBOX_TOKEN =
+  'YOUR_MAPBOX_TOKEN';
 ```
 
 ## Change Default Map Tile Style
