@@ -16,6 +16,12 @@ run_page/credentials.json
 # Data
 run_page/data.db
 run_page/data.db-journal
+GPX_OUT/
+TCX_OUT/
+FIT_OUT/
+activities/
+src/static/activities.json
+imported.json
 
 # Logs
 *.log
