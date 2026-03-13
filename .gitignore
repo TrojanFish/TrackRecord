@@ -11,6 +11,7 @@ uv.lock
 # Configuration
 config.yaml
 .env
+run_page/credentials.json
 
 # Data
 run_page/data.db
