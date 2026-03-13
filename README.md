@@ -1,35 +1,27 @@
-# TrackRecord - Build Your Personal Sports Journey Home Page
+# TrackRecord - Personal Sports Data Sync & Export Toolkit
 
 > [!NOTE]
-> This project is a branched and enhanced version of [yihong0618/running_page](https://github.com/yihong0618/running_page).
+> This project is a branched and enhanced version of [yihong0618/running_page](https://github.com/yihong0618/running_page), focused on data synchronization and export capabilities.
 
 <p align="center">
   <img width="150" src="https://raw.githubusercontent.com/shaonianche/gallery/master/running_page/running_page_logo.png" />
 </p>
 
-# [Personalized Sports Data Showcase](https://github.com/TrojanFish/TrackRecord)
+## 🍱✨ Key Features
 
-English | [简体中文](README-CN.md) | [Wiki](https://mfydev.github.io/Running-Page-Wiki/)
-
-## 🍱✨ New Features (TrackRecord Enhancements)
-
-Building upon the robust foundation of the original project, we have introduced several key improvements:
+TrackRecord provides a robust set of tools to sync and export your sports data from various platforms:
 
 *   **Interactive Sync Menu**: No more wrestling with complicated CLI arguments! Simply run `python running_page_menu.py` to access a visual menu for one-click synchronization across multiple platforms (Xingzhe, Keep, Joyrun, etc.).
 *   **Modernized Xingzhe (行者) Sync**:
     *   **Auto-Login**: Supports the latest RSA encrypted automated login. No more manual session sniffing required!
     *   **GPX Export**: Automatically exports trace data as GPX files to the `GPX_OUT` directory during synchronization.
     *   **Reliable User Extraction**: Intelligent handling of recent Xingzhe API changes to ensure accurate user data retrieval.
-*   **Enhanced UI & UX**:
-    *   Optimized visual styles based on the TrackRecord design language.
-    *   Smoother visualization for various activity types including Cycling, Running, and Hiking.
-    *   Cleaned up and maintained sync modules for maximum stability.
+*   **Multi-Platform Support**: Sync from Nike, Garmin, Strava, Keep, Coros, and more.
+*   **Data Export**: Generate GPX, TCX, and FIT files. Save data to SQLite database for further analysis.
 
 ## 🙏 Special Thanks
 
 This project would not be possible without the incredible work of **[yihong0618](https://github.com/yihong0618)** and the original **[running_page](https://github.com/yihong0618/running_page)** repository.
-
-We extend our deepest gratitude to the original author for providing such an elegant, powerful, and extensible solution for the sports community. TrackRecord aims to build upon this legacy by streamlining the user experience and maintaining robust sync capabilities for specific platforms.
 
 ---
 
@@ -51,27 +43,9 @@ python running_page_menu.py
 
 Follow the prompts. Whether it's auto-login with account/password or advanced session mode, the menu will guide you through the process.
 
-### 3. Local Development & Preview
+### 3. Manual Sync (CLI Mode)
 
-```bash
-npm install
-npm run dev
-```
-
----
-
-## 🛠️ Technical Details & Configuration
-
-> [!IMPORTANT]
-> **Mapbox Token Security**
->
-> By default, this project uses **MapCN (Free / No Token Required)**.
-> If you prefer to use Mapbox, ensure you configure your **own [Mapbox Token](https://www.mapbox.com/)** in `src/utils/const.ts`.
-> **DO NOT** commit your private tokens to public repositories.
-
-### Manual Sync (CLI Mode)
-
-If you prefer using the CLI, the new Xingzhe sync script supports:
+If you prefer using the CLI, scripts are available in the `run_page/` directory. For example, for Xingzhe:
 
 ```bash
 # Auto-Login Mode
@@ -83,13 +57,14 @@ python run_page/xingzhe_sync.py --session "sessionidValue" --user-id 12345 --wit
 
 ---
 
-## 🏗️ Deployment
+## 🛠️ Data Output
 
-### Deploy with Vercel
-
-1. Fork this repository.
-2. Create a new project in Vercel. Choose **Vite** as the framework (Note: If you are upgrading from an older fork using Gatsby, make sure to switch the setting to Vite).
-3. Set up your GitHub Actions for automatic daily synchronization.
+Synced data and exported files can be found in the following directories:
+- `activities/`: Raw activity data.
+- `GPX_OUT/`: Exported GPX files.
+- `TCX_OUT/`: Exported TCX files.
+- `FIT_OUT/`: Exported FIT files.
+- `run_page/data.db`: SQLite database containing all synchronized data.
 
 ---
 

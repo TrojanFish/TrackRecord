@@ -1,29 +1,26 @@
-# Project dependencies
-.yarn
-.cache
+# Python dependencies
 *.pyc
-node_modules
-yarn-error.log
-
-# Build directory
-/build
-/dist
-.DS_Store
-.sass-cache/
-_posts/
-_site/
-
-.mypy_cache
-
-/.vscode
-.idea
-
-config.yaml
+__pycache__/
 .venv/
+.mypy_cache/
+.ruff_cache/
 .pdm-python
+pdm.lock
+uv.lock
 
-route.png
-route.svg
-
+# Configuration
+config.yaml
 .env
+
+# Data
 run_page/data.db
+run_page/data.db-journal
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+node_modules

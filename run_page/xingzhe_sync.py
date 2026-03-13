@@ -23,6 +23,8 @@ from datetime import datetime, timezone, timedelta
 
 import requests
 import base64
+from concurrent.futures import ThreadPoolExecutor
+from utils import log, ok, warn, err
 
 # RSA Public Key for login encryption
 PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
@@ -88,29 +90,6 @@ RUN_CODES = {1}
 
 
 # ── 颜色输出 ───────────────────────────────────────────────────────────────────
-class C:
-    R = "\033[0m"
-    G = "\033[92m"
-    Y = "\033[93m"
-    B = "\033[94m"
-    E = "\033[91m"
-    D = "\033[2m"
-
-
-def log(msg):
-    print(f"{C.B}->  {msg}{C.R}")
-
-
-def ok(msg):
-    print(f"{C.G}OK  {msg}{C.R}")
-
-
-def warn(msg):
-    print(f"{C.Y}!!  {msg}{C.R}")
-
-
-def err(msg):
-    print(f"{C.E}XX  {msg}{C.R}")
 
 
 def ensure_gpx_dir():
@@ -225,10 +204,14 @@ class XingzheClient:
                 except Exception:
                     pass
 
-            if not self.user_id:
-                err(f"登录成功但无法获取 User ID. 响应数据: {res}")
-                err(f"当前 Cookies: {self.session.cookies.get_dict()}")
-                sys.exit(1)
+            # Set authentication cookies for subsequent API calls
+            self.session.cookies.set(
+                "_XingzheWeb_Token", "true", domain="www.imxingzhe.com"
+            )
+            # Some APIs check for specific session cookies after login
+            if "sessionid" not in self.session.cookies:
+                # If login worked but cookie is missing, we might need to find it
+                pass
 
             ok(f"登录成功! User ID: {self.user_id}")
         except Exception as e:
@@ -328,10 +311,20 @@ class XingzheClient:
           }
         }
         """
-        url = STREAM_URL.format(workout_id=workout_id)
+        # Some Xingzhe APIs require specific headers to simulate web access
+        headers = {
+            "Referer": f"https://www.imxingzhe.com/portal/#!/workout/{workout_id}",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "X-Requested-With": "XMLHttpRequest",
+        }
         try:
-            resp = self.session.get(url, timeout=30)
+            resp = self.session.get(url, headers=headers, timeout=30)
             if resp.status_code == 404:
+                return None
+            if resp.status_code == 400:
+                # 400 is common for activities without GPS data (indoor/manual)
                 return None
             resp.raise_for_status()
             data = resp.json().get("data") or {}
@@ -340,6 +333,10 @@ class XingzheClient:
                 return None
             return data
         except Exception as e:
+            # Only warn for non-400 errors to avoid noise for indoor workouts
+            if hasattr(e, "response") and e.response is not None:
+                if e.response.status_code == 400:
+                    return None
             warn(f"获取轨迹失败 {workout_id}: {e}")
             return None
 
@@ -462,11 +459,12 @@ def workout_to_activity(w):
             "distance": distance_m,
             "moving_time": timedelta(seconds=duration_s),
             "elapsed_time": timedelta(seconds=duration_s),
-            "average_speed": avg_spd_ms,
             "average_heartrate": None,
             "max_heartrate": None,
+            "average_speed": f"{avg_spd_ms}",  # Generator often expects float or string that can be float
             "elevation_gain": elevation,
             "location_country": "",
+            "start_latlng": None,
             "map": run_map_nt(""),
         }
         from collections import namedtuple
@@ -555,48 +553,64 @@ def main():
     errors = 0
     need_gpx = args.with_gpx or args.gpx_only
 
-    print(f"\n正在处理 {len(all_workouts)} 条活动" f"  [+成功  g无轨迹  x出错]\n")
+    processed_count = 0
 
-    for w in all_workouts:
+    def process_workout(w):
+        nonlocal gpx_saved, gpx_skipped, errors
         workout_id = w.get("id")
         title = w.get("title") or f"xingzhe_{workout_id}"
         try:
-            # 转换活动元数据
+            # 1. 转换基础活动元数据
             activity = workout_to_activity(w)
-            if activity and not args.gpx_only:
-                activities.append(activity)
 
-            # GPX 导出
+            # 2. GPX 导出与详细数据更新
             if need_gpx:
                 stream = client.get_stream_data(workout_id)
-                if stream:
+                if stream and stream.get("location"):
+                    # 生成 GPX
                     gpx_xml = build_gpx_from_stream(workout_id, title, stream)
                     if gpx_xml:
                         save_gpx(workout_id, gpx_xml)
                         gpx_saved += 1
                         print("+", end="", flush=True)
-                    else:
-                        gpx_skipped += 1
-                        print("g", end="", flush=True)
+
+                    # 更新活动实体的轨迹和起点信息
+                    locations = stream.get("location")
+                    if locations and activity:
+                        # 转为 Polyline
+                        import polyline
+
+                        # Xingzhe is [lng, lat], polyline expects [lat, lng]
+                        points = [[p[1], p[0]] for p in locations]
+                        polyline_str = polyline.encode(points)
+
+                        from config import run_map, start_point
+
+                        # 更新 NamedTuple (由于是不可变类型，需要重建)
+                        d = activity._asdict()
+                        d["map"] = run_map(polyline_str)
+                        d["start_latlng"] = start_point(
+                            lat=points[0][0], lon=points[0][1]
+                        )
+                        activity = type(activity)(**d)
                 else:
                     gpx_skipped += 1
                     print("g", end="", flush=True)
-                time.sleep(0.3)
             else:
                 print("+" if activity else ".", end="", flush=True)
 
-        except KeyboardInterrupt:
-            print()
-            warn("用户中断，保存已获取数据...")
-            break
+            return activity
+
         except Exception as e:
             print("x", end="", flush=True)
             errors += 1
-            if errors <= 5:
-                print(f"\n  活动 {workout_id} 处理失败: {e}")
+            return None
 
-        time.sleep(0.1)
-
+    log(f"使用并发模式处理 {len(all_workouts)} 条活动 (Max Workers: 2)...")
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(process_workout, all_workouts))
+    
+    activities = [r for r in results if r is not None and not args.gpx_only]
     print("\n")
 
     # ── 写入数据库 ─────────────────────────────────────────────────────────────

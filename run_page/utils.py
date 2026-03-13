@@ -13,6 +13,32 @@ from stravalib.client import Client
 from stravalib.exc import RateLimitExceeded
 
 
+# ── 颜色输出 (Centralized Logging) ─────────────────────────────────────────────
+class C:
+    R = "\033[0m"
+    G = "\033[92m"
+    Y = "\033[93m"
+    B = "\033[94m"
+    E = "\033[91m"
+    D = "\033[2m"
+
+
+def log(msg):
+    print(f"{C.B}->  {msg}{C.R}")
+
+
+def ok(msg):
+    print(f"{C.G}OK  {msg}{C.R}")
+
+
+def warn(msg):
+    print(f"{C.Y}!!  {msg}{C.R}")
+
+
+def err(msg):
+    print(f"{C.E}XX  {msg}{C.R}")
+
+
 def adjust_time(time, tz_name):
     tc_offset = datetime.now(pytz.timezone(tz_name)).utcoffset()
     return time + tc_offset
