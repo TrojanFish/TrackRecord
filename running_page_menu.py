@@ -622,16 +622,26 @@ def main():
         flat_list = []
 
         for cat_id, cat_data in menu.items():
+            if cat_id == "0":
+                continue
             branch = tree.add(f"[bold yellow]{cat_data['label']}[/bold yellow]")
             for item in cat_data["items"]:
                 idx = len(flat_list) + 1
                 branch.add(f"[{idx}] {item['name']}")
                 flat_list.append(item)
 
+        # Explicitly add Exit as 0
+        cat_exit = menu.get("0")
+        if cat_exit:
+            exit_item = cat_exit["items"][0]
+            tree.add(f"[bold red][0] {exit_item['name']}[/bold red]")
+
         rprint(tree)
 
         try:
             choice = IntPrompt.ask(f"\n[bold cyan]{L('prompt_choice')}[/bold cyan]")
+            if choice == 0:
+                sys.exit(0)
             if choice < 1 or choice > len(flat_list):
                 continue
             item = flat_list[choice - 1]

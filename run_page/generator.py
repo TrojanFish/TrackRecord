@@ -4,10 +4,10 @@ import sys
 
 import arrow
 import stravalib
-from gpxtrackposter import track_loader
-from sqlalchemy import func
-
-from polyline_processor import filter_out
+try:
+    from gpxtrackposter import track_loader
+except ImportError:
+    track_loader = None
 
 from db import Activity, init_db, update_or_create_activity
 
@@ -83,6 +83,9 @@ class Generator:
         self.session.commit()
 
     def sync_from_data_dir(self, data_dir, file_suffix="gpx", activity_title_dict={}):
+        if not track_loader:
+            print("Error: gpxtrackposter not installed. Cannot sync from data dir.")
+            return
         loader = track_loader.TrackLoader()
         tracks = loader.load_tracks(
             data_dir, file_suffix=file_suffix, activity_title_dict=activity_title_dict

@@ -320,6 +320,7 @@ class XingzheClient:
             "X-Requested-With": "XMLHttpRequest",
         }
         try:
+            url = STREAM_URL.format(workout_id=workout_id)
             resp = self.session.get(url, headers=headers, timeout=30)
             if resp.status_code == 404:
                 return None
