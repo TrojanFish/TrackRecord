@@ -44,7 +44,10 @@ def err(msg):
 
 
 def adjust_time(time, tz_name):
-    tc_offset = datetime.now(pytz.timezone(tz_name)).utcoffset()
+    # Use the utcoffset of the specific time provided, not the current time
+    # to correctly handle DST transitions.
+    tz = pytz.timezone(tz_name)
+    tc_offset = tz.localize(time).utcoffset()
     return time + tc_offset
 
 

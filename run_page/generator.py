@@ -9,6 +9,8 @@ try:
 except ImportError:
     track_loader = None
 
+from sqlalchemy import func
+from polyline_processor import filter_out
 from db import Activity, init_db, update_or_create_activity
 
 from synced_data_file_logger import save_synced_data_file_list
@@ -165,8 +167,8 @@ class Generator:
 
     def get_old_tracks_ids(self):
         try:
-            activities = self.session.query(Activity).all()
-            return [str(a.run_id) for a in activities]
+            # Query only the run_id column for performance
+            return [str(item[0]) for item in self.session.query(Activity.run_id).all()]
         except Exception as e:
             # pass the error
             print(f"something wrong with {str(e)}")
