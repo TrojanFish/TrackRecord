@@ -16,7 +16,7 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import time
 import polyline
-from generator.db import Activity, init_db
+from db import Activity, init_db
 
 # Initialize geocoder
 geocoder = Nominatim(user_agent="running_page_location_fix")

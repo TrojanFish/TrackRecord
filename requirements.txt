@@ -1,15 +1,10 @@
 httpx
 gpxpy==1.6.2
 stravalib==0.10.4
-appdirs>=1.4.0
-svgwrite>=1.1.9
-colour>=0.1.5
-s2sphere
 arrow
 geopy
 polyline
 sqlalchemy
-tzfpy; platform_system != "Windows"
 timezonefinder; platform_system == "Windows"
 pyyaml
 aiofiles
@@ -18,7 +13,6 @@ tcxreader
 rich
 lxml
 eviltransform
-stravaweblib
 tenacity
 numpy
 tzlocal
@@ -28,6 +22,4 @@ haversine==2.9.0
 garth
 pycryptodome
 duckdb
-openai==1.88.0
-# cairosvg
 certifi==2026.2.25

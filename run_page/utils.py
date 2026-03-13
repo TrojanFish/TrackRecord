@@ -5,10 +5,14 @@ from datetime import datetime
 import pytz
 
 try:
+    from db import Activity, init_db, update_or_create_activity
+    pass
+except Exception:
+    pass
+try:
     from rich import print
 except Exception:
     pass
-from generator import Generator
 from stravalib.client import Client
 from stravalib.exc import RateLimitExceeded
 
@@ -75,16 +79,16 @@ def to_date(ts):
         raise ValueError(f"cannot parse timestamp {ts} into date")
 
 
+
+
 def make_activities_file(
     sql_file, data_dir, json_file, file_suffix="gpx", activity_title_dict={}
 ):
+    from generator import Generator
     generator = Generator(sql_file)
     generator.sync_from_data_dir(
         data_dir, file_suffix=file_suffix, activity_title_dict=activity_title_dict
     )
-    activities_list = generator.load()
-    with open(json_file, "w") as f:
-        json.dump(activities_list, f)
 
 
 def make_strava_client(client_id, client_secret, refresh_token):

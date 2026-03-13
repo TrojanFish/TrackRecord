@@ -2,11 +2,14 @@ import os
 import sys
 import subprocess
 import time
+import sqlite3
+from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt, IntPrompt
 from rich.tree import Tree
 from rich import print as rprint
+from rich.table import Table
 
 console = Console()
 
@@ -25,6 +28,14 @@ def show_header():
     )
 
 
+def run_sync_script(cmd):
+    """Run a sync script with run_page in the PYTHONPATH."""
+    env = os.environ.copy()
+    run_page_dir = os.path.abspath("run_page")
+    env["PYTHONPATH"] = run_page_dir + os.pathsep + env.get("PYTHONPATH", "")
+    subprocess.run(cmd, env=env)
+
+
 # --- Sync Handlers ---
 
 
@@ -35,22 +46,22 @@ def handle_xingzhe():
     password = Prompt.ask("  密码 (Password)", password=True)
     cmd = [
         sys.executable,
-        "run_page/xingzhe_sync.py",
+        "run_page/platforms/xingzhe_sync.py",
         "--account",
         account,
         "--password",
         password,
         "--with-gpx",
     ]
-    subprocess.run(cmd)
+    run_sync_script(cmd)
 
 
 def handle_keep():
     console.print("\n[bold green]👟  Keep 同步[/bold green]")
     phone = Prompt.ask("  手机号 (Phone)")
     password = Prompt.ask("  密码 (Password)", password=True)
-    cmd = [sys.executable, "run_page/keep_sync.py", phone, password, "--with-gpx"]
-    subprocess.run(cmd)
+    cmd = [sys.executable, "run_page/platforms/keep_sync.py", phone, password, "--with-gpx"]
+    run_sync_script(cmd)
 
 
 def handle_joyrun():
@@ -59,26 +70,26 @@ def handle_joyrun():
     if mode == "1":
         phone = Prompt.ask("  手机号")
         code = Prompt.ask("  验证码")
-        cmd = [sys.executable, "run_page/joyrun_sync.py", phone, code, "--with-gpx"]
+        cmd = [sys.executable, "run_page/platforms/joyrun_sync.py", phone, code, "--with-gpx"]
     else:
         uid = Prompt.ask("  UID")
         sid = Prompt.ask("  SID")
         cmd = [
             sys.executable,
-            "run_page/joyrun_sync.py",
+            "run_page/platforms/joyrun_sync.py",
             uid,
             sid,
             "--from-uid-sid",
             "--with-gpx",
         ]
-    subprocess.run(cmd)
+    run_sync_script(cmd)
 
 
 def handle_tulip():
     console.print("\n[bold magenta]🌷  郁金香运动 (TulipSport) 同步[/bold magenta]")
     token = Prompt.ask("  Tulip Token")
-    cmd = [sys.executable, "run_page/tulipsport_sync.py", token]
-    subprocess.run(cmd)
+    cmd = [sys.executable, "run_page/platforms/tulipsport_sync.py", token]
+    run_sync_script(cmd)
 
 
 def handle_igpsport():
@@ -87,21 +98,21 @@ def handle_igpsport():
     password = Prompt.ask("  密码", password=True)
     cmd = [
         sys.executable,
-        "run_page/igpsport_sync.py",
+        "run_page/platforms/igpsport_sync.py",
         username,
         password,
         "--with-gpx",
         "--with-fit",
     ]
-    subprocess.run(cmd)
+    run_sync_script(cmd)
 
 
 def handle_onelap():
     console.print("\n[bold purple]🚲  顽鹿 (Onelap) 同步[/bold purple]")
     username = Prompt.ask("  用户名")
     password = Prompt.ask("  密码", password=True)
-    cmd = [sys.executable, "run_page/onelap_sync.py", username, password]
-    subprocess.run(cmd)
+    cmd = [sys.executable, "run_page/platforms/onelap_sync.py", username, password]
+    run_sync_script(cmd)
 
 
 def handle_oppo():
@@ -111,23 +122,23 @@ def handle_oppo():
     r_token = Prompt.ask("  Refresh Token")
     cmd = [
         sys.executable,
-        "run_page/oppo_sync.py",
+        "run_page/platforms/oppo_sync.py",
         c_id,
         c_secret,
         r_token,
         "--with-gpx",
     ]
-    subprocess.run(cmd)
+    run_sync_script(cmd)
 
 
 def handle_garmin():
     console.print("\n[bold blue]⌚  Garmin (佳明) 同步[/bold blue]")
     is_cn = Prompt.ask("  是否为中国区 (CN)?", choices=["y", "n"], default="y") == "y"
     secret = Prompt.ask("  Secret String (从 get_garmin_secret.py 获取)")
-    cmd = [sys.executable, "run_page/garmin_sync.py", secret]
+    cmd = [sys.executable, "run_page/platforms/garmin_sync.py", secret]
     if is_cn:
         cmd.append("--is-cn")
-    subprocess.run(cmd)
+    run_sync_script(cmd)
 
 
 def handle_get_garmin_secret():
@@ -135,17 +146,17 @@ def handle_get_garmin_secret():
     email = Prompt.ask("  Email")
     password = Prompt.ask("  Password", password=True)
     is_cn = Prompt.ask("  是否为中国区 (CN)?", choices=["y", "n"], default="y") == "y"
-    cmd = [sys.executable, "run_page/get_garmin_secret.py", email, password]
+    cmd = [sys.executable, "run_page/tools/get_garmin_secret.py", email, password]
     if is_cn:
         cmd.append("--is-cn")
-    subprocess.run(cmd)
+    run_sync_script(cmd)
 
 
 def handle_nike():
     console.print("\n[bold red]✔  Nike Run Club 同步[/bold red]")
     token = Prompt.ask("  Refresh Token / Access Token")
-    cmd = [sys.executable, "run_page/nike_sync.py", token]
-    subprocess.run(cmd)
+    cmd = [sys.executable, "run_page/platforms/nike_sync.py", token]
+    run_sync_script(cmd)
 
 
 def handle_strava():
@@ -153,65 +164,88 @@ def handle_strava():
     c_id = Prompt.ask("  Client ID")
     c_secret = Prompt.ask("  Client Secret")
     r_token = Prompt.ask("  Refresh Token")
-    cmd = [sys.executable, "run_page/strava_sync.py", c_id, c_secret, r_token]
-    subprocess.run(cmd)
+    cmd = [sys.executable, "run_page/platforms/strava_sync.py", c_id, c_secret, r_token]
+    run_sync_script(cmd)
 
 
 def handle_coros():
     console.print("\n[bold white]⌚  Coros (高跑) 同步[/bold white]")
     account = Prompt.ask("  账号")
     password = Prompt.ask("  密码", password=True)
-    cmd = [sys.executable, "run_page/coros_sync.py", account, password]
-    subprocess.run(cmd)
+    cmd = [sys.executable, "run_page/platforms/coros_sync.py", account, password]
+    run_sync_script(cmd)
 
 
 def handle_komoot():
     console.print("\n[bold green4]🌲  Komoot 同步[/bold green4]")
     email = Prompt.ask("  Email")
     password = Prompt.ask("  Password", password=True)
-    cmd = [sys.executable, "run_page/komoot_sync.py", email, password]
-    subprocess.run(cmd)
+    cmd = [sys.executable, "run_page/platforms/komoot_sync.py", email, password]
+    run_sync_script(cmd)
 
 
 def handle_local_sync(file_type):
     msg = {"gpx": "GPX", "tcx": "TCX", "fit": "FIT"}[file_type]
     console.print(f"\n[bold white]📂  导入本地 {msg} 文件到数据库[/bold white]")
-    cmd = [sys.executable, f"run_page/{file_type}_sync.py"]
-    subprocess.run(cmd)
+    cmd = [sys.executable, f"run_page/platforms/{file_type}_sync.py"]
+    run_sync_script(cmd)
+def handle_stats():
+    console.print("\n[bold spring_green3]📊  运动数据本地统计 (Local Stats)[/bold spring_green3]")
+    db_path = "run_page/data.db"
+    if not os.path.exists(db_path):
+        console.print("[red]错误：数据库文件不存在，请先同步数据。[/red]")
+        return
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+
+        # 1. Total Stats
+        cur.execute(
+            "SELECT COUNT(*), SUM(distance) FROM activities WHERE type IN ('Run', 'Ride', 'Hike', 'Walk')"
+        )
+        count, total_dist = cur.fetchone()
+        total_dist = (total_dist or 0) / 1000.0  # to km
+
+        # 2. Yearly Stats
+        cur.execute(
+            """
+            SELECT strftime('%Y', start_date_local) as year, 
+                   COUNT(*), 
+                   SUM(distance)/1000.0 
+            FROM activities 
+            WHERE type IN ('Run', 'Ride', 'Hike', 'Walk')
+            GROUP BY year 
+            ORDER BY year DESC
+        """
+        )
+        yearly_data = cur.fetchall()
+
+        # Display Total
+        console.print(
+            Panel(
+                f"[bold white]总运动次数:[/bold white] [cyan]{count}[/cyan]\n"
+                f"[bold white]总运动里程:[/bold white] [green]{total_dist:.2f} km[/green]",
+                title="概览 (Overview)",
+                border_style="green",
+            )
+        )
+
+        # Display Table
+        table = Table(title="年度统计 (Yearly Stats)", box=None)
+        table.add_column("年份 (Year)", style="cyan")
+        table.add_column("次数 (Count)", justify="right")
+        table.add_column("里程 (Distance)", justify="right", style="green")
+
+        for year, y_count, y_dist in yearly_data:
+            table.add_row(str(year), str(y_count), f"{y_dist:.2f} km")
+
+        console.print(table)
+        conn.close()
+    except Exception as e:
+        console.print(f"[red]查询数据库时发生错误: {e}[/red]")
 
 
-def handle_analysis():
-    console.print(
-        "\n[bold spring_green3]📊  生成统计图表 (SVG/Analysis)[/bold spring_green3]"
-    )
-    athlete = Prompt.ask("  运动员名称 (Athlete Name)", default="My")
-    console.print("  正在生成地图统计图...")
-    cmd1 = [
-        sys.executable,
-        "run_page/gen_svg.py",
-        "--from-db",
-        "--title",
-        f"{athlete} Running",
-        "--type",
-        "github",
-        "--output",
-        "assets/github.svg",
-    ]
-    subprocess.run(cmd1)
-    console.print("  正在生成热力格图...")
-    cmd2 = [
-        sys.executable,
-        "run_page/gen_svg.py",
-        "--from-db",
-        "--type",
-        "grid",
-        "--output",
-        "assets/grid.svg",
-    ]
-    subprocess.run(cmd2)
-    console.print("  正在生成圆形统计图...")
-    cmd3 = [sys.executable, "run_page/gen_svg.py", "--from-db", "--type", "circular"]
-    subprocess.run(cmd3)
 
 
 # --- Menu Mapping (Adjusted for logic categorization) ---
@@ -257,11 +291,11 @@ MENU_STRUCTURE = {
         ],
     },
     "4": {
-        "label": "🛠️ 工具与可视化 (Tools & Analysis)",
+        "label": "🛠️ 工具与统计 (Tools & Stats)",
         "items": [
             {
-                "name": "生成 SVG 统计图表 (Github/Grid/Circular)",
-                "func": handle_analysis,
+                "name": "查看本地运动统计 (Local Activity Stats)",
+                "func": handle_stats,
             },
             {
                 "name": "获取佳明密钥 (Get Garmin Secret)",
