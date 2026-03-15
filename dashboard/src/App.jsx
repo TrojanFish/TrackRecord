@@ -18,6 +18,7 @@ import Gear from './pages/Gear';
 import MonthlyStats from './pages/MonthlyStats';
 import Challenges from './pages/Challenges';
 import Photos from './pages/Photos';
+import Rewind from './pages/Rewind';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -189,6 +190,7 @@ function App() {
       case 'Stats': return <MonthlyStats stats={stats} renderHeatmap={renderHeatmap} />;
       case 'Challenges': return <Challenges />;
       case 'Photos': return <Photos />;
+      case 'Rewind': return <Rewind stats={stats} />;
       default: return <Dashboard stats={stats} />;
     }
   };

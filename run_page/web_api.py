@@ -60,6 +60,57 @@ def row_to_seconds(val):
     except:
         return 0
 
+def calculate_streaks_detailed(dates):
+    if not dates: return {"day": 0, "week": 0, "month": 0}
+    # Unique sorted dates
+    date_objs = sorted(list(set([datetime.strptime(d, "%Y-%m-%d").date() for d in dates])))
+    
+    # 1. Day Streak
+    max_day_streak = 0
+    curr_day_streak = 0
+    if date_objs:
+        temp = 1
+        for i in range(len(date_objs)-1):
+            if (date_objs[i+1]-date_objs[i]).days == 1:
+                temp += 1
+            else:
+                max_day_streak = max(max_day_streak, temp)
+                temp = 1
+        max_day_streak = max(max_day_streak, temp)
+
+    # 2. Week Streak (ISO Weeks)
+    weeks = sorted(list(set([d.isocalendar()[:2] for d in date_objs]))) # (year, week)
+    max_week_streak = 0
+    if weeks:
+        temp = 1
+        for i in range(len(weeks)-1):
+            # Check if consecutive weeks
+            y1, w1 = weeks[i]
+            y2, w2 = weeks[i+1]
+            if (y1 == y2 and w2 == w1 + 1) or (y2 == y1 + 1 and w1 >= 52 and w2 == 1):
+                temp += 1
+            else:
+                max_week_streak = max(max_week_streak, temp)
+                temp = 1
+        max_week_streak = max(max_week_streak, temp)
+
+    # 3. Month Streak
+    months = sorted(list(set([(d.year, d.month) for d in date_objs])))
+    max_month_streak = 0
+    if months:
+        temp = 1
+        for i in range(len(months)-1):
+            y1, m1 = months[i]
+            y2, m2 = months[i+1]
+            if (y1 == y2 and m2 == m1 + 1) or (y2 == y1 + 1 and m1 == 12 and m2 == 1):
+                temp += 1
+            else:
+                max_month_streak = max(max_month_streak, temp)
+                temp = 1
+        max_month_streak = max(max_month_streak, temp)
+
+    return {"day": max_day_streak, "week": max_week_streak, "month": max_month_streak}
+
 # Global Cache for Strava Clubs (Solves Slowness)
 CLUBS_CACHE = {"data": None, "expiry": 0}
 
@@ -1423,6 +1474,275 @@ def import_challenges(req: TrophyImportRequest):
     if count == 0:
         raise HTTPException(status_code=400, detail="No valid trophies found in the provided HTML.")
     return {"status": "success", "count": count}
+
+@app.get("/api/v1/stats/rewind")
+def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = None):
+    """Detailed annual report data for the Rewind page with comparison support."""
+    conn = get_db_conn()
+    if not conn: return {}
+    
+    try:
+        cur = conn.cursor()
+        athlete = get_athlete_metrics()
+        weight = athlete.get("weight", 70)
+        
+        # Determine target year
+        target_year = year if year else "ALL"
+        
+        # Get Available Years
+        cur.execute("SELECT DISTINCT strftime('%Y', start_date_local) as yr FROM activities WHERE yr IS NOT NULL ORDER BY yr DESC")
+        available_years = [r["yr"] for r in cur.fetchall()]
+
+        def fetch_year_stats(yr):
+            if not yr or yr == "ALL":
+                cur.execute("""
+                    SELECT SUM(distance) as dist, SUM(moving_time) as time, 
+                           SUM(elevation_gain) as elev, COUNT(*) as count
+                    FROM activities
+                """)
+            else:
+                cur.execute("""
+                    SELECT SUM(distance) as dist, SUM(moving_time) as time, 
+                           SUM(elevation_gain) as elev, COUNT(*) as count
+                    FROM activities
+                    WHERE strftime('%Y', start_date_local) = ?
+                """, (str(yr),))
+            row = cur.fetchone()
+            if not row or row["count"] == 0:
+                return {"distance": 0, "hours": 0, "elevation": 0, "count": 0, "calories": 0}
+            
+            dist_km = (row["dist"] or 0) / 1000.0
+            return {
+                "distance": round(dist_km, 1),
+                "hours": round(row_to_seconds(row["time"]) / 3600.0, 1),
+                "elevation": round(row["elev"] or 0),
+                "count": row["count"] or 0,
+                "calories": int(dist_km * weight * 0.82) # Adjusted factor
+            }
+
+        main_stats = fetch_year_stats(target_year)
+        comp_stats = fetch_year_stats(compare_year) if compare_year else None
+        
+        def fetch_carbon(yr):
+            sql = "SELECT type, SUM(distance) as dist FROM activities WHERE 1=1"
+            params = []
+            if yr and yr != "ALL":
+                sql += " AND strftime('%Y', start_date_local) = ?"
+                params.append(str(yr))
+            sql += " GROUP BY type"
+            cur.execute(sql, params)
+            total = 0
+            for r in cur.fetchall():
+                if r["type"] in ["Run", "Walk", "Hike", "TrailRun"]:
+                    total += (r["dist"] / 1000.0) * 0.16 
+                elif r["type"] in ["Ride", "Cycling", "VirtualRide"]:
+                    total += (r["dist"] / 1000.0) * 0.12
+            return round(total, 1)
+
+        carbon_total = fetch_carbon(target_year)
+        comp_carbon = fetch_carbon(compare_year) if compare_year else None
+
+        # Calculate comparison deltas
+        comparison = None
+        if comp_stats and main_stats["count"] > 0:
+            comparison = {
+                "dist_diff": round(main_stats["distance"] - comp_stats["distance"], 1),
+                "count_diff": main_stats["count"] - comp_stats["count"],
+                "elev_diff": main_stats["elevation"] - comp_stats["elevation"],
+                "time_diff": round(main_stats["hours"] - comp_stats["hours"], 1),
+                "cal_diff": main_stats["calories"] - comp_stats["calories"],
+                "carbon_diff": round(carbon_total - comp_carbon, 1) if comp_carbon is not None else 0,
+                "dist_percent": round((main_stats["distance"] / comp_stats["distance"] * 100 - 100), 1) if comp_stats["distance"] > 0 else 100
+            }
+
+        # 2. Gear Usage Hours (Target Year / ALL)
+        gears = athlete.get("gears", [])
+        gear_usage = []
+        for g in gears:
+            g_from = g.get("active_from", "2000-01-01")
+            g_to = g.get("active_to", "2099-12-31")
+            g_original_type = g.get("type", "Run")
+            types = ["Run", "VirtualRun", "TrailRun"] if g_original_type == "Run" else ["Ride", "VirtualRide", "Velomobile"]
+            p = ",".join(["?"] * len(types))
+            
+            if target_year == "ALL":
+                cur.execute(f"SELECT SUM(moving_time) FROM activities WHERE type IN ({p}) AND date(start_date_local) BETWEEN ? AND ?", (*types, g_from, g_to))
+            else:
+                cur.execute(f"SELECT SUM(moving_time) FROM activities WHERE type IN ({p}) AND strftime('%Y', start_date_local) = ? AND date(start_date_local) BETWEEN ? AND ?", (*types, str(target_year), g_from, g_to))
+            
+            t_res = cur.fetchone()[0]
+            hours = row_to_seconds(t_res) / 3600.0
+            if hours > 0:
+                gear_usage.append({"name": g.get("name"), "hours": round(hours, 1)})
+            
+        # 3. Monthly Metrics Matrix
+        mon_filter = "strftime('%Y', start_date_local) = ?" if target_year != "ALL" else "1=1"
+        mon_params = (str(target_year),) if target_year != "ALL" else ()
+        
+        cur.execute(f"""
+            SELECT strftime('%m', start_date_local) as month_num,
+                   COUNT(*) as count, SUM(distance) as dist, SUM(elevation_gain) as elev, SUM(moving_time) as time
+            FROM activities
+            WHERE {mon_filter}
+            GROUP BY month_num
+        """, mon_params)
+        res_map = {r["month_num"]: r for r in cur.fetchall()}
+        
+        # Fetch PRs
+        month_prs = {f"{m:02d}": 0 for m in range(1, 13)}
+        record_configs = [5000, 10000, 21097, 42195, 50000, 100000]
+        for dist_m in record_configs:
+            if target_year == "ALL":
+                cur.execute("""
+                    SELECT strftime('%m', start_date_local) as month
+                    FROM activities WHERE distance >= ?
+                    ORDER BY moving_time ASC LIMIT 1
+                """, (dist_m,))
+            else:
+                cur.execute("""
+                    SELECT strftime('%m', start_date_local) as month
+                    FROM activities 
+                    WHERE distance >= ? AND strftime('%Y', start_date_local) = ?
+                    ORDER BY moving_time ASC LIMIT 1
+                """, (dist_m, str(target_year)))
+            row = cur.fetchone()
+            if row:
+                month_prs[row["month"]] += 1
+
+        monthly_matrix = []
+        months_short = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        for i in range(1, 13):
+            m_num = f"{i:02d}"
+            r = res_map.get(m_num, {"count": 0, "dist": 0, "elev": 0, "time": 0})
+            monthly_matrix.append({
+                "month": months_short[i-1],
+                "count": r["count"],
+                "dist": round((r["dist"] or 0) / 1000.0, 1),
+                "elev": round(r["elev"] or 0),
+                "time": round(row_to_seconds(r["time"]) / 3600.0, 1),
+                "prs": month_prs.get(m_num, 0)
+            })
+
+        # 4. Longest Session
+        if target_year == "ALL":
+            cur.execute("SELECT name, moving_time, distance, date(start_date_local) as date, summary_polyline FROM activities ORDER BY moving_time DESC LIMIT 1")
+        else:
+            cur.execute("SELECT name, moving_time, distance, date(start_date_local) as date, summary_polyline FROM activities WHERE strftime('%Y', start_date_local) = ? ORDER BY moving_time DESC LIMIT 1", (str(target_year),))
+        row = cur.fetchone()
+        longest = dict(row) if row else {"name": "None", "moving_time": "0", "distance": 0, "date": ""}
+        longest["hours"] = round(row_to_seconds(longest.get("moving_time", "0")) / 3600.0, 1)
+        longest["dist_km"] = round((longest.get("distance", 0) or 0) / 1000.0, 1)
+
+        # 5. Streaks (Dynamic based on selected year)
+        if target_year == "ALL":
+            cur.execute("SELECT date(start_date_local) as date FROM activities")
+        else:
+            cur.execute("SELECT date(start_date_local) as date FROM activities WHERE strftime('%Y', start_date_local) = ?", (str(target_year),))
+        filtered_dates = [r["date"] for r in cur.fetchall()]
+        streaks = calculate_streaks_detailed(filtered_dates)
+        
+        # 6. Habit Stats
+        if target_year == "ALL":
+            cur.execute("SELECT COUNT(DISTINCT date(start_date_local)) as active_days FROM activities")
+            active_days = cur.fetchone()["active_days"] or 0
+            # Total days from first activity to now
+            cur.execute("SELECT MIN(date(start_date_local)), MAX(date(start_date_local)) FROM activities")
+            row = cur.fetchone()
+            if row[0]:
+                d1 = dt.date.fromisoformat(row[0])
+                d2 = dt.date.today()
+                total_days = (d2 - d1).days + 1
+            else:
+                total_days = 365
+        else:
+            cur.execute("SELECT COUNT(DISTINCT date(start_date_local)) as active_days FROM activities WHERE strftime('%Y', start_date_local) = ?", (str(target_year),))
+            active_days = cur.fetchone()["active_days"] or 0
+            i_year = int(target_year)
+            total_days = 366 if (i_year % 4 == 0 and (i_year % 100 != 0 or i_year % 400 == 0)) else 365
+            today = dt.date.today()
+            if i_year == today.year:
+                total_days = (today - dt.date(i_year, 1, 1)).days + 1
+
+        # 8. Time of Day
+        tod_sql = "SELECT strftime('%H', start_date_local) as hour, COUNT(*) as count FROM activities WHERE 1=1"
+        tod_params = []
+        if target_year != "ALL":
+            tod_sql += " AND strftime('%Y', start_date_local) = ?"
+            tod_params.append(str(target_year))
+        tod_sql += " GROUP BY hour"
+        
+        cur.execute(tod_sql, tod_params)
+        hours_data = {f"{h:02d}:00": 0 for h in range(24)}
+        for r in cur.fetchall():
+            hours_data[f"{r['hour']}:00"] = r["count"]
+
+        # 9. Locations & Polylines
+        loc_sql = "SELECT location_city, COUNT(*) as count FROM activities WHERE location_city IS NOT NULL"
+        poly_sql = "SELECT summary_polyline FROM activities WHERE summary_polyline IS NOT NULL"
+        loc_params = []
+        poly_params = []
+        
+        if target_year != "ALL":
+            loc_sql += " AND strftime('%Y', start_date_local) = ?"
+            poly_sql += " AND strftime('%Y', start_date_local) = ?"
+            loc_params.append(str(target_year))
+            poly_params.append(str(target_year))
+            
+        loc_sql += " GROUP BY location_city ORDER BY count DESC LIMIT 10"
+        poly_sql += " ORDER BY start_date_local DESC LIMIT 300"
+        
+        cur.execute(loc_sql, loc_params)
+        locations = [dict(r) for r in cur.fetchall()]
+        
+        cur.execute(poly_sql, poly_params)
+        polylines = [r[0] for r in cur.fetchall()]
+
+        # 10. Photos
+        photo_sql = "SELECT id, local_path, remote_url, title, date, type FROM photos WHERE 1=1"
+        photo_params = []
+        if target_year != "ALL":
+            photo_sql += " AND strftime('%Y', date) = ?"
+            photo_params.append(str(target_year))
+        photo_sql += " ORDER BY date DESC LIMIT 10"
+        
+        cur.execute(photo_sql, photo_params)
+        photo_rows = cur.fetchall()
+        photos = []
+        for p in photo_rows:
+            photos.append({
+                "id": p["id"],
+                "url": f"/static/photos/{os.path.basename(p['local_path'])}" if p["local_path"] else p["remote_url"],
+                "title": p["title"],
+                "date": p["date"]
+            })
+        
+        return {
+            "year": target_year,
+            "compare_year": compare_year,
+            "available_years": available_years,
+            "overall": main_stats,
+            "comparison": comparison,
+            "carbon": round(carbon_total, 1),
+            "longest": longest,
+            "streaks": streaks,
+            "habit": {
+                "active_days": active_days,
+                "rest_days": max(0, total_days - active_days),
+                "total_days": total_days
+            },
+            "gear": gear_usage,
+            "monthly": monthly_matrix,
+            "time_of_day": [{"hour": k, "count": v} for k, v in hours_data.items()],
+            "locations": locations,
+            "polylines": polylines,
+            "photos": photos
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     import uvicorn

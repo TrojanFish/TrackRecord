@@ -129,7 +129,7 @@ const Activities = ({ stats }) => {
       className="page-content activity-center"
     >
       {/* Search & Filter Header */}
-      <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+      <div className="platform-card no-lift" style={{ padding: '1.5rem', marginBottom: '2rem', position: 'relative', zIndex: 10 }}>
          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center' }}>
             {/* Search Input */}
             <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
@@ -209,7 +209,7 @@ const Activities = ({ stats }) => {
       </div>
 
       {/* Main Table Container */}
-      <div className="platform-card" style={{ padding: '0', overflowX: 'auto' }}>
+      <div className="platform-card no-lift" style={{ padding: '0', overflowX: 'auto' }}>
         <table className="activities-table">
           <thead>
             <tr>
@@ -234,7 +234,12 @@ const Activities = ({ stats }) => {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.02 }}
-                style={{ borderLeft: `3px solid ${activity.type === 'Run' ? 'var(--accent-cyan)' : '#bd00ff'}` }}
+                onClick={() => {
+                  setSelectedActivity(activity);
+                  setIsModalOpen(true);
+                }}
+                className={`${selectedActivity?.run_id === activity.run_id ? 'selected' : ''} type-${activity.type.toLowerCase()}`}
+                style={{ cursor: 'pointer' }}
               >
                 <td>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>

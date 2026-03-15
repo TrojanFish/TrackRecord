@@ -10,7 +10,12 @@ import {
   ChevronRight,
   TrendingUp,
   History,
-  Settings
+  Settings,
+  Star,
+  Award,
+  Medal,
+  Image,
+  Wrench
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -42,7 +47,8 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
       items: [
         { id: 'Stats', icon: Calendar, label: 'MONTHLY STATS' },
         { id: 'Analytics', icon: TrendingUp, label: 'ANALYTICS' },
-        { id: 'Eddington', icon: Trophy, label: 'EDDINGTON' },
+        { id: 'Rewind', icon: Star, label: 'REWIND' },
+        { id: 'Eddington', icon: Award, label: 'EDDINGTON' },
         { id: 'Heatmap', icon: MapIcon, label: 'HEATMAP' },
         { id: 'Records', icon: History, label: 'BEST EFFORTS' },
       ]
@@ -50,9 +56,9 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
     {
       title: 'SOCIAL & MORE',
       items: [
-        { id: 'Challenges', icon: Trophy, label: 'CHALLENGES' },
-        { id: 'Photos', icon: Layers, label: 'PHOTOS' },
-        { id: 'Gear', icon: Layers, label: 'GEAR' },
+        { id: 'Challenges', icon: Medal, label: 'CHALLENGES' },
+        { id: 'Photos', icon: Image, label: 'PHOTOS' },
+        { id: 'Gear', icon: Wrench, label: 'GEAR' },
       ]
     }
   ];
