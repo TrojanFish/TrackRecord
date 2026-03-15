@@ -808,19 +808,19 @@ body {
 
 /* Heatmap Styles */
 .heatmap-container {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-flow: column;
   gap: 3px;
-  background: var(--bg-card);
-  padding: 1.5rem;
-  border-radius: 1.5rem;
-  border: 1px solid var(--glass-border);
-  margin-bottom: 3rem;
-  justify-content: center;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  margin-bottom: 0;
 }
 
 .heatmap-day {
-  width: 12px;
+  width: 100%;
   height: 12px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.05);
@@ -942,6 +942,47 @@ body {
   text-transform: uppercase;
   letter-spacing: 2px;
   font-size: 0.8rem;
+}
+
+/* Streak Flame Animation */
+@keyframes flame-flicker {
+  0%, 100% { 
+    text-shadow: 0 0 10px rgba(255, 69, 0, 0.5), 0 0 20px rgba(255, 140, 0, 0.3);
+    transform: scale(1);
+  }
+  50% { 
+    text-shadow: 0 0 20px rgba(255, 69, 0, 0.8), 0 0 40px rgba(255, 140, 0, 0.5);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes fire-background {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.stat-card.streak-active {
+  background: linear-gradient(225deg, rgba(255, 69, 0, 0.1), rgba(255, 140, 0, 0.15)) !important;
+  border: 1px solid rgba(255, 69, 0, 0.3) !important;
+  box-shadow: 0 0 30px rgba(255, 69, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card.streak-active .stat-value {
+  background: linear-gradient(90deg, #ff4500, #ff8c00, #ffea00, #ff8c00, #ff4500) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: fire-background 3s linear infinite, flame-flicker 2s ease-in-out infinite !important;
+}
+
+.stat-card.streak-active .stat-sub {
+  color: #ff8c00 !important;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(255, 140, 0, 0.2);
 }
 
 /* Activity Table */

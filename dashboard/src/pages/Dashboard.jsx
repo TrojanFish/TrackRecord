@@ -8,7 +8,8 @@ import {
 import { 
   Zap, Activity, TrendingUp, Trophy, ArrowRight, 
   Calendar, Layers, Map, PieChart as PieIcon, 
-  Heart, Target, Zap as PowerIcon, ChevronRight, Speaker, Volume2, AlertCircle
+  Heart, Target, Zap as PowerIcon, ChevronRight, Speaker, Volume2, AlertCircle, Clock, Wrench,
+  Footprints, Flame, Scale
 } from 'lucide-react';
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
@@ -28,9 +29,10 @@ const item = {
   show: { y: 0, opacity: 1 }
 };
 
-const Dashboard = ({ stats }) => {
+const Dashboard = ({ stats, setActiveTab, renderHeatmap }) => {
   const [showDetail, setShowDetail] = React.useState(false);
   const [detailType, setDetailType] = React.useState(null);
+  const [heatMetric, setHeatMetric] = React.useState('count');
 
   if (!stats) return null;
 
@@ -99,6 +101,12 @@ const Dashboard = ({ stats }) => {
             {currentLoad.tsb.toFixed(1)}
           </span>
           <span className="stat-sub">{currentLoad.tsb > 0 ? 'Fresh / Peak' : 'Fatigued'}</span>
+        </motion.div>
+
+        <motion.div variants={item} className={`platform-card stat-card ${stats.streaks?.current > 0 ? 'streak-active' : ''}`}>
+          <span className="stat-label">CURRENT STREAK</span>
+          <span className="stat-value">{stats.streaks?.current || 0}</span>
+          <span className="stat-sub">🔥 CONSECUTIVE DAYS</span>
         </motion.div>
       </div>
       
@@ -251,6 +259,71 @@ const Dashboard = ({ stats }) => {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </motion.div>
+
+      {/* 2.1 Most Recent Activities (New P0 Widget) */}
+      <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Activity size={22} color="var(--accent-cyan)" /> MOST RECENT ACTIVITIES
+              </h3>
+              <button 
+                onClick={() => setActiveTab && setActiveTab('Activities')}
+                style={{ 
+                  background: 'rgba(255,255,255,0.05)', 
+                  border: '1px solid var(--glass-border)',
+                  padding: '6px 16px',
+                  borderRadius: '10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                VIEW ALL <ArrowRight size={14} />
+              </button>
+          </div>
+          <div className="activity-table-wrapper" style={{ overflowX: 'auto' }}>
+              <table className="activities-table">
+                  <thead>
+                      <tr>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>DATE</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>NAME / LOCATION</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>TYPE</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>DISTANCE</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>MOVING TIME</th>
+                          <th style={{ textAlign: 'left', padding: '12px' }}>PACE / GAP</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {stats.recent_activities?.slice(0, 5).map((act, idx) => (
+                          <tr key={act.run_id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                              <td style={{ fontSize: '0.75rem', opacity: 0.6, padding: '12px' }}>
+                                 {new Date(act.start_date_local).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </td>
+                              <td style={{ fontWeight: 700, padding: '12px' }}>
+                                 <div>{act.name}</div>
+                                 <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400 }}>{act.location_city || 'TrackRecord Studio'}</div>
+                              </td>
+                              <td style={{ padding: '12px' }}><span className={`badge ${act.type.toLowerCase()}`}>{act.type.toUpperCase()}</span></td>
+                              <td style={{ fontWeight: 800, padding: '12px' }}>{(act.distance / 1000).toFixed(2)} KM</td>
+                              <td style={{ padding: '12px' }}>{act.moving_time_display}</td>
+                              <td style={{ padding: '12px' }}>
+                                 <div style={{ fontWeight: 600 }}>{act.gap_pace ? act.gap_pace : '-'}</div>
+                                 {act.average_heartrate > 0 && (
+                                   <div style={{ fontSize: '0.7rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                      <Heart size={10} fill="#ef4444" /> {Math.round(act.average_heartrate)} BPM
+                                   </div>
+                                 )}
+                              </td>
+                          </tr>
+                      ))}
+                  </tbody>
+              </table>
+          </div>
       </motion.div>
 
       {/* 2.5 Smart Advice System */}
@@ -465,26 +538,246 @@ const Dashboard = ({ stats }) => {
           </div>
       </motion.div>
 
+      {/* 5.5 P1 Widgets: Temporal & Distance Analysis */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
+          {/* Weekday Preference */}
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={16} color="var(--accent-cyan)" /> WEEKDAY PREFERENCE
+              </h3>
+              <div style={{ height: '180px' }}>
+                  <ResponsiveContainer>
+                      <BarChart data={stats.weekday_preference}>
+                          <XAxis dataKey="day" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
+                          <Tooltip 
+                             contentStyle={{ background: '#0a1628', border: '1px solid var(--glass-border)', borderRadius: '8px' }}
+                             itemStyle={{ color: 'var(--accent-cyan)' }}
+                          />
+                          <Bar dataKey="count" fill="var(--accent-cyan)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                  </ResponsiveContainer>
+              </div>
+          </motion.div>
+
+          {/* Time Preference */}
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={16} color="#bd00ff" /> TIME OF DAY
+              </h3>
+              <div style={{ height: '180px' }}>
+                  <ResponsiveContainer>
+                      <AreaChart data={stats.time_preference}>
+                          <XAxis dataKey="slot" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} />
+                          <Tooltip 
+                             contentStyle={{ background: '#0a1628', border: '1px solid var(--glass-border)', borderRadius: '8px' }}
+                          />
+                          <Area type="monotone" dataKey="count" stroke="#bd00ff" fill="rgba(189, 0, 255, 0.1)" strokeWidth={2} />
+                      </AreaChart>
+                  </ResponsiveContainer>
+              </div>
+          </motion.div>
+
+          {/* Distance Breakdown */}
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <TrendingUp size={16} color="#f59e0b" /> DISTANCE STRUCTURE
+              </h3>
+              <div style={{ height: '180px' }}>
+                  <ResponsiveContainer>
+                      <BarChart data={stats.distance_breakdown} layout="vertical">
+                          <XAxis type="number" hide />
+                          <YAxis dataKey="label" type="category" stroke="rgba(255,255,255,0.4)" fontSize={9} width={60} tickLine={false} axisLine={false} />
+                          <Tooltip 
+                             contentStyle={{ background: '#0a1628', border: '1px solid var(--glass-border)', borderRadius: '8px' }}
+                          />
+                          <Bar dataKey="count" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={12} />
+                      </BarChart>
+                  </ResponsiveContainer>
+              </div>
+          </motion.div>
+      </div>
+
+      {/* 5.8 P2 Widgets: Gear Health & Power Analytics */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', marginBottom: '2.5rem' }}>
+          {/* Gear Health Monitor */}
+          <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Wrench size={18} color="var(--accent-cyan)" /> GEAR HEALTH MONITOR
+                </h3>
+                <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>MAINTENANCE PREVIEW</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {stats.gear_stats?.slice(0, 3).map((gear, idx) => {
+                      const health = Math.max(0, 100 - (gear.distance / gear.limit) * 100);
+                      return (
+                          <div key={idx} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{gear.name}</span>
+                                  <span style={{ fontSize: '0.75rem', color: health < 15 ? '#ef4444' : (health < 40 ? '#f59e0b' : '#10b981') }}>
+                                      {health.toFixed(0)}% LIFE
+                                  </span>
+                              </div>
+                              <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                                  <motion.div 
+                                      initial={{ width: 0 }}
+                                      animate={{ width: `${100 - health}%` }}
+                                      style={{ 
+                                          height: '100%', 
+                                          background: health < 15 ? '#ef4444' : (health < 40 ? '#f59e0b' : 'var(--accent-cyan)')
+                                      }}
+                                  />
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                                  <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>Used: {gear.distance.toFixed(1)} km</span>
+                                  <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>Limit: {gear.limit} km</span>
+                              </div>
+                          </div>
+                      );
+                  })}
+                  {(!stats.gear_stats || stats.gear_stats.length === 0) && (
+                      <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.4, fontSize: '0.85rem' }}>
+                          No gear data found in settings.
+                      </div>
+                  )}
+              </div>
+          </motion.div>
+
+          {/* Power Analytics */}
+          <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <PowerIcon size={18} color="#f59e0b" /> POWER INTENSITY (CYCLING)
+              </h3>
+              <div style={{ height: '260px' }}>
+                  <ResponsiveContainer>
+                      <BarChart data={stats.power_distribution}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                          <XAxis dataKey="power_zone" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} />
+                          <Tooltip 
+                             contentStyle={{ background: '#0a1628', border: '1px solid var(--glass-border)', borderRadius: '12px' }}
+                          />
+                          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                              {stats.power_distribution?.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={index === 2 ? '#ef4444' : (index === 1 ? '#f59e0b' : 'var(--accent-cyan)')} />
+                              ))}
+                          </Bar>
+                      </BarChart>
+                  </ResponsiveContainer>
+              </div>
+          </motion.div>
+      </div>
+
+      {/* 5.9 P3 Widgets: Bio-Analytics */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2.5rem', marginBottom: '2.5rem' }}>
+          {/* Bio Summary Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px', color: '#10b981' }}>
+                          <Footprints size={20} />
+                      </div>
+                      <div>
+                          <div style={{ fontSize: '0.65rem', opacity: 0.5, letterSpacing: '1px' }}>{stats.bio_stats?.cadence_type?.includes('RUNNING') ? 'ESTIMATED STEPS' : 'TOTAL REVOLUTIONS'}</div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{stats.bio_stats?.estimated_steps?.toLocaleString()}</div>
+                      </div>
+                  </div>
+              </motion.div>
+              
+              <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', color: '#ef4444' }}>
+                          <Flame size={20} />
+                      </div>
+                      <div>
+                          <div style={{ fontSize: '0.65rem', opacity: 0.5, letterSpacing: '1px' }}>TOTAL CALORIES</div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{stats.bio_stats?.total_calories?.toLocaleString()} <small style={{ fontSize: '0.7rem', opacity: 0.4 }}>KCAL</small></div>
+                      </div>
+                  </div>
+              </motion.div>
+
+              <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ padding: '10px', background: 'rgba(6, 182, 212, 0.1)', borderRadius: '10px', color: 'var(--accent-cyan)' }}>
+                          <Scale size={20} />
+                      </div>
+                      <div>
+                          <div style={{ fontSize: '0.65rem', opacity: 0.5, letterSpacing: '1px' }}>ATHLETE WEIGHT</div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{stats.bio_stats?.weight} <small style={{ fontSize: '0.7rem', opacity: 0.4 }}>KG</small></div>
+                      </div>
+                  </div>
+              </motion.div>
+          </div>
+
+          {/* Cadence Distribution */}
+          <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                  <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Activity size={18} color="#10b981" /> {stats.bio_stats?.cadence_type || 'CADENCE PROFILE'}
+                  </h3>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>{stats.bio_stats?.cadence_type?.includes('RUNNING') ? 'STEPS PER MINUTE (SPM)' : 'REVOLUTIONS PER MINUTE (RPM)'}</span>
+              </div>
+              <div style={{ height: '260px' }}>
+                  <ResponsiveContainer>
+                      <BarChart data={stats.bio_stats?.cadence_distribution}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                          <XAxis dataKey="label" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} />
+                          <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} />
+                          <Tooltip 
+                             contentStyle={{ background: '#0a1628', border: '1px solid var(--glass-border)', borderRadius: '12px' }}
+                             itemStyle={{ color: '#10b981' }}
+                          />
+                          <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} />
+                      </BarChart>
+                  </ResponsiveContainer>
+              </div>
+          </motion.div>
+      </div>
+
       {/* 6. Activity Contribution Grid Widget */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
                 <Map size={18} color="var(--accent-cyan)" /> YEARLY ACTIVITY CONTRIBUTION
               </h3>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                  {[0, 1, 2, 3, 4].map(l => (
-                      <div key={l} className={`heatmap-day level-${l}`} style={{ width: '10px', height: '10px' }}></div>
-                  ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                  {/* Metric Toggle */}
+                  <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+                    {['count', 'dist', 'time', 'elev', 'cal'].map(m => (
+                        <button
+                            key={m}
+                            onClick={() => setHeatMetric(m)}
+                            style={{
+                                padding: '4px 10px',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: heatMetric === m ? 'var(--accent-cyan)' : 'transparent',
+                                color: heatMetric === m ? '#000' : 'var(--text-secondary)',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {m === 'count' ? 'SESSIONS' : m.toUpperCase()}
+                        </button>
+                    ))}
+                  </div>
+                  
+                  {/* Legend */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.4 }}>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>LESS</span>
+                      <div style={{ display: 'flex', gap: '3px' }}>
+                          {[0, 1, 2, 3, 4].map(l => (
+                              <div key={l} className={`heatmap-day level-${l}`} style={{ width: '8px', height: '8px' }}></div>
+                          ))}
+                      </div>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>MORE</span>
+                  </div>
               </div>
           </div>
-          <div className="heatmap-container" style={{ margin: 0, padding: '0.5rem', background: 'none', border: 'none' }}>
-              {Object.entries(stats.heatmap || {}).slice(-200).map(([date, count]) => (
-                <div 
-                    key={date} 
-                    className={`heatmap-day ${getLevel(count)}`} 
-                    title={`${date}: ${count} activities`}
-                />
-              ))}
+          <div style={{ padding: '0.5rem 0' }}>
+              {renderHeatmap(heatMetric)}
           </div>
       </motion.div>
 

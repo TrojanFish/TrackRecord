@@ -7,7 +7,26 @@ import {
 import { Calendar, Activity, Zap, Layers, TrendingUp, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const Analytics = ({ stats }) => {
+  const [activeMetric, setActiveMetric] = React.useState('dist'); // 'dist', 'time', 'elev'
+  const [hiddenYears, setHiddenYears] = React.useState(new Set());
+
   if (!stats) return null;
+
+  const toggleYear = (year) => {
+    const newHidden = new Set(hiddenYears);
+    if (newHidden.has(year)) {
+        newHidden.delete(year);
+    } else {
+        newHidden.add(year);
+    }
+    setHiddenYears(newHidden);
+  };
+
+  const metricLabel = {
+      dist: 'DISTANCE (KM)',
+      time: 'TIME (HOURS)',
+      elev: 'ELEVATION (M)'
+  };
 
   return (
     <motion.div 
@@ -17,9 +36,32 @@ const Analytics = ({ stats }) => {
     >
       {/* YoY Progress Chart */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <TrendingUp size={20} color="var(--accent-cyan)" /> YEAR-OVER-YEAR CUMULATIVE DISTANCE (KM)
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.2rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <TrendingUp size={20} color="var(--accent-cyan)" /> YEAR-OVER-YEAR CUMULATIVE {metricLabel[activeMetric]}
+            </h3>
+            <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+                {['dist', 'time', 'elev'].map(m => (
+                    <button
+                        key={m}
+                        onClick={() => setActiveMetric(m)}
+                        style={{
+                            padding: '6px 12px',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: activeMetric === m ? 'var(--accent-cyan)' : 'transparent',
+                            color: activeMetric === m ? '#000' : 'var(--text-secondary)',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {m.toUpperCase()}
+                    </button>
+                ))}
+            </div>
+        </div>
         <div style={{ height: '400px', width: '100%' }}>
           <ResponsiveContainer>
             <LineChart data={stats.yoy_cumulative}>
@@ -29,16 +71,32 @@ const Analytics = ({ stats }) => {
               <Tooltip 
                 contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
               />
-              <Legend verticalAlign="top" height={36}/>
+              <Legend 
+                verticalAlign="top" 
+                height={36} 
+                onClick={(e) => toggleYear(e.dataKey.split('_')[0])}
+                formatter={(value) => (
+                    <span style={{ 
+                        color: hiddenYears.has(value.split('_')[0]) ? '#444' : 'var(--text-primary)',
+                        textDecoration: hiddenYears.has(value.split('_')[0]) ? 'line-through' : 'none',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 600
+                    }}>
+                        {value.split('_')[0]}
+                    </span>
+                )}
+              />
               {stats.available_years?.map((year, idx) => (
                 <Line 
                   key={year} 
                   type="monotone" 
-                  dataKey={year} 
+                  dataKey={`${year}_${activeMetric}`} 
                   stroke={idx === stats.available_years.length - 1 ? 'var(--accent-cyan)' : (`hsl(${idx * 45}, 70%, 50%)`)} 
                   strokeWidth={idx === stats.available_years.length - 1 ? 4 : 1.5}
                   dot={false}
-                  name={`${year} Progress`}
+                  name={year}
+                  hide={hiddenYears.has(year)}
                 />
               ))}
             </LineChart>
@@ -56,7 +114,7 @@ const Analytics = ({ stats }) => {
             <ResponsiveContainer>
               <BarChart data={stats.weekday_preference?.map(d => ({ 
                 ...d, 
-                name: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.weekday] 
+                name: d.day || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.weekday] 
               }))}>
                 <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis hide />

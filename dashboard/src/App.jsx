@@ -49,20 +49,122 @@ function App() {
   };
 
 
-  const renderHeatmap = () => {
+  const renderHeatmap = (activeMetric = 'count') => {
     const days = [];
     const today = new Date();
-    for (let i = 365; i >= 0; i--) {
+    
+    // Calculate max value for the active metric to determine levels
+    const values = Object.values(stats.heatmap || {}).map(d => d[activeMetric] || 0);
+    const maxVal = Math.max(...values, 1);
+    
+    const getMetricLevel = (val) => {
+        if (!val) return '';
+        if (activeMetric === 'count') {
+            if (val >= 4) return 'level-4';
+            if (val >= 3) return 'level-3';
+            if (val >= 2) return 'level-2';
+            return 'level-1';
+        }
+        // For other metrics, use quartiles
+        const p = val / maxVal;
+        if (p > 0.75) return 'level-4';
+        if (p > 0.5) return 'level-3';
+        if (p > 0.25) return 'level-2';
+        return 'level-1';
+    };
+
+    const unitMap = { count: 'activities', dist: 'KM', time: 'h', elev: 'm', cal: 'kcal' };
+
+    const monthLabels = [];
+    let lastMonth = -1;
+
+    // Start from Sunday 52 weeks ago to align the grid perfectly
+    const daysToShow = 364 + today.getDay(); 
+
+    for (let i = daysToShow; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      const count = stats.heatmap[dateStr] || 0;
-      const colorClass = count >= 5 ? 'level-4' : count >= 3 ? 'level-3' : count >= 2 ? 'level-2' : count >= 1 ? 'level-1' : '';
+      const data = stats.heatmap[dateStr] || { count: 0, dist: 0, time: 0, elev: 0, cal: 0 };
+      const val = data[activeMetric] || 0;
+      
+      // Calculate month labels for top row
+      if (date.getDay() === 0) { // Start of a week (column)
+        const currentMonth = date.getMonth();
+        if (currentMonth !== lastMonth) {
+          monthLabels.push(
+            <div key={dateStr} style={{ 
+              gridColumn: `span 1`, 
+              fontSize: '0.65rem', 
+              opacity: 0.4, 
+              fontWeight: 800,
+              textAlign: 'left'
+            }}>
+              {date.toLocaleString('en-US', { month: 'short' })}
+            </div>
+          );
+          lastMonth = currentMonth;
+        } else {
+          monthLabels.push(<div key={`empty-${dateStr}`} />);
+        }
+      }
+
       days.push(
-        <div key={dateStr} className={`heatmap-day ${colorClass}`} title={`${dateStr}: ${count} activities`} />
+        <div 
+            key={dateStr} 
+            className={`heatmap-day ${getMetricLevel(val)}`} 
+            title={`${dateStr}: ${val}${unitMap[activeMetric]} (${data.count} activities)`} 
+        />
       );
     }
-    return days;
+
+    return (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', paddingBottom: '10px' }}>
+            {/* Week Labels Column */}
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateRows: '20px repeat(7, 12px)', 
+                gap: '3px',
+                fontSize: '0.6rem', 
+                opacity: 0.3,
+                fontWeight: 800,
+                marginTop: '1px',
+                textAlign: 'right',
+                width: '24px',
+                flexShrink: 0
+            }}>
+                <div style={{ height: '20px' }}></div>
+                <div>Sun</div>
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+            </div>
+
+            <div style={{ flex: 1 }}>
+                {/* Month Labels Row */}
+                <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(53, 1fr)', 
+                    gap: '3px',
+                    height: '20px',
+                    marginBottom: '4px'
+                }}>
+                    {monthLabels}
+                </div>
+                {/* Heatmap Grid */}
+                <div className="heatmap-container" style={{ 
+                    gridTemplateColumns: 'repeat(53, 1fr)',
+                    gridTemplateRows: 'repeat(7, 12px)',
+                    gap: '3px'
+                }}>
+                    {days}
+                </div>
+            </div>
+        </div>
+    );
   };
 
   if (loading) {
@@ -77,7 +179,7 @@ function App() {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'Overview': return <Dashboard stats={stats} />;
+      case 'Overview': return <Dashboard stats={stats} setActiveTab={setActiveTab} renderHeatmap={renderHeatmap} />;
       case 'Activities': return <Activities stats={stats} />;
       case 'Analytics': return <Analytics stats={stats} />;
       case 'Eddington': return <Eddington stats={stats} />;

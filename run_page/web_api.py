@@ -7,6 +7,7 @@ import asyncio
 import time
 import yaml
 from datetime import datetime
+import datetime as dt
 from typing import List, Optional, Dict
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,13 +47,16 @@ def row_to_seconds(val):
     if not val:
         return 0
     try:
-        if isinstance(val, str) and ":" in val:
-            parts = val.split(':')
-            if len(parts) == 3:
-                return int(parts[0])*3600 + int(parts[1])*60 + int(parts[2])
-            elif len(parts) == 2:
-                return int(parts[0])*60 + int(parts[1])
-        return int(val)
+        if isinstance(val, str):
+            if " " in val: val = val.split(" ")[1] # Handle 1970-01-01 prefix
+            if "." in val: val = val.split(".")[0] # Handle .000 fractional
+            if ":" in val:
+                parts = val.split(':')
+                if len(parts) == 3:
+                    return int(parts[0])*3600 + int(parts[1])*60 + int(parts[2])
+                elif len(parts) == 2:
+                    return int(parts[0])*60 + int(parts[1])
+        return int(float(val))
     except:
         return 0
 
@@ -333,41 +337,96 @@ def get_sports_stats():
         """)
         yearly = {row["year"]: {"count": row["count"], "distance": row["dist"] / 1000.0} for row in cur.fetchall()}
         
-        # 4. Heatmap Data (Activity count per day for the last 365 days)
+        # 4. Heatmap Data (Multi-metric per day for the last 365 days)
         cur.execute("""
-            SELECT date(start_date_local) as date, COUNT(*) as count 
+            SELECT date(start_date_local) as date, 
+                   type,
+                   distance,
+                   moving_time,
+                   elevation_gain
             FROM activities 
             WHERE start_date_local > date('now', '-1 year')
-            GROUP BY date
         """)
-        heatmap = {row["date"]: row["count"] for row in cur.fetchall()}
+        heatmap_rows = cur.fetchall()
+        weight = athlete_metrics.get("weight", 70)
+        heatmap_data = {}
+        for r in heatmap_rows:
+            d = r["date"]
+            if d not in heatmap_data:
+                heatmap_data[d] = {"count": 0, "dist": 0, "time": 0, "elev": 0, "cal": 0}
+            
+            heatmap_data[d]["count"] += 1
+            heatmap_data[d]["dist"] += (r["distance"] or 0) / 1000.0
+            heatmap_data[d]["time"] += row_to_seconds(r["moving_time"]) / 3600.0
+            heatmap_data[d]["elev"] += r["elevation_gain"] or 0
+            
+            # Calorie formula
+            d_km = (r["distance"] or 0) / 1000.0
+            if r["type"] in ['Run', 'TrailRun', 'VirtualRun']:
+                heatmap_data[d]["cal"] += d_km * weight * 1.036
+            else:
+                heatmap_data[d]["cal"] += d_km * weight * 0.5
+        
+        # Round values for clean JSON
+        for d in heatmap_data:
+            heatmap_data[d]["dist"] = round(heatmap_data[d]["dist"], 2)
+            heatmap_data[d]["time"] = round(heatmap_data[d]["time"], 2)
+            heatmap_data[d]["elev"] = round(heatmap_data[d]["elev"], 1)
+            heatmap_data[d]["cal"] = round(heatmap_data[d]["cal"], 0)
+            
+        heatmap = heatmap_data
         
         # heatmap = {row["date"]: row["count"] for row in cur.fetchall()}
         
         # 5. Professional Analytics Enhancements
-        # Monthly Trends for the last 12 months
-        cur.execute("""
-            SELECT strftime('%Y-%m', start_date_local) as month,
-                   SUM(distance) as total_dist,
-                   COUNT(*) as count
-            FROM activities
-            WHERE start_date_local > date('now', '-365 days')
-            GROUP BY month
-            ORDER BY month ASC
-        """)
-        monthly_trends = [dict(row) for row in cur.fetchall()]
+        # Monthly Trends for the last 12 months (Dynamic range)
+        monthly_data = []
+        import datetime
+        today = datetime.date.today()
+        for i in range(11, -1, -1):
+            # Calculate year and month for the target month
+            y = today.year
+            m = today.month - i
+            while m <= 0:
+                m += 12
+                y -= 1
+            
+            m_key = f"{y}-{m:02d}"
+            cur.execute("""
+                SELECT SUM(distance) as dist, COUNT(*) as count 
+                FROM activities 
+                WHERE strftime('%Y-%m', start_date_local) = ?
+            """, (m_key,))
+            row = cur.fetchone()
+            
+            monthly_data.append({
+                "month": datetime.date(y, m, 1).strftime("%b %Y"),
+                "total_dist": round((row["dist"] or 0) / 1000.0, 1),
+                "count": row["count"] or 0
+            })
+        monthly_trends = monthly_data
 
-        # Weekly Trends for the last 12 weeks
-        cur.execute("""
-            SELECT strftime('%Y-%W', start_date_local) as week,
-                   SUM(distance) as total_dist,
-                   COUNT(*) as count
-            FROM activities
-            WHERE start_date_local > date('now', '-84 days')
-            GROUP BY week
-            ORDER BY week ASC
-        """)
-        weekly_trends = [dict(row) for row in cur.fetchall()]
+        # Weekly Trends for the last 12 weeks (Continuous)
+        weekly_data = []
+        # Start from the Monday of the current week
+        current_monday = today - datetime.timedelta(days=today.weekday())
+        for i in range(11, -1, -1):
+            week_start = current_monday - datetime.timedelta(weeks=i)
+            week_end = week_start + datetime.timedelta(days=6)
+            
+            cur.execute("""
+                SELECT SUM(distance) as dist, COUNT(*) as count 
+                FROM activities 
+                WHERE date(start_date_local) >= ? AND date(start_date_local) <= ?
+            """, (week_start.isoformat(), week_end.isoformat()))
+            row = cur.fetchone()
+            
+            weekly_data.append({
+                "week": week_start.strftime("%b %d"),
+                "total_dist": round((row["dist"] or 0) / 1000.0, 1),
+                "count": row["count"] or 0
+            })
+        weekly_trends = weekly_data
 
         # Breakdown by Sport Type
         cur.execute("""
@@ -438,14 +497,35 @@ def get_sports_stats():
             SELECT date(start_date_local) as date,
                    SUM(distance) as dist,
                    SUM(moving_time) as time,
+                   COALESCE(SUM(elevation_gain), 0) as elev,
                    COUNT(*) as count,
                    type
             FROM activities
-            WHERE start_date_local > date('now', '-365 days')
             GROUP BY date, type
             ORDER BY date ASC
         """)
         daily_stats = [dict(row) for row in cur.fetchall()]
+
+        # 5.8 Trophy Counts per month
+        cur.execute("SELECT month FROM trophies")
+        trophy_months = cur.fetchall()
+        # Convert "Mar 2026" to "2026-03"
+        month_map_names = {
+            "Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
+            "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12",
+            "January": "01", "February": "02", "March": "03", "April": "04", "May": "05", "June": "06",
+            "July": "07", "August": "08", "September": "09", "October": "10", "November": "11", "December": "12"
+        }
+        trophies_by_month = {}
+        for row in trophy_months:
+            m_str = row["month"] # e.g. "Mar 2026"
+            try:
+                parts = m_str.split(" ")
+                if len(parts) == 2:
+                    m_key = f"{parts[1]}-{month_map_names.get(parts[0], '01')}"
+                    trophies_by_month[m_key] = trophies_by_month.get(m_key, 0) + 1
+            except:
+                pass
         # Definition: Maximum integer E such that you have at least E days with >= E km.
         def calculate_eddington_detailed(sport_types):
             placeholder = ', '.join(['?'] * len(sport_types))
@@ -488,18 +568,20 @@ def get_sports_stats():
         eddington_run = calculate_eddington_detailed(['Run', 'VirtualRun', 'TrailRun'])
         eddington_ride = calculate_eddington_detailed(['Ride', 'VirtualRide', 'Velomobile'])
 
-        # 7. YoY Cumulative Distance (Year-over-Year)
+        # 7. YoY Cumulative Stats (Distance, Time, Elevation)
         cur.execute("""
             SELECT strftime('%Y', start_date_local) as year,
                    CAST(strftime('%j', start_date_local) AS INTEGER) as day_of_year,
-                   SUM(distance) as daily_dist
+                   SUM(distance) as daily_dist,
+                   SUM(moving_time) as daily_time,
+                   SUM(elevation_gain) as daily_elev
             FROM activities
             GROUP BY year, day_of_year
             ORDER BY year ASC, day_of_year ASC
         """)
         yoy_raw = cur.fetchall()
         
-        # Organize data into a map: year -> day -> distance
+        # Organize data into a map: year -> day -> stats
         yoy_map = {}
         all_years = []
         for r in yoy_raw:
@@ -507,25 +589,29 @@ def get_sports_stats():
             if yr not in yoy_map:
                 yoy_map[yr] = {}
                 all_years.append(yr)
-            yoy_map[yr][r["day_of_year"]] = r["daily_dist"] / 1000.0
+            yoy_map[yr][r["day_of_year"]] = {
+                "dist": r["daily_dist"] / 1000.0,
+                "time": row_to_seconds(r["daily_time"]) / 3600.0,
+                "elev": r["daily_elev"] or 0
+            }
         
         # Build the final cumulative series
         yoy_cumulative = []
-        current_totals = {yr: 0 for yr in all_years}
+        current_totals = {yr: {"dist": 0, "time": 0, "elev": 0} for yr in all_years}
         
-        # Iterate through every day of the year (1-366)
         for day in range(1, 367):
             day_data = {"day": day}
-            has_data = False
             for yr in all_years:
-                # Add today's distance to this year's running total
-                current_totals[yr] += yoy_map.get(yr, {}).get(day, 0)
-                # Only include in chart if this day is within the current year's progress
-                # or it's a past year (complete)
-                day_data[yr] = round(current_totals[yr], 2)
-                has_data = True
+                stats_val = yoy_map.get(yr, {}).get(day, {"dist": 0, "time": 0, "elev": 0})
+                current_totals[yr]["dist"] += stats_val["dist"]
+                current_totals[yr]["time"] += stats_val["time"]
+                current_totals[yr]["elev"] += stats_val["elev"]
+                
+                day_data[f"{yr}_dist"] = round(current_totals[yr]["dist"], 2)
+                day_data[f"{yr}_time"] = round(current_totals[yr]["time"], 2)
+                day_data[f"{yr}_elev"] = round(current_totals[yr]["elev"], 1)
             
-            # Sampling: Take every 5th day + the very last day to reduce payload size
+            # Sampling: Take every 5th day + the very last day
             if day % 5 == 0 or day == 1 or day == 365 or day == 366:
                 yoy_cumulative.append(day_data)
 
@@ -758,25 +844,126 @@ def get_sports_stats():
         athlete_metrics = get_athlete_metrics()
 
         # 15. Time & Weekday Preferences
-        time_preference = [
-            dict(row) for row in cur.execute("""
-                SELECT (CAST(strftime('%H', start_date_local) AS INTEGER) / 2) * 2 as slot,
-                       COUNT(*) as count
-                FROM activities
-                GROUP BY slot
-                ORDER BY slot ASC
-            """).fetchall()
-        ]
+        time_raw = cur.execute("""
+            SELECT (CAST(strftime('%H', start_date_local) AS INTEGER) / 2) * 2 as slot,
+                   COUNT(*) as count
+            FROM activities
+            GROUP BY slot
+            ORDER BY slot ASC
+        """).fetchall()
         
-        weekday_preference = [
-            dict(row) for row in cur.execute("""
-                SELECT CAST(strftime('%w', start_date_local) AS INTEGER) as weekday,
-                       COUNT(*) as count
-                FROM activities
-                GROUP BY weekday
-                ORDER BY weekday ASC
-            """).fetchall()
+        time_labels = {i: f"{i:02d}:00" for i in range(0, 24, 2)}
+        time_preference = []
+        for i in range(0, 24, 2):
+            count = next((r["count"] for r in time_raw if r["slot"] == i), 0)
+            time_preference.append({"slot": time_labels[i], "count": count})
+        
+        weekday_raw = cur.execute("""
+            SELECT CAST(strftime('%w', start_date_local) AS INTEGER) as weekday,
+                   COUNT(*) as count
+            FROM activities
+            GROUP BY weekday
+            ORDER BY weekday ASC
+        """).fetchall()
+        
+        day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        weekday_preference = []
+        for i in range(7):
+            count = next((r["count"] for r in weekday_raw if r["weekday"] == i), 0)
+            weekday_preference.append({"day": day_names[i], "count": count, "weekday": i})
+
+        # 15.5 Distance Breakdown Histogram
+        dist_raw = [r["dist"] / 1000.0 for r in cur.execute("SELECT distance as dist FROM activities").fetchall()]
+        dist_bins = [
+            {"label": "0-5km", "min": 0, "max": 5, "count": 0},
+            {"label": "5-10km", "min": 5, "max": 10, "count": 0},
+            {"label": "10-21km", "min": 10, "max": 21, "count": 0},
+            {"label": "21-42km", "min": 21, "max": 42.2, "count": 0},
+            {"label": "42km+", "min": 42.2, "max": 99999, "count": 0},
         ]
+        for d in dist_raw:
+            for b in dist_bins:
+                if b["min"] <= d < b["max"]:
+                    b["count"] += 1
+                    break
+        distance_breakdown = dist_bins
+
+        # 16. Bio-Analytics (P3)
+        athlete_weight = athlete_metrics.get("athlete", {}).get("weight", 70)
+        
+        # 16.1 Cadence Distribution (Dynamic)
+        run_cadence_raw = cur.execute("""
+            SELECT average_cadence FROM activities 
+            WHERE type IN ('Run', 'VirtualRun', 'TrailRun') AND average_cadence > 0
+        """).fetchall()
+        
+        ride_cadence_raw = cur.execute("""
+            SELECT average_cadence FROM activities 
+            WHERE type IN ('Ride', 'VirtualRide') AND average_cadence > 0
+        """).fetchall()
+        
+        has_run_cadence = len(run_cadence_raw) > 0
+        
+        if has_run_cadence:
+            cadence_bins = [
+                {"label": "<150", "min": 0, "max": 150, "count": 0},
+                {"label": "150-160", "min": 150, "max": 160, "count": 0},
+                {"label": "160-170", "min": 160, "max": 170, "count": 0},
+                {"label": "170-180", "min": 170, "max": 180, "count": 0},
+                {"label": "180-190", "min": 180, "max": 190, "count": 0},
+                {"label": "190+", "min": 190, "max": 999, "count": 0}
+            ]
+            for row in run_cadence_raw:
+                c = row["average_cadence"]
+                if c < 120: c = c * 2
+                for b in cadence_bins:
+                    if b["min"] <= c < b["max"]:
+                        b["count"] += 1
+                        break
+            cadence_type = "RUNNING (SPM)"
+        else:
+            cadence_bins = [
+                {"label": "<70", "min": 0, "max": 70, "count": 0},
+                {"label": "70-80", "min": 70, "max": 80, "count": 0},
+                {"label": "80-90", "min": 80, "max": 90, "count": 0},
+                {"label": "90-100", "min": 90, "max": 100, "count": 0},
+                {"label": "100-110", "min": 100, "max": 110, "count": 0},
+                {"label": "110+", "min": 110, "max": 999, "count": 0}
+            ]
+            for row in ride_cadence_raw:
+                c = row["average_cadence"]
+                for b in cadence_bins:
+                    if b["min"] <= c < b["max"]:
+                        b["count"] += 1
+                        break
+            cadence_type = "CYCLING (RPM)"
+        
+        # 16.2 Total Energy Output (Calories) & Steps
+        cur.execute("SELECT average_cadence, moving_time, type FROM activities WHERE average_cadence > 0")
+        rows = cur.fetchall()
+        total_steps = 0
+        for r in rows:
+            c = r["average_cadence"]
+            if r["type"] in ["Run", "TrailRun", "VirtualRun"] and c < 120: c = c * 2
+            sec = row_to_seconds(r["moving_time"])
+            total_steps += (c * sec / 60.0)
+            
+        # 16.3 Estimated Calories
+        total_calories = 0
+        for row in cur.execute("SELECT distance, type FROM activities").fetchall():
+            d_km = row["distance"] / 1000.0
+            if row["type"] in ["Run", "TrailRun", "VirtualRun"]:
+                total_calories += d_km * athlete_weight * 1.036
+            else:
+                total_calories += d_km * athlete_weight * 0.5
+        
+        bio_stats = {
+            "estimated_steps": int(total_steps),
+            "total_calories": int(total_calories),
+            "cadence_distribution": cadence_bins,
+            "cadence_type": cadence_type,
+            "weight": athlete_weight
+        }
 
         # 12. Dynamic Gear & Equipment Calculation
         gear_stats = []
@@ -937,6 +1124,38 @@ def get_sports_stats():
                 "time": time_str
             })
 
+        # 16. Streak Calculation
+        streak_dates = sorted(list(set(r["date"] for r in daily_stats)))
+        cur_streak = 0
+        max_streak = 0
+        if streak_dates:
+            today_str = dt.date.today().isoformat()
+            yesterday_str = (dt.date.today() - dt.timedelta(days=1)).isoformat()
+            
+            # Check if current streak exists (today or yesterday active)
+            if streak_dates[-1] == today_str or streak_dates[-1] == yesterday_str:
+                temp_s = 1
+                for i in range(len(streak_dates) - 1, 0, -1):
+                    d1 = dt.datetime.strptime(streak_dates[i], "%Y-%m-%d").date()
+                    d2 = dt.datetime.strptime(streak_dates[i-1], "%Y-%m-%d").date()
+                    if (d1 - d2).days == 1:
+                        temp_s += 1
+                    else:
+                        break
+                cur_streak = temp_s
+            
+            # Max streak
+            temp_s = 1
+            for i in range(len(streak_dates) - 1):
+                d1 = dt.datetime.strptime(streak_dates[i], "%Y-%m-%d").date()
+                d2 = dt.datetime.strptime(streak_dates[i+1], "%Y-%m-%d").date()
+                if (d2 - d1).days == 1:
+                    temp_s += 1
+                else:
+                    max_streak = max(max_streak, temp_s)
+                    temp_s = 1
+            max_streak = max(max_streak, temp_s)
+
         # Final Return Object
         return {
             "total_distance": (agg["dist"] or 0) / 1000.0,
@@ -949,6 +1168,10 @@ def get_sports_stats():
             "eddington": {
                 "Run": eddington_run,
                 "Ride": eddington_ride
+            },
+            "streaks": {
+                "current": cur_streak,
+                "max": max_streak
             },
             "yoy_cumulative": yoy_cumulative,
             "available_years": all_years,
@@ -963,9 +1186,12 @@ def get_sports_stats():
             "gear_stats": gear_stats,
             "time_preference": time_preference,
             "weekday_preference": weekday_preference,
+            "distance_breakdown": distance_breakdown,
             "training_load": training_series,
             "records_trends": records_trends,
             "daily_stats": daily_stats,
+            "bio_stats": bio_stats,
+            "trophies_by_month": trophies_by_month,
             "period_comparison": period_comparison,
             "goals": goals,
             "photos_count": cur.execute("SELECT COUNT(*) FROM photos").fetchone()[0] if conn else 0,

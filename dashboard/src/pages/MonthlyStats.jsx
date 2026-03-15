@@ -5,22 +5,41 @@ import {
   CartesianGrid, PieChart, Pie, Cell 
 } from 'recharts';
 import { 
-  Calendar, Activity, TrendingUp, Clock, ChevronLeft, ChevronRight 
+  Calendar, Activity, TrendingUp, Clock, ChevronLeft, ChevronRight, Trophy, Zap, Flame 
 } from 'lucide-react';
 
 const COLORS = ['var(--accent-cyan)', '#bd00ff', '#3b82f6', '#f59e0b', '#10b981'];
 
 const MonthlyStats = ({ stats, renderHeatmap }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [heatMetric, setHeatMetric] = useState('count');
 
   if (!stats) return null;
 
   // Process data for the selected month
   const monthData = useMemo(() => {
-    const daily = stats.daily_stats.filter(d => d.date.startsWith(selectedMonth));
-    const totalDist = daily.reduce((acc, d) => acc + d.dist, 0);
-    const totalTime = daily.reduce((acc, d) => acc + d.time, 0);
-    const totalCount = daily.reduce((acc, d) => acc + d.count, 0);
+    if (!stats.daily_stats) return { totalDist: 0, totalTime: 0, totalCount: 0, totalElev: 0, totalCalories: 0, trophyCount: 0, chartData: [], pieData: [] };
+
+    // Group by month to see what's available
+    const daily = stats.daily_stats.filter(d => d.date && d.date.startsWith(selectedMonth));
+    
+    const totalDist = daily.reduce((acc, d) => acc + Number(d.dist || 0), 0);
+    const totalTime = daily.reduce((acc, d) => acc + Number(d.time || 0), 0);
+    const totalCount = daily.reduce((acc, d) => acc + Number(d.count || 0), 0);
+    const totalElev = daily.reduce((acc, d) => acc + Number(d.elev || 0), 0);
+    
+    // Calorie calculation (consistent with backend logic)
+    const weight = stats.bio_stats?.weight || 70;
+    const totalCalories = daily.reduce((acc, d) => {
+        const d_km = Number(d.dist || 0) / 1000.0;
+        if (['Run', 'TrailRun', 'VirtualRun'].includes(d.type)) {
+            return acc + (d_km * weight * 1.036);
+        } else {
+            return acc + (d_km * weight * 0.5);
+        }
+    }, 0);
+
+    const trophyCount = stats.trophies_by_month?.[selectedMonth] || 0;
 
     // Group by day for the bar chart
     const daysInMonth = new Date(selectedMonth.split('-')[0], selectedMonth.split('-')[1], 0).getDate();
@@ -30,20 +49,20 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
       const dayStats = daily.filter(d => d.date === dateStr);
       return {
         day: i + 1,
-        dist: (dayStats.reduce((acc, d) => acc + d.dist, 0) / 1000).toFixed(2),
-        count: dayStats.reduce((acc, d) => acc + d.count, 0)
+        dist: (dayStats.reduce((acc, d) => acc + Number(d.dist || 0), 0) / 1000).toFixed(2),
+        count: dayStats.reduce((acc, d) => acc + Number(d.count || 0), 0)
       };
     });
 
     // Group by type for the pie chart
     const typeBreakdown = daily.reduce((acc, d) => {
-      acc[d.type] = (acc[d.type] || 0) + d.dist;
+      acc[d.type] = (acc[d.type] || 0) + Number(d.dist || 0);
       return acc;
     }, {});
     const pieData = Object.entries(typeBreakdown).map(([name, value]) => ({ name, value }));
 
-    return { totalDist, totalTime, totalCount, chartData, pieData };
-  }, [selectedMonth, stats.daily_stats]);
+    return { totalDist, totalTime, totalCount, totalElev, totalCalories, trophyCount, chartData, pieData };
+  }, [selectedMonth, stats.daily_stats, stats.bio_stats, stats.trophies_by_month]);
 
   const changeMonth = (offset) => {
     const date = new Date(selectedMonth + '-01');
@@ -59,17 +78,49 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
             <Calendar size={20} color="var(--accent-cyan)" /> ANNUAL ACTIVITY HEATMAP
           </h3>
-          <div style={{ fontSize: '0.8rem', opacity: 0.5 }}>Last 365 Days</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+                {['count', 'dist', 'time', 'elev', 'cal'].map(m => (
+                    <button
+                        key={m}
+                        onClick={() => setHeatMetric(m)}
+                        style={{
+                            padding: '4px 10px',
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: heatMetric === m ? 'var(--accent-cyan)' : 'transparent',
+                            color: heatMetric === m ? '#000' : 'var(--text-secondary)',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {m === 'count' ? 'SESSIONS' : m.toUpperCase()}
+                    </button>
+                ))}
+              </div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.5 }}>Last 365 Days</div>
+          </div>
         </div>
-        <div className="heatmap-container" style={{ gridTemplateColumns: 'repeat(53, 1fr)' }}>
-            {renderHeatmap()}
+        
+        {renderHeatmap(heatMetric)}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '1.5rem', opacity: 0.4 }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>LESS</span>
+            <div style={{ display: 'flex', gap: '3px' }}>
+                {[0, 1, 2, 3, 4].map(l => (
+                    <div key={l} className={`heatmap-day level-${l}`} style={{ width: '10px', height: '10px' }}></div>
+                ))}
+            </div>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>MORE</span>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem', alignItems: 'start' }}>
         {/* Left: Monthly Summary & Controls */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="platform-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
@@ -86,15 +137,39 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>ACTIVITIES</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{monthData.totalCount}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        <Activity size={10} /> ACTIVITIES
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{monthData.totalCount}</div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>ACTIVE TIME</div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{(monthData.totalTime / 3600).toFixed(1)}h</div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        <Clock size={10} /> TIME
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{(monthData.totalTime / 3600).toFixed(1)}h</div>
                 </div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        <TrendingUp size={10} /> ELEV.
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{Math.round(monthData.totalElev)}<small style={{fontSize:'0.6rem'}}>M</small></div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        <Flame size={10} /> CALORIES
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{Math.round(monthData.totalCalories).toLocaleString()}</div>
+                </div>
+            </div>
+
+            <div style={{ marginTop: '1rem', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.1)', padding: '0.75rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Trophy size={16} color="#f59e0b" />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.5px' }}>TROPHIES EARNED</span>
+                </div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f59e0b' }}>{monthData.trophyCount}</div>
             </div>
           </div>
 
@@ -136,20 +211,27 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
               <Activity size={18} color="var(--accent-cyan)" /> DAILY DISTANCE BREAKDOWN
             </h3>
           </div>
-          <div style={{ height: '400px', width: '100%' }}>
-            <ResponsiveContainer>
-              <BarChart data={monthData.chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="day" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} />
-                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                    contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px' }} 
-                />
-                <Bar dataKey="dist" fill="var(--accent-cyan)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {monthData.totalCount === 0 ? (
+            <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>
+                <Activity size={48} style={{ marginBottom: '1rem' }} />
+                <p>No activity data discovered for this month.</p>
+            </div>
+          ) : (
+            <div style={{ height: '500px', width: '100%' }}>
+              <ResponsiveContainer>
+                <BarChart data={monthData.chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="day" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} />
+                  <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px' }} 
+                  />
+                  <Bar dataKey="dist" fill="var(--accent-cyan)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
           <p style={{ marginTop: '1.5rem', opacity: 0.4, fontSize: '0.75rem', textAlign: 'center' }}>
             Showing activity intensity across {selectedMonth}. Bars represent cumulative distance in kilometers per day.
           </p>
