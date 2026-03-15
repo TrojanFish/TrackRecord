@@ -1,0 +1,292 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import { Camera, Maximize2, X, Filter, MapPin, Calendar, Loader2, Play, Pause, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
+
+const API_BASE = 'http://localhost:8000';
+
+const Photos = () => {
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState('All');
+  const [filterCountry, setFilterCountry] = useState('All');
+
+  // Extract unique types and countries for filters
+  const sportTypes = ['All', ...new Set(photos.map(p => p.type).filter(Boolean))];
+  const countries = ['All', ...new Set(photos.map(p => {
+    if (!p.country) return null;
+    const parts = p.country.split(',');
+    return parts[parts.length - 1].trim();
+  }).filter(Boolean))];
+
+  const fetchPhotos = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/api/v1/photos`);
+      setPhotos(res.data);
+    } catch (err) {
+      console.error("Failed to fetch photos", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
+
+  const filteredPhotos = photos.filter(p => {
+    const typeMatch = filterType === 'All' || p.type === filterType;
+    let countryMatch = filterCountry === 'All';
+    if (filterCountry !== 'All' && p.country) {
+        countryMatch = p.country.includes(filterCountry);
+    }
+    return typeMatch && countryMatch;
+  });
+
+  if (loading) {
+    return (
+      <div className="loader-screen" style={{ height: '400px', background: 'transparent' }}>
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+          <Loader2 color="var(--accent-cyan)" size={32} />
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="page-content"
+    >
+      <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
+           <div>
+             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
+                <Camera size={24} color="var(--accent-cyan)" /> ACTIVITY GALLERY
+             </h2>
+             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tag)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                   <Filter size={14} opacity={0.6} />
+                   <select 
+                     value={filterType} 
+                     onChange={(e) => setFilterType(e.target.value)}
+                     style={{ 
+                       background: 'rgba(5, 11, 26, 0.95)', 
+                       border: '1px solid rgba(255,255,255,0.1)', 
+                       color: 'white', 
+                       fontSize: '0.8rem', 
+                       fontWeight: 600, 
+                       outline: 'none', 
+                       cursor: 'pointer',
+                       borderRadius: '6px',
+                       padding: '2px 8px'
+                     }}
+                   >
+                     <option value="All" style={{ background: '#050b1a', color: 'white' }}>All Sports</option>
+                     {sportTypes.filter(t => t !== 'All').map(t => <option key={t} value={t} style={{ background: '#050b1a', color: 'white' }}>{t}</option>)}
+                   </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tag)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                   <Globe size={14} opacity={0.6} />
+                   <select 
+                     value={filterCountry} 
+                     onChange={(e) => setFilterCountry(e.target.value)}
+                     style={{ 
+                       background: 'rgba(5, 11, 26, 0.95)', 
+                       border: '1px solid rgba(255,255,255,0.1)', 
+                       color: 'white', 
+                       fontSize: '0.8rem', 
+                       fontWeight: 600, 
+                       outline: 'none', 
+                       cursor: 'pointer',
+                       borderRadius: '6px',
+                       padding: '2px 8px'
+                     }}
+                   >
+                     <option value="All" style={{ background: '#050b1a', color: 'white' }}>All Countries</option>
+                     {countries.filter(c => c !== 'All').map(c => <option key={c} value={c} style={{ background: '#050b1a', color: 'white' }}>{c}</option>)}
+                   </select>
+                </div>
+                
+                <span style={{ fontSize: '0.8rem', opacity: 0.5, display: 'flex', alignItems: 'center' }}>
+                  {filteredPhotos.length} photos found
+                </span>
+             </div>
+           </div>
+        </div>
+
+        {filteredPhotos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '6rem 2rem', opacity: 0.3 }}>
+            <Camera size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>No photos matching filters</h3>
+            <p style={{ fontSize: '0.9rem' }}>Try changing your filters or syncing more data.</p>
+          </div>
+        ) : (
+          <div style={{ 
+            columnCount: 3, 
+            columnGap: '1.5rem',
+            maxWidth: '100%',
+            margin: '0'
+          }}>
+             {filteredPhotos.map((photo) => (
+               <motion.div 
+                 key={photo.id}
+                 layoutId={photo.id}
+                 whileHover={{ y: -8, scale: 1.02 }}
+                 onClick={() => setSelectedPhoto(photo)}
+                 style={{ 
+                   breakInside: 'avoid', 
+                   marginBottom: '1.5rem',
+                   borderRadius: '1.5rem',
+                   overflow: 'hidden',
+                   cursor: 'pointer',
+                   position: 'relative',
+                   border: '1px solid var(--glass-border)',
+                   background: 'var(--bg-card)',
+                   boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+                 }}
+               >
+                  <img 
+                    src={photo.url.startsWith('http') ? photo.url : `${API_BASE}${photo.url}`} 
+                    alt={photo.title} 
+                    style={{ width: '100%', display: 'block', transition: 'filter 0.3s' }}
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=40';
+                      e.target.style.opacity = '0.5';
+                    }}
+                  />
+                  <div style={{ 
+                    padding: '2rem 1rem 1rem', 
+                    background: 'linear-gradient(to top, rgba(5,11,26,0.9) 0%, rgba(5,11,26,0.6) 50%, transparent 100%)',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    color: 'white',
+                    opacity: 0,
+                    transition: 'opacity 0.3s'
+                  }} className="photo-info-overlay">
+                     <div style={{ fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{photo.title}</div>
+                     <div style={{ fontSize: '0.65rem', opacity: 0.7, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                       <MapPin size={10} /> {photo.location}
+                     </div>
+                  </div>
+                  <style>{`
+                    .photo-info-overlay { transition: opacity 0.3s ease; }
+                    div:hover > .photo-info-overlay { opacity: 1; }
+                  `}</style>
+               </motion.div>
+             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox Container */}
+      <AnimatePresence>
+        {selectedPhoto && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ 
+              position: 'fixed', 
+              inset: 0, 
+              zIndex: 1000, 
+              background: 'rgba(5, 11, 26, 0.98)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2rem'
+            }}
+          >
+             {/* Controls Overlay */}
+             <div style={{ position: 'absolute', top: '2rem', left: '2rem', right: '2rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', color: 'white', zIndex: 10 }}>
+                <button 
+                  onClick={() => setSelectedPhoto(null)} 
+                  style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                   <X size={24} />
+                </button>
+             </div>
+
+             <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <>
+                   <button 
+                     className="nav-btn" 
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       const idx = filteredPhotos.findIndex(p => p.id === selectedPhoto.id);
+                       setSelectedPhoto(filteredPhotos[(idx - 1 + filteredPhotos.length) % filteredPhotos.length]);
+                     }}
+                     style={{ left: '2rem' }}
+                   >
+                     <ChevronLeft size={32} />
+                   </button>
+                   <button 
+                     className="nav-btn" 
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       const idx = filteredPhotos.findIndex(p => p.id === selectedPhoto.id);
+                       setSelectedPhoto(filteredPhotos[(idx + 1) % filteredPhotos.length]);
+                     }}
+                     style={{ right: '2rem' }}
+                   >
+                     <ChevronRight size={32} />
+                   </button>
+                 </>
+
+                <motion.div 
+                  key={selectedPhoto?.id}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  style={{ maxWidth: '85vw', maxHeight: '75vh', position: 'relative', textAlign: 'center' }}
+                >
+                   <img 
+                     src={(selectedPhoto?.url || '').startsWith('http') 
+                        ? selectedPhoto.url 
+                        : `${API_BASE}${selectedPhoto?.url}`} 
+                     alt="" 
+                     style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '1.5rem', boxShadow: '0 40px 100px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }} 
+                   />
+                   <div style={{ marginTop: '2rem', color: 'white' }}>
+                       <h3 style={{ fontSize: '1.8rem', fontWeight: 800 }}>{selectedPhoto?.title}</h3>
+                       <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', marginTop: '0.5rem', opacity: 0.6 }}>
+                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={18} /> {selectedPhoto?.location}</span>
+                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={18} /> {selectedPhoto?.date}</span>
+                       </div>
+                   </div>
+                </motion.div>
+             </div>
+             
+             <style>{`
+               .nav-btn {
+                 position: absolute;
+                 top: 50%;
+                 transform: translateY(-50%);
+                 width: 60px;
+                 height: 60px;
+                 border-radius: 50%;
+                 background: rgba(255,255,255,0.05);
+                 border: 1px solid rgba(255,255,255,0.1);
+                 color: white;
+                 cursor: pointer;
+                 display: flex;
+                 alignItems: center;
+                 justifyContent: center;
+                 transition: all 0.3s;
+                 z-index: 5;
+               }
+               .nav-btn:hover { background: rgba(255,255,255,0.15); scale: 1.1; }
+             `}</style>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+export default Photos;

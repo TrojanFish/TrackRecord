@@ -17,11 +17,14 @@ def save_creds(creds):
     with open(CRED_FILE, "w", encoding="utf-8") as f:
         json.dump(creds, f, indent=4, ensure_ascii=False)
 
-def get_credential(key, prompt_text, password=False):
+def get_credential(key, prompt_text=None, password=False, headless=False):
     creds = load_creds()
-    default = creds.get(key, "")
-    val = Prompt.ask(prompt_text, default=default, password=password)
-    if val != default:
+    val = creds.get(key, "")
+    if val or headless or prompt_text is None:
+        return val
+    
+    val = Prompt.ask(prompt_text, default=val, password=password)
+    if val:
         creds[key] = val
         save_creds(creds)
     return val

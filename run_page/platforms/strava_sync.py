@@ -23,6 +23,8 @@ def run_strava_sync(
     generator.sync(False)
 
     activities_list = generator.load()
+    # ensure the directory exists
+    os.makedirs(os.path.dirname(JSON_FILE), exist_ok=True)
     with open(JSON_FILE, "w") as f:
         json.dump(activities_list, f)
 

@@ -24,6 +24,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 import base64
 from concurrent.futures import ThreadPoolExecutor
+import threading
 from utils import log, ok, warn, err
 
 # RSA Public Key for login encryption
@@ -87,6 +88,8 @@ SPORT_CODE_MAP = {
 }
 RIDE_CODES = {3, 4, 9, 10}
 RUN_CODES = {1}
+
+PRINT_LOCK = threading.Lock()
 
 
 # ── 颜色输出 ───────────────────────────────────────────────────────────────────
@@ -573,7 +576,8 @@ def main():
                     if gpx_xml:
                         save_gpx(workout_id, gpx_xml)
                         gpx_saved += 1
-                        print("+", end="", flush=True)
+                        with PRINT_LOCK:
+                            print("+", end="", flush=True)
 
                     # 更新活动实体的轨迹和起点信息
                     locations = stream.get("location")
@@ -596,14 +600,17 @@ def main():
                         activity = type(activity)(**d)
                 else:
                     gpx_skipped += 1
-                    print("g", end="", flush=True)
+                    with PRINT_LOCK:
+                        print("g", end="", flush=True)
             else:
-                print("+" if activity else ".", end="", flush=True)
+                with PRINT_LOCK:
+                    print("+" if activity else ".", end="", flush=True)
 
             return activity
 
         except Exception as e:
-            print("x", end="", flush=True)
+            with PRINT_LOCK:
+                print("x", end="", flush=True)
             errors += 1
             return None
 

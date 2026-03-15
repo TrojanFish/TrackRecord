@@ -144,6 +144,7 @@ def upload_file_to_strava(client, file_name, data_type, force_to_run=True):
             timeout = e.timeout
             print(f"Strava API Rate Limit Exceeded. Retry after {timeout} seconds")
             time.sleep(timeout)
+            f.seek(0)  # Reset pointer for retry
             if force_to_run:
                 r = client.upload_activity(
                     activity_file=f, data_type=data_type, activity_type="run"

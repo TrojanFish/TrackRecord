@@ -28,6 +28,15 @@ class Generator:
         self.refresh_token = ""
         self.only_run = False
 
+    def close(self):
+        """Explicitly close the database session."""
+        if hasattr(self, "session") and self.session:
+            self.session.close()
+
+    def __del__(self):
+        """Ensure session is closed on destruction."""
+        self.close()
+
     def set_strava_config(self, client_id, client_secret, refresh_token):
         self.client_id = client_id
         self.client_secret = client_secret
@@ -52,8 +61,12 @@ class Generator:
         TODO, better name later
         """
         self.check_access()
+        
+        print("Pre-fetching existing activity IDs...")
+        old_ids = set(self.get_old_tracks_ids())
+        print(f"Found {len(old_ids)} existing activities.")
 
-        print("Start syncing")
+        print("Start syncing ('.' = skip/update, '+' = new)")
         if force:
             filters = {"before": datetime.datetime.now(datetime.timezone.utc)}
         else:
@@ -66,8 +79,16 @@ class Generator:
                 filters = {"before": datetime.datetime.now(datetime.timezone.utc)}
 
         for activity in self.client.get_activities(**filters):
+            run_id = str(activity.id)
             if self.only_run and activity.type != "Run":
                 continue
+            
+            # Optimization: Skip full processing if activity exists and not forced
+            if not force and run_id in old_ids:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                continue
+
             if IGNORE_BEFORE_SAVING:
                 if activity.map and activity.map.summary_polyline:
                     activity.map.summary_polyline = filter_out(
@@ -76,9 +97,11 @@ class Generator:
             #  strava use total_elevation_gain as elevation_gain
             activity.elevation_gain = activity.total_elevation_gain
             activity.subtype = activity.type
+            
             created = update_or_create_activity(self.session, activity)
             if created:
                 sys.stdout.write("+")
+                old_ids.add(run_id)
             else:
                 sys.stdout.write(".")
             sys.stdout.flush()

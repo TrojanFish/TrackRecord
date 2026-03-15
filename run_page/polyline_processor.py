@@ -95,6 +95,11 @@ def start_end_hiding(polyline: List[Tuple[float]], distance: int) -> List[Tuple[
 def filter_out(polyline_str):
     if not polyline_str:
         return
+    
+    # Optimization: If no filtering is configured, return the polyline as is
+    if IGNORE_RANGE == 0.0 and IGNORE_START_END_RANGE == 0.0 and not IGNORE_POLYLINE:
+        return polyline_str
+
     pl = polyline.decode(polyline_str)
     if not pl:
         return polyline_str

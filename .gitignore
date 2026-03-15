@@ -9,9 +9,9 @@ pdm.lock
 uv.lock
 
 # Configuration
-config.yaml
-.env
 run_page/credentials.json
+run_page/settings.yaml
+run_page/settings.yaml.bak
 
 # Data
 run_page/data.db
@@ -22,6 +22,17 @@ FIT_OUT/
 activities/
 src/static/activities.json
 imported.json
+run_page/static/photos/
+run_page/static/trophy_icons/
+run_page/static/strava-challenge-history.html
+
+# Temp & Debug Scripts
+check_*.py
+debug_*.py
+verify_*.py
+tmp_*.json
+update_schema.py
+run_web.py
 
 # Logs
 *.log
@@ -31,3 +42,5 @@ imported.json
 .idea/
 .DS_Store
 node_modules
+dist
+build

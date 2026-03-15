@@ -1,4 +1,4 @@
-﻿import datetime
+import datetime
 import random
 import string
 
@@ -28,6 +28,29 @@ options.default_user_agent = "running_page"
 # reverse the location (lat, lon) -> location detail
 g = Nominatim(user_agent=randomword())
 
+# global cache for location to avoid redundant reverse geocoding
+_LOCATION_CACHE = {}
+
+def get_location_country(lat, lon):
+    # Use a precision of 2 decimal places (~1.1km) for better cache hit rate while maintaining location accuracy
+    key = (round(lat, 2), round(lon, 2))
+    if key in _LOCATION_CACHE:
+        return _LOCATION_CACHE[key]
+    
+    try:
+        location = g.reverse(f"{lat}, {lon}", language="zh-CN")
+        country = str(location) if location else ""
+        _LOCATION_CACHE[key] = country
+        return country
+    except Exception:
+        # Retry once on failure
+        try:
+            location = g.reverse(f"{lat}, {lon}", language="zh-CN")
+            country = str(location) if location else ""
+            _LOCATION_CACHE[key] = country
+            return country
+        except Exception:
+            return ""
 
 ACTIVITY_KEYS = [
     "run_id",
@@ -39,6 +62,7 @@ ACTIVITY_KEYS = [
     "start_date",
     "start_date_local",
     "location_country",
+    "location_city",
     "summary_polyline",
     "average_heartrate",
     "average_speed",
@@ -48,6 +72,8 @@ ACTIVITY_KEYS = [
     "average_watts",
     "max_speed",
     "ext_data",
+    "commute",
+    "workout_type",
 ]
 
 
@@ -59,11 +85,12 @@ class Activity(Base):
     distance = Column(Float)
     moving_time = Column(Interval)
     elapsed_time = Column(Interval)
-    type = Column(String)
+    type = Column(String, index=True)
     subtype = Column(String)
-    start_date = Column(String)
-    start_date_local = Column(String)
+    start_date = Column(String, index=True)
+    start_date_local = Column(String, index=True)
     location_country = Column(String)
+    location_city = Column(String)
     summary_polyline = Column(String)
     average_heartrate = Column(Float)
     average_speed = Column(Float)
@@ -73,6 +100,8 @@ class Activity(Base):
     average_watts = Column(Float)
     max_speed = Column(Float)
     ext_data = Column(String)  # JSON string for flexible data
+    commute = Column(Integer)
+    workout_type = Column(Integer)
     streak = None
 
     def to_dict(self):
@@ -88,6 +117,29 @@ class Activity(Base):
             out["streak"] = self.streak
 
         return out
+
+
+class Photo(Base):
+    __tablename__ = "photos"
+
+    id = Column(String, primary_key=True)
+    activity_id = Column(Integer, index=True)
+    local_path = Column(String)
+    remote_url = Column(String)
+    title = Column(String)
+    date = Column(String)
+    type = Column(String)
+    location_country = Column(String)
+    ext_data = Column(String)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "activity_id": self.activity_id,
+            "url": f"/static/photos/{os.path.basename(self.local_path)}" if self.local_path else self.remote_url,
+            "title": self.title,
+            "date": self.date,
+        }
 
 
 def update_or_create_activity(session, run_activity):
@@ -116,23 +168,7 @@ def update_or_create_activity(session, run_activity):
             location_country = getattr(run_activity, "location_country", "")
             # or China for #176 to fix
             if not location_country and start_point or location_country == "China":
-                try:
-                    location_country = str(
-                        g.reverse(
-                            f"{start_point.lat}, {start_point.lon}", language="zh-CN"  # type: ignore
-                        )
-                    )
-                # limit (only for the first time)
-                except Exception:
-                    try:
-                        location_country = str(
-                            g.reverse(
-                                f"{start_point.lat}, {start_point.lon}",
-                                language="zh-CN",  # type: ignore
-                            )
-                        )
-                    except Exception:
-                        pass
+                location_country = get_location_country(start_point.lat, start_point.lon)
 
             activity = Activity(
                 run_id=run_activity.id,
@@ -145,6 +181,7 @@ def update_or_create_activity(session, run_activity):
                 start_date=run_activity.start_date,
                 start_date_local=run_activity.start_date_local,
                 location_country=location_country,
+                location_city=getattr(run_activity, "location_city", ""),
                 average_heartrate=run_activity.average_heartrate,
                 average_speed=float(run_activity.average_speed),
                 elevation_gain=current_elevation_gain,
@@ -156,6 +193,8 @@ def update_or_create_activity(session, run_activity):
                 average_watts=getattr(run_activity, "average_watts", None),
                 max_speed=getattr(run_activity, "max_speed", None),
                 ext_data=getattr(run_activity, "ext_data", None),
+                commute=int(getattr(run_activity, "commute", False)),
+                workout_type=getattr(run_activity, "workout_type", None),
             )
             session.add(activity)
             created = True
@@ -177,6 +216,8 @@ def update_or_create_activity(session, run_activity):
             activity.average_watts = getattr(run_activity, "average_watts", None)
             activity.max_speed = getattr(run_activity, "max_speed", None)
             activity.ext_data = getattr(run_activity, "ext_data", None)
+            activity.commute = int(getattr(run_activity, "commute", False))
+            activity.workout_type = getattr(run_activity, "workout_type", None)
     except Exception as e:
         print(f"something wrong with {run_activity.id}")
         print(str(e))
