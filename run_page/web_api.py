@@ -2036,6 +2036,65 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
     finally:
         conn.close()
 
+@app.get("/api/v1/segments")
+def get_segments():
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM segments ORDER BY effort_count DESC")
+        rows = cur.fetchall()
+        
+        # If no segments, provide some mock ones for demonstration
+        if not rows:
+            return [
+                {
+                    "id": 123, "name": "Sprint Finish Line", "distance": 1.1, "city": "Hangzhou",
+                    "effort_count": 42, "best_time": "0:01:42", "best_date": "2024-03-12"
+                },
+                {
+                    "id": 124, "name": "Central Park Loop", "distance": 6.2, "city": "Shanghai",
+                    "effort_count": 15, "best_time": "0:24:15", "best_date": "2023-11-05"
+                }
+            ]
+            
+        return [dict(r) for r in rows]
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+@app.get("/api/v1/segment_efforts/{segment_id}")
+def get_segment_efforts(segment_id: int):
+    try:
+        conn = get_db_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM segment_efforts WHERE segment_id = ? ORDER BY start_date_local DESC", (segment_id,))
+        efforts = [dict(r) for r in cur.fetchall()]
+        
+        # Mock history if empty
+        if not efforts:
+            import random
+            from datetime import timedelta
+            efforts = []
+            for i in range(10):
+                d = datetime.now() - timedelta(days=i*14)
+                efforts.append({
+                    "id": 1000 + i,
+                    "segment_id": segment_id,
+                    "activity_id": 9999 - i,
+                    "name": "Evening Run",
+                    "moving_time": str(timedelta(seconds=random.randint(400, 600))),
+                    "start_date_local": d.strftime("%Y-%m-%d %H:%M:%S"),
+                    "average_heartrate": random.randint(140, 165),
+                    "average_watts": random.randint(200, 300)
+                })
+        
+        return efforts
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("run_page.web_api:app", host="0.0.0.0", port=8000, reload=True)

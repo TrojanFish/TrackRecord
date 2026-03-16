@@ -15,7 +15,8 @@ import {
   Award,
   Medal,
   Image,
-  Wrench
+  Wrench,
+  Milestone as RouteIcon
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -50,6 +51,7 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
         { id: 'Rewind', icon: Star, label: 'REWIND' },
         { id: 'Eddington', icon: Award, label: 'EDDINGTON' },
         { id: 'Heatmap', icon: MapIcon, label: 'HEATMAP' },
+        { id: 'Segments', icon: RouteIcon, label: 'SEGMENTS' },
         { id: 'Records', icon: History, label: 'BEST EFFORTS' },
       ]
     },

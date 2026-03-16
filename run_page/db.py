@@ -142,6 +142,86 @@ class Photo(Base):
         }
 
 
+class Segment(Base):
+    __tablename__ = "segments"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    distance = Column(Float)
+    average_grade = Column(Float)
+    maximum_grade = Column(Float)
+    elevation_high = Column(Float)
+    elevation_low = Column(Float)
+    city = Column(String)
+    state = Column(String)
+    country = Column(String)
+    climb_category = Column(Integer)
+    total_elevation_gain = Column(Float)
+    map_polyline = Column(String)
+    effort_count = Column(Integer, default=0)
+    best_time = Column(Interval)
+    best_date = Column(String)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "distance": self.distance,
+            "average_grade": self.average_grade,
+            "maximum_grade": self.maximum_grade,
+            "elevation_high": self.elevation_high,
+            "elevation_low": self.elevation_low,
+            "city": self.city,
+            "state": self.state,
+            "country": self.country,
+            "climb_category": self.climb_category,
+            "total_elevation_gain": self.total_elevation_gain,
+            "map_polyline": self.map_polyline,
+            "effort_count": self.effort_count,
+            "best_time": str(self.best_time) if self.best_time else None,
+            "best_date": self.best_date,
+        }
+
+
+class SegmentEffort(Base):
+    __tablename__ = "segment_efforts"
+
+    id = Column(Integer, primary_key=True)
+    segment_id = Column(Integer, index=True)
+    activity_id = Column(Integer, index=True)
+    name = Column(String)
+    elapsed_time = Column(Interval)
+    moving_time = Column(Interval)
+    start_date = Column(String)
+    start_date_local = Column(String)
+    distance = Column(Float)
+    average_cadence = Column(Float)
+    average_watts = Column(Float)
+    average_heartrate = Column(Float)
+    max_heartrate = Column(Float)
+    kom_rank = Column(Integer)
+    pr_rank = Column(Integer)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "segment_id": self.segment_id,
+            "activity_id": self.activity_id,
+            "name": self.name,
+            "elapsed_time": str(self.elapsed_time),
+            "moving_time": str(self.moving_time),
+            "start_date": self.start_date,
+            "start_date_local": self.start_date_local,
+            "distance": self.distance,
+            "average_cadence": self.average_cadence,
+            "average_watts": self.average_watts,
+            "average_heartrate": self.average_heartrate,
+            "max_heartrate": self.max_heartrate,
+            "kom_rank": self.kom_rank,
+            "pr_rank": self.pr_rank,
+        }
+
+
 def update_or_create_activity(session, run_activity):
     created = False
     try:
@@ -253,6 +333,8 @@ def init_db(db_path):
 
     # check missing columns
     add_missing_columns(engine, Activity)
+    add_missing_columns(engine, Segment)
+    add_missing_columns(engine, SegmentEffort)
 
     sm = sessionmaker(bind=engine)
     session = sm()

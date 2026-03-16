@@ -23,6 +23,7 @@ import MonthlyStats from './pages/MonthlyStats';
 import Challenges from './pages/Challenges';
 import Photos from './pages/Photos';
 import Rewind from './pages/Rewind';
+import Segments from './pages/Segments';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -200,6 +201,7 @@ function App() {
       case 'Challenges': return <Challenges />;
       case 'Photos': return <Photos />;
       case 'Rewind': return <Rewind stats={stats} />;
+      case 'Segments': return <Segments />;
       default: return <Dashboard stats={stats} setActiveTab={setActiveTab} />;
     }
   };
@@ -215,6 +217,7 @@ function App() {
     'Records': { title: 'PERSONAL RECORDS', icon: History },
     'Challenges': { title: 'STRAVA CHALLENGES', icon: Medal },
     'Photos': { title: 'ACTIVITY GALLERY', icon: Camera },
+    'Segments': { title: 'SEGMENTS PERFORMANCE', icon: Star },
     'Gear': { title: 'EQUIPMENT TRACKING', icon: Wrench }
   };
 
