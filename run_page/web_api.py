@@ -612,7 +612,9 @@ def get_sports_stats():
                 ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
                 ("Half Marathon", 21097, ['Run', 'TrailRun', 'VirtualRun']),
                 ("Marathon", 42195, ['Run', 'TrailRun', 'VirtualRun']),
+                ("30K Ride", 30000, ['Ride', 'VirtualRide', 'Velomobile']),
                 ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
+                ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
                 ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
             ]
         
@@ -718,28 +720,18 @@ def get_sports_stats():
         """)
         daily_stats = [dict(row) for row in cur.fetchall()]
 
-        # 5.7b Curated Records for Dashboard Summary
+        # 5.7b Curated Records for Dashboard Summary - REFRESHED LOGIC
         dashboard_records = []
         priority_run = ["5K", "10K", "Half Marathon", "Marathon"]
-        priority_ride = ["30K Ride", "50K Ride", "极速 80K Ride", "80K Ride", "100K Ride"]
+        priority_ride = ["30K Ride", "50K Ride", "80K Ride", "100K Ride"]
         
         for name in priority_run + priority_ride:
             if name in records:
                 rec = records[name]
-                # Calculate Pace
-                d_m = rec.get("distance", 0)
-                sec = row_to_seconds(rec["moving_time"])
-                pace_str = "-"
-                if d_m > 0 and sec > 0:
-                    p_sec = sec / (d_m / 1000.0)
-                    pm = int(p_sec // 60)
-                    ps = int(p_sec % 60)
-                    pace_str = f"{pm}:{ps:02d}/km"
-                
                 dashboard_records.append({
                     "name": name,
                     "best": rec["moving_time"],
-                    "pace": pace_str,
+                    "pace": rec.get("pace", "-"), 
                     "date": rec["start_date_local"].split(' ')[0],
                     "activity": rec["name"]
                 })
