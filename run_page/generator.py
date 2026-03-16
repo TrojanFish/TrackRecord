@@ -78,7 +78,11 @@ class Generator:
             else:
                 filters = {"before": datetime.datetime.now(datetime.timezone.utc)}
 
-        for activity in self.client.get_activities(**filters):
+        activities = list(self.client.get_activities(**filters))
+        total_count = len(activities)
+        print(f"Total activities to process: {total_count}")
+
+        for index, activity in enumerate(activities, 1):
             run_id = str(activity.id)
             if self.only_run and activity.type != "Run":
                 continue
@@ -88,6 +92,8 @@ class Generator:
                 sys.stdout.write(".")
                 sys.stdout.flush()
                 continue
+
+            print(f"\n[{index}/{total_count}] Processing: {activity.name} ({activity.start_date_local})")
 
             if IGNORE_BEFORE_SAVING:
                 if activity.map and activity.map.summary_polyline:
@@ -104,12 +110,13 @@ class Generator:
                 try:
                     detail = self.client.get_activity(activity.id)
                     if hasattr(detail, 'segment_efforts') and detail.segment_efforts:
+                        print(f"  - Found {len(detail.segment_efforts)} segment efforts")
                         for effort in detail.segment_efforts:
                             update_or_create_segment_effort(self.session, effort, activity.id)
                 except Exception as e:
-                    print(f"\nError fetching segments for activity {activity.id}: {e}")
+                    print(f"  - Error fetching segments for activity {activity.id}: {e}")
                 
-                sys.stdout.write("+")
+                print(f"  - Successfully saved to database")
                 old_ids.add(run_id)
             else:
                 sys.stdout.write(".")

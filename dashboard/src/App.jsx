@@ -44,7 +44,7 @@ function App() {
   });
   const [activeTab, setActiveTab] = useState('Overview');
   const [initialSearch, setInitialSearch] = useState('');
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => { fetchStats(); }, []);
 
