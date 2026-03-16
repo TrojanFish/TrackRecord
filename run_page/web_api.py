@@ -63,7 +63,7 @@ def row_to_seconds(val):
 def calculate_streaks_detailed(dates):
     if not dates: return {"day": 0, "week": 0, "month": 0}
     # Unique sorted dates
-    date_objs = sorted(list(set([datetime.strptime(d, "%Y-%m-%d").date() for d in dates])))
+    date_objs = sorted(list(set([dt.datetime.strptime(d, "%Y-%m-%d").date() for d in dates])))
     
     # 1. Day Streak
     max_day_streak = 0
@@ -111,8 +111,38 @@ def calculate_streaks_detailed(dates):
 
     return {"day": max_day_streak, "week": max_week_streak, "month": max_month_streak}
 
-# Global Cache for Strava Clubs (Solves Slowness)
+# Global Caches
+ATHLETE_CACHE = {"data": None, "expiry": 0}
 CLUBS_CACHE = {"data": None, "expiry": 0}
+
+def get_strava_athlete_cached(creds):
+    global ATHLETE_CACHE
+    if ATHLETE_CACHE["data"] and time.time() < ATHLETE_CACHE["expiry"]:
+        return ATHLETE_CACHE["data"]
+    
+    if "strava_client_id" not in creds:
+        return {"username": "KY", "profile": None}
+        
+    try:
+        from stravalib.client import Client
+        client = Client()
+        response = client.refresh_access_token(
+            client_id=creds["strava_client_id"],
+            client_secret=creds["strava_client_secret"],
+            refresh_token=creds["strava_refresh_token"]
+        )
+        client.access_token = response["access_token"]
+        athlete = client.get_athlete()
+        data = {
+            "username": f"{athlete.firstname} {athlete.lastname or ''}".strip(),
+            "profile": athlete.profile_medium
+        }
+        ATHLETE_CACHE["data"] = data
+        ATHLETE_CACHE["expiry"] = time.time() + 3600
+        return data
+    except Exception as e:
+        print(f"Athlete profile fetch error: {e}")
+        return {"username": "KY", "profile": None}
 
 def get_strava_clubs_cached(creds):
     global CLUBS_CACHE
@@ -303,7 +333,10 @@ def get_athlete_metrics():
         "zones": calculated_zones,
         "vo2_estimate": round(vo2_hr, 1),
         "riegel_exponents": athlete.get("riegel_exponents", {"run": 1.06, "ride": 1.05}),
-        "gears": athlete.get("gears", [])
+        "gears": athlete.get("gears", []),
+        "annual_distance_target": athlete.get("annual_distance_target", 2000),
+        "monthly_elevation_target": athlete.get("monthly_elevation_target", 1000),
+        "weekly_frequency_target": athlete.get("weekly_frequency_target", 5)
     }
 
 # Aggregated stats and heatmap logic
@@ -338,7 +371,7 @@ def get_sports_stats():
         cur.execute("""
             SELECT run_id, name, distance, moving_time, type, start_date_local, summary_polyline, 
                    average_heartrate, max_speed, location_country, location_city, commute, workout_type,
-                   elevation_gain
+                   elevation_gain, average_cadence, average_watts
             FROM activities 
             ORDER BY start_date_local DESC 
             LIMIT 2000
@@ -356,17 +389,12 @@ def get_sports_stats():
                 # Convert moving_time to seconds
                 t_str = d["moving_time"]
                 t_only = t_str.split(" ")[1] if " " in t_str else t_str
-                h, m, s = map(float, t_only.split(":"))
-                total_sec = h * 3600 + m * 60 + s
-                
-                if total_sec > 0:
-                    grade = d["elevation_gain"] / d["distance"]
-                    # Simplified GAP model: Every 1% grade adds ~6% effort uphill
-                    # For summary data, we assume elevation_gain is the total climb level.
-                    # RIEGEL-like or Minetti-like adjustment
-                    if grade > 0:
-                        # factor calculation: 1 + 9 * grade is a common aggressive estimate
-                        # Let's use 1 + 6 * grade for a more conservative average
+                try:
+                    h, m, s = map(float, t_only.split(":"))
+                    total_sec = h * 3600 + m * 60 + s
+                    
+                    if total_sec > 0:
+                        grade = d["elevation_gain"] / d["distance"]
                         factor = 1.0 + (6.0 * grade)
                         gap_sec_per_km = (total_sec / (d["distance"] / 1000.0)) / factor
                         
@@ -374,6 +402,16 @@ def get_sports_stats():
                         gm = int(gap_sec_per_km // 60)
                         gs = int(gap_sec_per_km % 60)
                         d["gap_pace"] = f"{gm}:{gs:02d}/km"
+                except:
+                    pass
+            
+            # Calorie Calculation for Recent Activities
+            d_km = (d["distance"] or 0) / 1000.0
+            weight = athlete_metrics.get("weight", 70)
+            if d["type"] in ["Run", "TrailRun", "VirtualRun"]:
+                d["calories"] = int(d_km * weight * 1.036)
+            else:
+                d["calories"] = int(d_km * weight * 0.5)
             
             recent.append(d)
         
@@ -497,27 +535,44 @@ def get_sports_stats():
             ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
             ("Half Marathon", 21097, ['Run', 'TrailRun', 'VirtualRun']),
             ("Marathon", 42195, ['Run', 'TrailRun', 'VirtualRun']),
-            ("20K Ride", 20000, ['Ride', 'VirtualRide', 'Velomobile']),
+            ("30K Ride", 30000, ['Ride', 'VirtualRide', 'Velomobile']),
             ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
+            ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
             ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ("160K Ride", 160934, ['Ride', 'VirtualRide', 'Velomobile']),
         ]
         
         for name, dist_m, types in record_configs:
             placeholder = ', '.join(['?'] * len(types))
             cur.execute(f"""
-                SELECT name, distance, moving_time, start_date_local,
+                SELECT run_id, name, distance, moving_time, start_date_local,
+                       average_heartrate, average_cadence, average_watts, elevation_gain,
                        strftime('%H:%M:%S', moving_time) as moving_time_display
                 FROM activities 
-                WHERE type IN ({placeholder}) AND distance >= ? 
-                ORDER BY strftime('%s', moving_time) ASC
+                WHERE type IN ({placeholder}) AND distance BETWEEN ? AND ? 
+                ORDER BY (strftime('%H', moving_time) * 3600 + strftime('%M', moving_time) * 60 + strftime('%S', moving_time)) ASC
                 LIMIT 1
-            """, (*types, dist_m))
+            """, (*types, dist_m * 0.9, dist_m * 1.1))
             row = cur.fetchone()
             if row:
                 d = dict(row)
-                d["moving_time"] = d["moving_time_display"] # Use the clean version
+                d["moving_time"] = d["moving_time_display"]
+                # Calculate Pace
+                sec = row_to_seconds(d["moving_time"])
+                if sec > 0:
+                    pace_min_km = (sec / 60.0) / (d["distance"] / 1000.0)
+                    pm = int(pace_min_km // 1)
+                    ps = int((pace_min_km % 1) * 60)
+                    d["pace"] = f"{pm}:{ps:02d}/km" if "Ride" not in name else f"{round(3600.0/sec * (d['distance']/1000.0), 1)} km/h"
                 records[name] = d
+
+        # Cycling Specific: FTP Estimate (Functional Threshold Power)
+        # Scan all rides > 15km to find the best average power as a proxy for threshold
+        cur.execute("""
+            SELECT MAX(average_watts) FROM activities 
+            WHERE type IN ('Ride', 'VirtualRide', 'Velomobile') AND distance > 15000
+        """)
+        best_avg_power = cur.fetchone()[0] or 0
+        athlete_metrics["ftp_estimate"] = int(best_avg_power * 0.95)
 
         # 5.6 Best Efforts Trends (Historical Performance)
         records_trends = {}
@@ -526,15 +581,18 @@ def get_sports_stats():
             ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
             ("21K", 21097, ['Run', 'TrailRun', 'VirtualRun']),
             ("42K", 42195, ['Run', 'TrailRun', 'VirtualRun']),
+            ("30K Ride", 30000, ['Ride', 'VirtualRide', 'Velomobile']),
             ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
+            ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
             ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
         ]
         
         for name, dist_m, types in trend_configs:
             placeholder = ', '.join(['?'] * len(types))
             cur.execute(f"""
-                SELECT date(start_date_local) as date,
-                       CAST(strftime('%s', moving_time) as integer) as seconds
+                SELECT run_id, date(start_date_local) as date,
+                       CAST(strftime('%s', moving_time) as integer) as seconds,
+                       average_heartrate, average_watts
                 FROM activities 
                 WHERE type IN ({placeholder}) AND distance BETWEEN ? AND ? 
                 ORDER BY date ASC
@@ -542,6 +600,43 @@ def get_sports_stats():
             trends_data = [dict(row) for row in cur.fetchall()]
             if trends_data:
                 records_trends[name] = trends_data
+
+        # 5.7 Peak Performance & Yearly Breakthroughs
+        peak_performance = {
+            "cycling": {"max_avg_power": 0, "max_speed": 0, "max_elevation": 0},
+            "running": {"max_speed": 0, "max_cadence": 0, "max_dist": 0},
+            "milestones": {"pbs_this_year": 0, "total_records": len(records)}
+        }
+        
+        # Yearly Breakthrough count (records achieved in current year)
+        current_year = dt.datetime.now().year
+        for r_name, r_data in records.items():
+            if str(current_year) in r_data.get("start_date_local", ""):
+                peak_performance["milestones"]["pbs_this_year"] += 1
+
+        # Peak Cycling Metrics
+        cur.execute("""
+            SELECT MAX(average_watts), MAX(max_speed) * 3.6, MAX(elevation_gain)
+            FROM activities WHERE type IN ('Ride', 'VirtualRide', 'Velomobile')
+        """)
+        c_row = cur.fetchone()
+        if c_row:
+            peak_performance["cycling"]["max_avg_power"] = int(c_row[0] or 0)
+            peak_performance["cycling"]["max_speed"] = round(c_row[1] or 0, 1)
+            peak_performance["cycling"]["max_elevation"] = int(c_row[2] or 0)
+
+        # Peak Running Metrics
+        cur.execute("""
+            SELECT MAX(max_speed) * 3.6, MAX(average_cadence), MAX(distance) / 1000.0
+            FROM activities WHERE type IN ('Run', 'TrailRun', 'VirtualRun')
+        """)
+        r_row = cur.fetchone()
+        if r_row:
+            peak_performance["running"]["max_speed"] = round(r_row[0] or 0, 1)
+            peak_performance["running"]["max_cadence"] = int(r_row[1] or 0)
+            peak_performance["running"]["max_dist"] = round(r_row[2] or 0, 1)
+
+        athlete_metrics["peak_performance"] = peak_performance
 
         # 5.7 Daily Details (for heatmap & monthly drill-down)
         cur.execute("""
@@ -556,6 +651,32 @@ def get_sports_stats():
             ORDER BY date ASC
         """)
         daily_stats = [dict(row) for row in cur.fetchall()]
+
+        # 5.7b Curated Records for Dashboard Summary
+        dashboard_records = []
+        priority_run = ["5K", "10K", "Half Marathon", "Marathon"]
+        priority_ride = ["50K Ride", "100K Ride"]
+        
+        for name in priority_run + priority_ride:
+            if name in records:
+                rec = records[name]
+                # Calculate Pace
+                d_m = rec.get("distance", 0)
+                sec = row_to_seconds(rec["moving_time"])
+                pace_str = "-"
+                if d_m > 0 and sec > 0:
+                    p_sec = sec / (d_m / 1000.0)
+                    pm = int(p_sec // 60)
+                    ps = int(p_sec % 60)
+                    pace_str = f"{pm}:{ps:02d}/km"
+                
+                dashboard_records.append({
+                    "name": name,
+                    "best": rec["moving_time"],
+                    "pace": pace_str,
+                    "date": rec["start_date_local"].split(' ')[0],
+                    "activity": rec["name"]
+                })
 
         # 5.8 Trophy Counts per month
         cur.execute("SELECT month FROM trophies")
@@ -662,8 +783,9 @@ def get_sports_stats():
                 day_data[f"{yr}_time"] = round(current_totals[yr]["time"], 2)
                 day_data[f"{yr}_elev"] = round(current_totals[yr]["elev"], 1)
             
-            # Sampling: Take every 5th day + the very last day
-            if day % 5 == 0 or day == 1 or day == 365 or day == 366:
+            # Sampling: Take every 5th day + month starts + the very last day
+            month_starts = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
+            if day % 5 == 0 or day in month_starts or day == 365 or day == 366:
                 yoy_cumulative.append(day_data)
 
         # 8. Training Load (CTL/ATL/TSB) Calculation (TRIMP Based)
@@ -750,6 +872,47 @@ def get_sports_stats():
                     "atl": round(atl, 2),
                     "tsb": round(ctl - atl, 2)
                 })
+
+        # --- Enhanced Metrics for Detail Panel ---
+        # 8.1 A:C Ratio (Acute:Chronic workload ratio)
+        ac_ratio = atl / (ctl if ctl > 0 else 1)
+        
+        # 8.2 Monotony (Last 7 days stress variety)
+        last_7_days_stress = [daily_stress.get((datetime.date.today() - datetime.timedelta(days=i)).isoformat(), 0) for i in range(7)]
+        avg_7d_stress = sum(last_7_days_stress) / 7.0
+        variance = sum((s - avg_7d_stress)**2 for s in last_7_days_stress) / 7.0
+        std_dev = math.sqrt(variance)
+        monotony = avg_7d_stress / std_dev if std_dev > 0 else 0
+        
+        # 8.3 Recovery Forecast (Predict future status if resting)
+        forecast = []
+        f_ctl, f_atl = ctl, atl
+        for i in range(1, 8):
+            # Stress = 0 during rest days
+            f_ctl = f_ctl + (0 - f_ctl) * (1.0 / 42.0)
+            f_atl = f_atl + (0 - f_atl) * (1.0 / 7.0)
+            forecast.append({
+                "date": (datetime.date.today() + datetime.timedelta(days=i)).isoformat(),
+                "ctl": round(f_ctl, 2),
+                "atl": round(f_atl, 2),
+                "tsb": round(f_ctl - f_atl, 2),
+                "ac_ratio": round(f_atl / (f_ctl if f_ctl > 0 else 1), 2)
+            })
+
+        # Calculate rest days in past 7 days
+        rest_days_7d = sum(1 for s in last_7_days_stress if s < 1) # < 1 TRIMP counts as rest
+        
+        # Add to smart_coach or separate object? Let's add to smart_coach
+        training_details = {
+            "ac_ratio": round(ac_ratio, 2),
+            "monotony": round(monotony, 2),
+            "forecast": forecast,
+            "rest_days_7d": rest_days_7d,
+            "weekly_stress": round(sum(last_7_days_stress), 1),
+            "ctl": round(ctl, 1),
+            "atl": round(atl, 1),
+            "tsb": round(ctl - atl, 1)
+        }
 
         # 9. Heart Rate Zones Distribution (Dynamic based on settings.yaml)
         cur.execute("SELECT average_heartrate as hr FROM activities WHERE average_heartrate > 0")
@@ -854,19 +1017,25 @@ def get_sports_stats():
         """, (fourteen_days_ago.isoformat(), seven_days_ago.isoformat()))
         lw_row = cur.fetchone()
 
-        # 12. Real Goals (Derived from live data)
+        # Monthly Elevation Gain
         cur.execute("""
-            SELECT SUM(elevation_gain) as elev 
-            FROM activities 
+            SELECT SUM(elevation_gain) as elev
+            FROM activities
             WHERE strftime('%Y-%m', start_date_local) = strftime('%Y-%m', 'now')
         """)
-        mtd_elev = cur.fetchone()["elev"] or 0
-        
+        mtd_row = cur.fetchone()
+        mtd_elev = mtd_row["elev"] if mtd_row and mtd_row["elev"] else 0
         tw_count = tw_row["count"] or 0
+        
+        # Pull targets from config or use defaults
+        target_dist = athlete_metrics.get("annual_distance_target", 2000)
+        target_elev = athlete_metrics.get("monthly_elevation_target", 1000)
+        target_freq = athlete_metrics.get("weekly_frequency_target", 5)
+
         goals = [
-            {"title": f"Annual Distance {this_year}", "target": 2000, "current": round(yearly.get(this_year, {}).get("distance", 0), 1), "unit": "km"},
-            {"title": "Monthly Elevation", "target": mtd_elev + 500 if mtd_elev < 1000 else round(mtd_elev * 1.5, -2), "current": round(mtd_elev), "unit": "m"},
-            {"title": "Activities per Week", "target": max(5, tw_count + 1), "current": tw_count, "unit": "sessions"}
+            {"title": f"Annual Distance {this_year}", "target": target_dist, "current": round(yearly.get(this_year, {}).get("distance", 0), 1), "unit": "km"},
+            {"title": "Monthly Elevation", "target": target_elev, "current": round(mtd_elev), "unit": "m"},
+            {"title": "Activities per Week", "target": target_freq, "current": tw_count, "unit": "sessions"}
         ]
 
         # 13. Recent Form (Weekly comparison)
@@ -891,8 +1060,7 @@ def get_sports_stats():
             }
         }
 
-        # 11. Athlete Metrics
-        athlete_metrics = get_athlete_metrics()
+        # 11. Athlete Metrics (Already fetched at start)
 
         # 15. Time & Weekday Preferences
         time_raw = cur.execute("""
@@ -922,6 +1090,28 @@ def get_sports_stats():
         for i in range(7):
             count = next((r["count"] for r in weekday_raw if r["weekday"] == i), 0)
             weekday_preference.append({"day": day_names[i], "count": count, "weekday": i})
+
+        # 15.2 Activity Pattern Heatmap Matrix (Weekday vs Hour)
+        pattern_raw = cur.execute("""
+            SELECT CAST(strftime('%w', start_date_local) AS INTEGER) as weekday,
+                   (CAST(strftime('%H', start_date_local) AS INTEGER) / 2) * 2 as slot,
+                   COUNT(*) as count
+            FROM activities
+            GROUP BY weekday, slot
+        """).fetchall()
+        
+        activity_pattern = []
+        for h in range(0, 24, 2):
+            slot_name = f"{h:02d}:00"
+            for d in range(7):
+                count = next((r["count"] for r in pattern_raw if r["weekday"] == d and r["slot"] == h), 0)
+                activity_pattern.append({
+                    "day": d, 
+                    "dayName": day_names[d],
+                    "hour": h,
+                    "hourName": slot_name,
+                    "value": count
+                })
 
         # 15.5 Distance Breakdown Histogram
         dist_raw = [r["dist"] / 1000.0 for r in cur.execute("SELECT distance as dist FROM activities").fetchall()]
@@ -1207,6 +1397,43 @@ def get_sports_stats():
                     temp_s = 1
             max_streak = max(max_streak, temp_s)
 
+        # 17. Athlete Radar Chart Data
+        last_30_days = (dt.date.today() - dt.timedelta(days=30)).isoformat()
+        cur.execute("""
+            SELECT 
+                COUNT(*) as count, 
+                SUM(distance) as dist, 
+                SUM(elevation_gain) as elev,
+                MAX(distance) as max_dist
+            FROM activities 
+            WHERE date(start_date_local) >= ?
+        """, (last_30_days,))
+        r30 = cur.fetchone()
+        
+        # Calculate Speed (Top pace in last 3 months)
+        last_90_days = (dt.date.today() - dt.timedelta(days=90)).isoformat()
+        cur.execute("SELECT distance, moving_time FROM activities WHERE type='Run' AND date(start_date_local) >= ? ORDER BY distance DESC LIMIT 20", (last_90_days,))
+        speed_rows = cur.fetchall()
+        max_speed_score = 50 # Default
+        if speed_rows:
+            best_pace = 999
+            for sr in speed_rows:
+                sec = row_to_seconds(sr["moving_time"])
+                if sec > 0:
+                    pace_min_km = (sec / 60.0) / (sr["distance"] / 1000.0)
+                    best_pace = min(best_pace, pace_min_km)
+            # 4:00 min/km = 100, 6:00 min/km = 50
+            if best_pace < 999:
+                max_speed_score = max(20, min(100, int(100 - (best_pace - 4.0) * 25)))
+
+        athlete_radar = [
+            { "subject": "Endurance", "A": min(100, int((r30["dist"] or 0) / 1500)), "fullMark": 100 }, # 150km/mo
+            { "subject": "Climb", "A": min(100, int((r30["elev"] or 0) / 15)), "fullMark": 100 },      # 1500m/mo
+            { "subject": "Frequency", "A": min(100, int((r30["count"] or 0) * 6)), "fullMark": 100 },  # 16 sessions/mo
+            { "subject": "Distance", "A": min(100, int((r30["max_dist"] or 0) / 250)), "fullMark": 100 },# 25km session
+            { "subject": "Speed", "A": max_speed_score, "fullMark": 100 }
+        ]
+
         # Final Return Object
         return {
             "total_distance": (agg["dist"] or 0) / 1000.0,
@@ -1247,7 +1474,12 @@ def get_sports_stats():
             "goals": goals,
             "photos_count": cur.execute("SELECT COUNT(*) FROM photos").fetchone()[0] if conn else 0,
             "gear_count": len(gear_stats),
-            "athlete_metrics": athlete_metrics
+            "athlete_metrics": athlete_metrics,
+            "athlete_profile": get_strava_athlete_cached(load_creds()),
+            "athlete_radar": athlete_radar,
+            "dashboard_records": dashboard_records,
+            "training_details": training_details,
+            "activity_pattern": activity_pattern
         }
     finally:
         if conn: conn.close()
@@ -1390,9 +1622,8 @@ def get_challenges_derived():
         # Helper to format month names
         def format_month(m_str):
             try:
-                from datetime import datetime
-                dt = datetime.strptime(m_str, "%Y-%m")
-                return dt.strftime("%B %Y")
+                dt_obj = dt.datetime.strptime(m_str, "%Y-%m")
+                return dt_obj.strftime("%B %Y")
             except:
                 return m_str
         
@@ -1405,7 +1636,7 @@ def get_challenges_derived():
             # Note: imported_trophies keys might be "Jun 2025" while month here is "2025-06"
             # We transform month here to "Jun 2025" for lookup
             try:
-                dt_obj = datetime.strptime(month, "%Y-%m")
+                dt_obj = dt.datetime.strptime(month, "%Y-%m")
                 month_key = dt_obj.strftime("%b %Y")
                 if month_key in imported_trophies:
                     month_map[month].extend(imported_trophies.pop(month_key))

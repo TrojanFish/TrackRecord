@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Clock, MapPin, TrendingUp, Calendar, Zap, Activity } from 'lucide-react';
+import { Trophy, Clock, MapPin, TrendingUp, Calendar, Zap, Activity, Heart, Footprints, Flame, ExternalLink } from 'lucide-react';
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const formatTime = (seconds) => {
@@ -30,8 +30,8 @@ const predictRace = (baseTimeSec, baseDist, targetDist, exponent = 1.06) => {
     return formatTime(Math.round(predictedSec));
 };
 
-const Records = ({ stats }) => {
-  const [activeTab, setActiveTab] = useState(
+const Records = ({ stats, setActiveTab, setInitialSearch }) => {
+  const [sportMode, setSportMode] = useState(
     Object.keys(stats?.records || {}).some(k => k.includes('Ride')) && !Object.keys(stats?.records || {}).some(k => k.includes('5K'))
     ? 'Ride' : 'Run'
   );
@@ -59,15 +59,15 @@ const Records = ({ stats }) => {
         { label: '160K Imperial', dist: 160.9 },
         { label: '200K Brevet', dist: 200 }
       ],
-      baseKey: "20K Ride",
+      baseKey: "30K Ride",
       fallbackKey: "50K Ride",
-      defaultBaseDist: 20,
+      defaultBaseDist: 30,
       exponent: stats.athlete_metrics?.riegel_exponents?.ride || 1.05,
       color: "#8b5cf6"
     }
   };
 
-  const currentConfig = predictorConfigs[activeTab];
+  const currentConfig = predictorConfigs[sportMode];
   const baseRecord = stats.records[currentConfig.baseKey] || stats.records[currentConfig.fallbackKey];
   const baseDist = stats.records[currentConfig.baseKey] ? currentConfig.defaultBaseDist : (stats.records[currentConfig.fallbackKey] ? (currentConfig.defaultBaseDist * 2.5) : currentConfig.defaultBaseDist);
 
@@ -77,105 +77,139 @@ const Records = ({ stats }) => {
       animate={{ opacity: 1, y: 0 }}
       className="page-content"
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem', marginBottom: '3rem' }}>
-          <div>
-            <h2 className="category-title" style={{ fontSize: '0.9rem', marginBottom: '1.5rem', opacity: 0.8 }}>ALL-TIME PERSONAL BESTS</h2>
-            <div className="platform-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-              {Object.entries(stats.records || {}).length > 0 ? (
-                Object.entries(stats.records || {}).map(([name, data]) => (
-                  <div key={name} className="platform-card record-card" style={{ padding: '1.5rem', minHeight: '120px' }}>
-                    <div className="record-header">
-                       <Trophy size={18} color={name.includes('Ride') ? '#8b5cf6' : 'var(--accent-cyan)'} />
-                       <span className="record-label" style={{ fontSize: '0.6rem' }}>{name.toUpperCase()}</span>
-                    </div>
-                    <div className="record-value" style={{ fontSize: '1.4rem', margin: '0.5rem 0' }}>{data.moving_time}</div>
-                    <div className="record-meta" style={{ marginTop: 'auto' }}>
-                      <span style={{ fontSize: '0.6rem', opacity: 0.5, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Calendar size={10} /> {data.start_date_local.split(' ')[0]}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="platform-card" style={{ padding: '2rem', textAlign: 'center', gridColumn: '1 / -1', opacity: 0.5 }}>
-                  <TrendingUp size={32} style={{ marginBottom: '1rem', opacity: 0.2 }} />
-                  <p>No best efforts recorded yet. Go out and set some records!</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '1.5rem', marginBottom: '3rem', alignItems: 'stretch' }}>
+          {/* LEFT: COMBINED PB + PEAK */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '1.5rem' }}>
+              {/* COLUMN 1: ALL-TIME RECORDS (THE MEDAL WALL) */}
+              <div className="platform-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.6, letterSpacing: '1px' }}>PERSONAL BEST MILESTONES</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', flex: 1 }}>
+                  {Object.entries(stats.records || {})
+                    .filter(([name]) => sportMode === 'Ride' ? name.includes('Ride') : !name.includes('Ride'))
+                    .slice(0, 4)
+                    .map(([name, data]) => {
+                      const isRun = !name.includes('Ride');
+                      return (
+                      <div 
+                        key={name}
+                        onClick={() => { if (setActiveTab && setInitialSearch) { setInitialSearch(data.name); setActiveTab('Activities'); } }}
+                        style={{ 
+                            padding: '1rem', 
+                            borderRadius: '12px',
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            position: 'relative',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.5 }}>{name.replace(' Ride', '')}</span>
+                            <Trophy size={12} color={isRun ? 'var(--accent-cyan)' : '#8b5cf6'} />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>{data.moving_time}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 700 }}>{data.pace}</div>
+                        </div>
+                        <div style={{ fontSize: '0.55rem', opacity: 0.3, marginTop: '4px' }}>{data.start_date_local.split(' ')[0]}</div>
+                      </div>
+                    )
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+
+              {/* COLUMN 2: PEAK PERFORMANCE MATRIX */}
+              <div className="platform-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+                  <h2 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.6, letterSpacing: '1px' }}>PEAK EFFORTS MATRIX</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '1rem', flex: 1 }}>
+                      <div style={{ background: 'rgba(6, 182, 212, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(6, 182, 212, 0.1)' }}>
+                          <div style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: '4px' }}>{sportMode === 'Run' ? 'PEAK SPEED' : 'MAX AVG POWER'}</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                              {sportMode === 'Run' ? stats.athlete_metrics?.peak_performance?.running?.max_speed : stats.athlete_metrics?.peak_performance?.cycling?.max_avg_power}
+                              <span style={{ fontSize: '0.7rem', marginLeft: '4px' }}>{sportMode === 'Run' ? 'km/h' : 'W'}</span>
+                          </div>
+                      </div>
+                      <div style={{ background: 'rgba(139, 92, 246, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.1)' }}>
+                          <div style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: '4px' }}>{sportMode === 'Run' ? 'MAX CADENCE' : 'MAX SPEED'}</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#8b5cf6' }}>
+                              {sportMode === 'Run' ? stats.athlete_metrics?.peak_performance?.running?.max_cadence : stats.athlete_metrics?.peak_performance?.cycling?.max_speed}
+                              <span style={{ fontSize: '0.7rem', marginLeft: '4px' }}>{sportMode === 'Run' ? 'spm' : 'km/h'}</span>
+                          </div>
+                      </div>
+                      <div style={{ background: 'rgba(245, 158, 11, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.1)', gridColumn: 'span 2' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <div style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: '4px' }}>YEARLY BREAKTHROUGHS</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#f59e0b' }}>
+                                    {stats.athlete_metrics?.peak_performance?.milestones?.pbs_this_year} 
+                                    <span style={{ fontSize: '0.8rem', marginLeft: '8px', opacity: 0.5 }}>NEW PBs IN {new Date().getFullYear()}</span>
+                                </div>
+                              </div>
+                              <TrendingUp color="#f59e0b" size={24} style={{ opacity: 0.2 }} />
+                          </div>
+                      </div>
+                  </div>
+              </div>
           </div>
 
-          <div className="platform-card" style={{ padding: '2rem', height: 'fit-content', background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(189, 0, 255, 0.1))' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 800 }}>ESTIMATED VO2 MAX</h3>
-                  <Zap size={20} color="var(--accent-cyan)" />
+          {/* RIGHT: PHYSIOLOGY SIDEBAR */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="platform-card" style={{ padding: '1.2rem', background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(189, 0, 255, 0.1))' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, marginBottom: '0.2rem' }}>ESTIMATED VO2 MAX</div>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: 'white' }}>{stats.athlete_metrics?.vo2_estimate || calculateVO2Max(stats.records)}</div>
+                  <div style={{ height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '0.5rem' }}>
+                    <div style={{ height: '100%', width: '75%', background: 'var(--accent-cyan)', borderRadius: '2px' }} />
+                  </div>
               </div>
-              <div style={{ fontSize: '4rem', fontWeight: 900, textAlign: 'center', margin: '1rem 0' }}>
-                  {stats.athlete_metrics?.vo2_estimate || calculateVO2Max(stats.records)}
+              
+              <div className="platform-card" style={{ padding: '1.2rem', flex: 1 }}>
+                  <h3 style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: '1rem', opacity: 0.6 }}>HR ZONES</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {Object.entries(stats.athlete_metrics?.zones || {}).slice(0, 5).map(([zone, range], idx) => (
+                          <div key={zone} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ width: '3px', height: '10px', background: ['#94a3b8', '#34d399', '#f59e0b', '#ef4444', '#7c3aed'][idx] }} />
+                                <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>Z{idx+1}</span>
+                              </div>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700 }}>{range.from}-{range.to || 'max'}</span>
+                          </div>
+                      ))}
+                  </div>
               </div>
-              <div className="progress-bar-container" style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px' }}>
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: stats.athlete_metrics?.vo2_estimate ? `${Math.min(100, (stats.athlete_metrics.vo2_estimate / 60) * 100)}%` : '75%' }} 
-                    style={{ height: '100%', background: 'var(--accent-cyan)', borderRadius: '2px' }}
-                  />
-              </div>
-              <p style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '1rem', textAlign: 'center' }}>
-                  {stats.athlete_metrics?.max_hr ? `Calculated based on Max HR (${stats.athlete_metrics.max_hr}bpm) and Resting HR (${stats.athlete_metrics.resting_hr}bpm).` : 
-                   (Object.keys(stats.records || {}).some(k => k.includes('5K') || k.includes('10K')) 
-                    ? "Superior fitness level for your age group based on running effort." 
-                    : "Estimated baseline aerobic capacity. Add more run data for accuracy.")
-                  }
-              </p>
           </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2rem', marginBottom: '3rem' }}>
-          <div className="platform-card" style={{ padding: '2.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Clock size={20} color="#f59e0b" /> {activeTab.toUpperCase()} TIME PREDICTOR (ESTIMATED)
+      {/* SECOND ROW: PREDICTOR TRACKING */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '1.5rem', marginBottom: '3rem' }}>
+          <div className="platform-card" style={{ padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800 }}>
+                  <Clock size={18} color="#f59e0b" /> {sportMode.toUpperCase()} PERFORMANCE PREDICTOR
                 </h3>
                 
-                <div style={{ 
-                  display: 'flex', 
-                  background: 'rgba(255,255,255,0.03)', 
-                  padding: '4px', 
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255,255,255,0.05)'
-                }}>
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                   {['Run', 'Ride'].map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setActiveTab(type)}
-                      style={{
-                        padding: '6px 16px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        background: activeTab === type ? (type === 'Run' ? 'var(--accent-cyan)' : '#8b5cf6') : 'transparent',
-                        color: activeTab === type ? 'white' : 'var(--text-secondary)',
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      {type === 'Run' ? 'RUNNING' : 'CYCLING'}
-                    </button>
+                    <button key={type} onClick={() => setSportMode(type)} style={{
+                        padding: '5px 12px', borderRadius: '6px', border: 'none', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer',
+                        background: sportMode === type ? (type === 'Run' ? 'var(--accent-cyan)' : '#8b5cf6') : 'transparent',
+                        color: sportMode === type ? 'white' : 'var(--text-secondary)', transition: 'all 0.2s'
+                    }}> {type === 'Run' ? 'RUN' : 'RIDE'} </button>
                   ))}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
                   {currentConfig.targets.map(race => {
-                      const timeStr = baseRecord?.moving_time || (activeTab === 'Run' ? '00:20:00' : '01:00:00');
+                      const timeStr = baseRecord?.moving_time || (sportMode === 'Run' ? '00:20:00' : '01:00:00');
                       const timeOnly = timeStr.includes(' ') ? timeStr.split(' ')[1] : timeStr;
                       const baseParts = timeOnly.split(':');
                       const baseSec = parseInt(baseParts[0])*3600 + parseInt(baseParts[1])*60 + parseInt(baseParts[2]);
                       return (
-                        <div key={race.label} style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem' }}>{race.label}</div>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: currentConfig.color }}>
+                        <div key={race.label} style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '12px' }}>
+                            <div style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '0.5rem', fontWeight: 700 }}>{race.label}</div>
+                            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: currentConfig.color }}>
                                 {predictRace(baseSec, baseDist, race.dist, currentConfig.exponent)}
                             </div>
                         </div>
@@ -184,29 +218,15 @@ const Records = ({ stats }) => {
               </div>
           </div>
 
-          <div className="platform-card" style={{ padding: '1.5rem' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.8 }}>HEART RATE ZONES</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {Object.entries(stats.athlete_metrics?.zones || {}).map(([zone, range], idx) => (
-                      <div key={zone} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ 
-                              width: '4px', 
-                              height: '24px', 
-                              borderRadius: '2px',
-                              background: ['#94a3b8', '#34d399', '#f59e0b', '#ef4444', '#7c3aed'][idx] 
-                          }} />
-                          <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>{zone.toUpperCase()}</div>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                                  {range.from} - {range.to ? `${range.to} bpm` : 'max'}
-                              </div>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-              <div style={{ marginTop: '1.5rem', fontSize: '0.65rem', opacity: 0.4, fontStyle: 'italic' }}>
-                  Zones calculated via Fox formula (220-age). Customize in settings.yaml
-              </div>
+          <div className="platform-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'linear-gradient(to bottom, rgba(139, 92, 246, 0.05), transparent)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.8 }}>ESTIMATED FTP</h3>
+                    <Zap size={18} color="#8b5cf6" />
+                </div>
+                <div style={{ fontSize: '3rem', fontWeight: 900, color: '#8b5cf6', lineHeight: 1 }}>
+                    {stats.athlete_metrics?.ftp_estimate || 0} <span style={{ fontSize: '1rem', opacity: 0.5 }}>W</span>
+                </div>
+                <p style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '1rem' }}>Functional Threshold Power based on 30K performance data.</p>
           </div>
       </div>
 
@@ -214,7 +234,7 @@ const Records = ({ stats }) => {
       {Object.keys(stats.records_trends || {}).length > 0 ? (
         <div className="platform-grid">
           {(Object.entries(stats.records_trends || {})).map(([name, data]) => (
-            <div key={name} className="platform-card" style={{ padding: '2rem' }}>
+            <div key={name} className="platform-card interactive-card" style={{ padding: '2rem' }}>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <TrendingUp size={18} color="var(--accent-cyan)" /> {name} HISTORICAL TREND
               </h3>
@@ -264,7 +284,7 @@ const Records = ({ stats }) => {
               <div style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
                   <h4 style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: '0.8rem', letterSpacing: '1px' }}>ALL-TIME RANKING</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {[...data].sort((a,b) => a.seconds - b.seconds).slice(0, 3).map((item, idx) => (
+                      {[...data].sort((a,b) => a.seconds - b.seconds).slice(0, 5).map((item, idx) => (
                           <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <span style={{ color: idx === 0 ? '#ffd700' : (idx === 1 ? '#c0c0c0' : '#cd7f32'), fontWeight: 900 }}>{idx + 1}</span>

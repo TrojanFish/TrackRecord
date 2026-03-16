@@ -1,16 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, Filter, ArrowUpDown, ChevronDown, 
   MapPin, Calendar, Clock, Heart, Zap, ExternalLink,
   Map as MapIcon, X, Maximize2, Activity as ActivityIcon,
-  TrendingUp, Timer, ChevronRight
+  TrendingUp, Timer, ChevronRight, Footprints, Flame
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import polyline from 'polyline';
 import 'leaflet/dist/leaflet.css';
 
-const Activities = ({ stats }) => {
+const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
   const [sortConfig, setSortConfig] = useState({ key: 'start_date_local', direction: 'desc' });
@@ -21,6 +21,13 @@ const Activities = ({ stats }) => {
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  useEffect(() => {
+    if (initialSearch) {
+      setSearchTerm(initialSearch);
+      if (onSearchClear) onSearchClear(); // Clear it from App state once consumed
+    }
+  }, [initialSearch, onSearchClear]);
 
   if (!stats) return null;
 
@@ -129,7 +136,7 @@ const Activities = ({ stats }) => {
       className="page-content activity-center"
     >
       {/* Search & Filter Header */}
-      <div className="platform-card no-lift" style={{ padding: '1.5rem', marginBottom: '2rem', position: 'relative', zIndex: 10 }}>
+      <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem', position: 'relative', zIndex: 10 }}>
          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center' }}>
             {/* Search Input */}
             <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
@@ -209,20 +216,20 @@ const Activities = ({ stats }) => {
       </div>
 
       {/* Main Table Container */}
-      <div className="platform-card no-lift" style={{ padding: '0', overflowX: 'auto' }}>
+      <div className="platform-card" style={{ padding: '0', overflowX: 'auto' }}>
         <table className="activities-table">
           <thead>
             <tr>
               <th onClick={() => handleSort('start_date_local')} style={{ cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>DATE <ArrowUpDown size={12} /></div>
               </th>
-              <th>NAME</th>
+              <th>NAME / LOCATION</th>
               <th>TYPE</th>
               <th onClick={() => handleSort('distance')} style={{ cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>DISTANCE <ArrowUpDown size={12} /></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>DISTANCE / CLIMB <ArrowUpDown size={12} /></div>
               </th>
-              <th>PACE / SPEED</th>
-              <th>HEART RATE</th>
+              <th>PACE / GAP / DUR</th>
+              <th>BIO & POWER</th>
               <th>ACTION</th>
             </tr>
           </thead>
@@ -248,8 +255,11 @@ const Activities = ({ stats }) => {
                   </div>
                 </td>
                 <td style={{ fontWeight: 600 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {activity.name}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ fontWeight: 700 }}>{activity.name}</div>
+                        <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <MapPin size={10} /> {activity.location_city || 'Main Route'}
+                        </div>
                     </div>
                 </td>
                 <td>
@@ -278,17 +288,36 @@ const Activities = ({ stats }) => {
                            GAP: {activity.gap_pace}
                          </span>
                        )}
-                       <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>Duration: {activity.moving_time.includes(' ') ? activity.moving_time.split(' ')[1].split('.')[0] : activity.moving_time.split('.')[0]}</span>
+                       <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{activity.moving_time.includes(' ') ? activity.moving_time.split(' ')[1].split('.')[0] : activity.moving_time.split('.')[0]}</span>
                   </div>
                 </td>
                 <td>
-                  {activity.average_heartrate ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Heart size={14} color="#ef4444" fill={activity.average_heartrate > 160 ? "#ef4444" : "none"} />
-                        <span style={{ fontWeight: 700 }}>{activity.average_heartrate.toFixed(0)}</span>
-                        <small style={{ opacity: 0.3 }}>BPM</small>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {activity.average_heartrate > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                          <Heart size={12} fill={activity.average_heartrate > 160 ? "#ef4444" : "none"} /> {Math.round(activity.average_heartrate)}
+                        </div>
+                      )}
+                      {activity.average_cadence > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                          <Footprints size={12} /> {Math.round(activity.average_cadence < 120 && activity.type.toLowerCase().includes('run') ? activity.average_cadence * 2 : activity.average_cadence)}
+                        </div>
+                      )}
                     </div>
-                  ) : '--'}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {activity.calories > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                          <Flame size={12} fill="#f59e0b" /> {activity.calories}
+                        </div>
+                      )}
+                      {activity.average_watts > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                          <Zap size={12} fill="#8b5cf6" /> {Math.round(activity.average_watts)}W
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </td>
                 <td>
                    <button 
@@ -406,7 +435,13 @@ const Activities = ({ stats }) => {
               </div>
 
               <div className="panel-footer">
-                  <button className="full-report-btn">
+                  <button 
+                    className="full-report-btn"
+                    onClick={() => {
+                        setIsModalOpen(false);
+                        setActiveTab('Analytics');
+                    }}
+                  >
                      OPEN FULL PERFORMANCE ANALYSIS <ChevronRight size={18} />
                   </button>
               </div>

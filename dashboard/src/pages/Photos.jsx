@@ -35,6 +35,15 @@ const Photos = () => {
     fetchPhotos();
   }, []);
 
+  useEffect(() => {
+    if (selectedPhoto) {
+      document.body.classList.add('lightbox-open');
+    } else {
+      document.body.classList.remove('lightbox-open');
+    }
+    return () => document.body.classList.remove('lightbox-open');
+  }, [selectedPhoto]);
+
   const filteredPhotos = photos.filter(p => {
     const typeMatch = filterType === 'All' || p.type === filterType;
     let countryMatch = filterCountry === 'All';
@@ -213,46 +222,21 @@ const Photos = () => {
                 </button>
              </div>
 
-             <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <>
-                   <button 
-                     className="nav-btn" 
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       const idx = filteredPhotos.findIndex(p => p.id === selectedPhoto.id);
-                       setSelectedPhoto(filteredPhotos[(idx - 1 + filteredPhotos.length) % filteredPhotos.length]);
-                     }}
-                     style={{ left: '2rem' }}
-                   >
-                     <ChevronLeft size={32} />
-                   </button>
-                   <button 
-                     className="nav-btn" 
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       const idx = filteredPhotos.findIndex(p => p.id === selectedPhoto.id);
-                       setSelectedPhoto(filteredPhotos[(idx + 1) % filteredPhotos.length]);
-                     }}
-                     style={{ right: '2rem' }}
-                   >
-                     <ChevronRight size={32} />
-                   </button>
-                 </>
-
+             <div style={{ position: 'relative', width: '100%', height: 'calc(100% - 40px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <motion.div 
                   key={selectedPhoto?.id}
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  style={{ maxWidth: '85vw', maxHeight: '75vh', position: 'relative', textAlign: 'center' }}
+                  style={{ maxWidth: '85vw', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}
                 >
                    <img 
                      src={(selectedPhoto?.url || '').startsWith('http') 
                         ? selectedPhoto.url 
                         : `${API_BASE}${selectedPhoto?.url}`} 
                      alt="" 
-                     style={{ maxWidth: '100%', maxHeight: '75vh', borderRadius: '1.5rem', boxShadow: '0 40px 100px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }} 
+                     style={{ maxWidth: '100%', maxHeight: '68vh', borderRadius: '1.5rem', boxShadow: '0 40px 100px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }} 
                    />
-                   <div style={{ marginTop: '2rem', color: 'white' }}>
+                   <div style={{ marginTop: '2.5rem', color: 'white', paddingBottom: '2rem' }}>
                        <h3 style={{ fontSize: '1.8rem', fontWeight: 800 }}>{selectedPhoto?.title}</h3>
                        <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', marginTop: '0.5rem', opacity: 0.6 }}>
                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={18} /> {selectedPhoto?.location}</span>
@@ -260,6 +244,30 @@ const Photos = () => {
                        </div>
                    </div>
                 </motion.div>
+
+                {/* Fixed Screen-Edge Navigation */}
+                <button 
+                  className="nav-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const idx = filteredPhotos.findIndex(p => p.id === selectedPhoto.id);
+                    setSelectedPhoto(filteredPhotos[(idx - 1 + filteredPhotos.length) % filteredPhotos.length]);
+                  }}
+                  style={{ left: '2rem', position: 'fixed' }}
+                >
+                  <ChevronLeft size={32} />
+                </button>
+                <button 
+                  className="nav-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const idx = filteredPhotos.findIndex(p => p.id === selectedPhoto.id);
+                    setSelectedPhoto(filteredPhotos[(idx + 1) % filteredPhotos.length]);
+                  }}
+                  style={{ right: '2rem', position: 'fixed' }}
+                >
+                  <ChevronRight size={32} />
+                </button>
              </div>
              
              <style>{`
@@ -267,20 +275,20 @@ const Photos = () => {
                  position: absolute;
                  top: 50%;
                  transform: translateY(-50%);
-                 width: 60px;
-                 height: 60px;
+                 width: 64px;
+                 height: 64px;
                  border-radius: 50%;
-                 background: rgba(255,255,255,0.05);
+                 background: rgba(255,255,255,0.08);
                  border: 1px solid rgba(255,255,255,0.1);
                  color: white;
                  cursor: pointer;
                  display: flex;
-                 alignItems: center;
-                 justifyContent: center;
+                 align-items: center;
+                 justify-content: center;
                  transition: all 0.3s;
                  z-index: 5;
                }
-               .nav-btn:hover { background: rgba(255,255,255,0.15); scale: 1.1; }
+               .nav-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-50%) scale(1.1); }
              `}</style>
           </motion.div>
         )}

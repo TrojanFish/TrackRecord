@@ -153,16 +153,18 @@ body {
 }
 
 .sidebar-header {
-  padding: 1.5rem;
+  padding: 0 1.5rem;
+  height: 64px;
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
+  box-sizing: border-box;
 }
 
 .sidebar.collapsed .sidebar-header {
-  padding: 1.5rem 0;
-  flex-direction: column;
+  padding: 0;
+  justify-content: center;
 }
 
 .collapse-btn-top {
@@ -194,23 +196,23 @@ body {
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: white;
   box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
 }
 
 .logo-text {
   font-weight: 900;
-  font-size: 0.9rem;
-  letter-spacing: 0.2em;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
   color: white;
   opacity: 0.9;
   text-transform: uppercase;
@@ -306,7 +308,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   margin: 0 8px;
   border-radius: 12px;
   color: var(--text-secondary);
@@ -374,16 +376,19 @@ body {
   /* Removed top padding */
   scrollbar-gutter: stable;
   position: relative;
-  z-index: 1;
-  /* Above dynamic-bg */
+  transition: z-index 0.3s;
+}
+
+body.lightbox-open .main-content {
+  z-index: 2000;
 }
 
 .main-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2.5rem;
-  padding: 1.5rem 0;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 0;
   border-bottom: 1px solid var(--glass-border);
   position: sticky;
   top: 0;
@@ -394,7 +399,7 @@ body {
   -webkit-backdrop-filter: blur(16px);
   z-index: 1000;
   /* Higher than sidebar content but lower than modal-overlay */
-  height: 89px;
+  height: 64px;
   box-sizing: border-box;
 }
 
@@ -552,13 +557,15 @@ body {
 }
 
 .platform-card:hover {
-  transform: translateY(-8px) scale(1.01);
   border-color: rgba(6, 182, 212, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
 }
 
-.platform-card.no-lift:hover {
-  transform: none;
+/* Small widgets that should lift */
+.interactive-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 .platform-card::before {
@@ -1067,12 +1074,12 @@ body {
 
 .stat-card {
   text-align: center;
-  padding: 2.5rem;
+  padding: 1.25rem 1rem;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
 }
 
 .stat-value {
-  font-size: 3.5rem;
+  font-size: 2.8rem;
   font-weight: 800;
   display: block;
   margin-bottom: 0.5rem;

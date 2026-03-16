@@ -31,9 +31,14 @@ function App() {
     weekday_preference: [], gear_stats: [], training_load: [],
     records_trends: {}, daily_stats: [],
     recent_form: { this_week: { distance: 0, stress: 0, count: 0 }, last_week: { distance: 0, stress: 0, count: 0 } },
-    athlete_metrics: { vo2_estimate: 0, zones: {}, max_hr: 0, resting_hr: 0 }
+    athlete_metrics: { vo2_estimate: 0, zones: {}, max_hr: 0, resting_hr: 0 },
+    athlete_profile: null,
+    athlete_radar: [],
+    dashboard_records: [],
+    activity_pattern: []
   });
   const [activeTab, setActiveTab] = useState('Overview');
+  const [initialSearch, setInitialSearch] = useState('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
   useEffect(() => { fetchStats(); }, []);
@@ -180,18 +185,18 @@ function App() {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'Overview': return <Dashboard stats={stats} setActiveTab={setActiveTab} renderHeatmap={renderHeatmap} />;
-      case 'Activities': return <Activities stats={stats} />;
+      case 'Overview': return <Dashboard stats={stats} setActiveTab={setActiveTab} renderHeatmap={renderHeatmap} setInitialSearch={setInitialSearch} />;
+      case 'Activities': return <Activities stats={stats} setActiveTab={setActiveTab} initialSearch={initialSearch} onSearchClear={() => setInitialSearch('')} />;
       case 'Analytics': return <Analytics stats={stats} />;
       case 'Eddington': return <Eddington stats={stats} />;
       case 'Heatmap': return <Heatmap activities={stats.recent_activities} availableYears={stats.available_years} />;
-      case 'Records': return <Records stats={stats} />;
+      case 'Records': return <Records stats={stats} setActiveTab={setActiveTab} setInitialSearch={setInitialSearch} />;
       case 'Gear': return <Gear stats={stats} />;
       case 'Stats': return <MonthlyStats stats={stats} renderHeatmap={renderHeatmap} />;
       case 'Challenges': return <Challenges />;
       case 'Photos': return <Photos />;
       case 'Rewind': return <Rewind stats={stats} />;
-      default: return <Dashboard stats={stats} />;
+      default: return <Dashboard stats={stats} setActiveTab={setActiveTab} />;
     }
   };
 
@@ -212,7 +217,7 @@ function App() {
       />
 
       <main className="main-content">
-        <Header title={activeTab.toUpperCase()} />
+        <Header title={activeTab.toUpperCase()} profile={stats.athlete_profile} />
         <AnimatePresence mode="wait">
           {renderTabContent()}
         </AnimatePresence>

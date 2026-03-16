@@ -55,10 +55,10 @@ const Eddington = ({ stats }) => {
           </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '2rem', alignItems: 'stretch' }}>
         {/* Left: Summary Card */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div className="platform-card stat-card" style={{ 
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%' }}>
+          <div className="platform-card stat-card interactive-card" style={{ 
             borderBottom: `4px solid ${activeType === 'Run' ? 'var(--accent-cyan)' : '#bd00ff'}`,
             padding: '2.5rem'
           }}>
@@ -82,7 +82,7 @@ const Eddington = ({ stats }) => {
             </div>
           </div>
 
-          <div className="platform-card" style={{ padding: '1.5rem' }}>
+          <div className="platform-card" style={{ padding: '1.5rem', flex: 1 }}>
              <h4 style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
                 <Info size={16} opacity={0.5} /> WHAT IS E-NUMBER?
              </h4>
@@ -100,7 +100,7 @@ const Eddington = ({ stats }) => {
           </h3>
           <div style={{ height: '400px', width: '100%' }}>
             <ResponsiveContainer>
-              <AreaChart data={currentData.chart_data}>
+              <AreaChart data={currentData.chart_data} margin={{ top: 10, right: 10, left: 0, bottom: 25 }}>
                 <defs>
                   <linearGradient id="eddingtonGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={activeType === 'Run' ? 'var(--accent-cyan)' : '#bd00ff'} stopOpacity={0.3}/>
@@ -112,7 +112,8 @@ const Eddington = ({ stats }) => {
                   dataKey="km" 
                   stroke="rgba(255,255,255,0.3)" 
                   fontSize={11}
-                  label={{ value: 'Distance (km)', position: 'insideBottom', offset: -10, fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+                  label={{ value: 'Distance (km)', position: 'insideBottom', offset: -15, fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600 }}
+                  tick={{ fill: 'rgba(255,255,255,0.5)' }}
                 />
                 <YAxis 
                   stroke="rgba(255,255,255,0.3)" 
