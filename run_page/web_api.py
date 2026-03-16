@@ -12,6 +12,7 @@ from typing import List, Optional, Dict
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import contextlib
 from pydantic import BaseModel
 
 class TrophyImportRequest(BaseModel):
@@ -30,8 +31,16 @@ from run_page.core.platforms import get_platform_configs
 from run_page.core.auth import load_creds, save_creds, get_credential
 from run_page.ui.i18n import I18N
 
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run the scheduler as a non-blocking background task on startup
+    asyncio.create_task(schedule_auto_sync())
+    yield
+    # Shutdown logic if needed
+
 app = FastAPI(
-    description="Headless driver for multi-platform running data sync, powered by the core metadata system."
+    description="Headless driver for multi-platform running data sync, powered by the core metadata system.",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -2189,10 +2198,7 @@ async def perform_sync_logic():
     except Exception as e:
         print(f"[{datetime.now()}] Sync failed: {e}")
 
-@app.on_event("startup")
-async def startup_event():
-    # Run the scheduler as a non-blocking background task
-    asyncio.create_task(schedule_auto_sync())
+# (startup scheduler moved to lifespan)
 
 if __name__ == "__main__":
     import uvicorn
