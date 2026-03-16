@@ -5,11 +5,14 @@ services:
     build: .
     container_name: trackrecord-app
     ports:
-      - "8000:8000"
+      - "8080:8000"
     volumes:
       - ./run_page/data.db:/app/run_page/data.db
       - ./run_page/settings.yaml:/app/run_page/settings.yaml
       - ./run_page/static/photos:/app/run_page/static/photos
     restart: always
+    env_file:
+      - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - SYNC_ON_STARTUP=true

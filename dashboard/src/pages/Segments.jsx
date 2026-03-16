@@ -15,7 +15,8 @@ import {
   X,
   Maximize2,
   TrendingUp,
-  Filter
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, 
@@ -34,6 +35,29 @@ const Segments = () => {
   const [modalMode, setModalMode] = useState('history'); // 'history' | 'charts'
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const syncSegments = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await axios.post(`${API_BASE}/api/v1/sync_segments?limit=20`);
+      // Since it's a background task, we wait a bit and refresh multiple times
+      let attempts = 0;
+      const interval = setInterval(async () => {
+        await fetchSegments();
+        attempts++;
+        if (attempts >= 3) clearInterval(interval);
+      }, 5000);
+      
+      alert("✅ Strava sync started in background (20 activities).\n\nDue to Strava API rate limits, we fetch segment details in batches. Data will appear in the table as it's processed.");
+    } catch (err) {
+      console.error("Sync failed", err);
+      alert("❌ Sync failed. Please check backend logs or Strava connection.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
     fetchSegments();
   }, []);
@@ -41,10 +65,12 @@ const Segments = () => {
   const fetchSegments = async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/v1/segments`);
-      setSegments(res.data);
+      // Ensure we always have an array even if the API returns an error object
+      setSegments(Array.isArray(res.data) ? res.data : []);
       setLoading(false);
     } catch (err) {
       console.error("Failed to fetch segments", err);
+      setSegments([]);
       setLoading(false);
     }
   };
@@ -52,9 +78,10 @@ const Segments = () => {
   const fetchSegmentEfforts = async (segmentId) => {
     try {
       const res = await axios.get(`${API_BASE}/api/v1/segment_efforts/${segmentId}`);
-      setSegmentEfforts(res.data);
+      setSegmentEfforts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch segment efforts", err);
+      setSegmentEfforts([]);
     }
   };
 
@@ -64,10 +91,10 @@ const Segments = () => {
     setIsModalOpen(true);
   };
 
-  const filteredSegments = segments.filter(s => 
+  const filteredSegments = Array.isArray(segments) ? segments.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (s.city && s.city.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  ) : [];
 
   const container = {
     hidden: { opacity: 0 },
@@ -84,23 +111,21 @@ const Segments = () => {
 
   const formatDuration = (val) => {
     if (!val) return '--';
-    if (typeof val === 'number') {
-        const h = Math.floor(val / 3600);
-        const m = Math.floor((val % 3600) / 60);
-        const s = val % 60;
-        return h > 0 ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}` : `${m}:${s.toString().padStart(2, '0')}`;
+    let timeStr = String(val);
+    if (timeStr.includes(' ')) {
+        timeStr = timeStr.split(' ')[1];
     }
-    // Handle string "0:01:42"
-    return val.split('.')[0];
+    return timeStr.split('.')[0];
   };
 
-  const getSpeed = (distKm, timeStr) => {
+  const getSpeed = (distMeters, timeStr) => {
       if (!timeStr) return '--';
       try {
-          const parts = timeStr.split(':');
+          const tOnly = timeStr.includes(' ') ? timeStr.split(' ')[1] : timeStr;
+          const parts = tOnly.split(':');
           const seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
           if (seconds === 0) return '--';
-          return (distKm / (seconds / 3600)).toFixed(1);
+          return ((distMeters / 1000) / (seconds / 3600)).toFixed(1);
       } catch { return '--'; }
   };
 
@@ -154,54 +179,62 @@ const Segments = () => {
 
       {/* Segments Table */}
       <div className="platform-card" style={{ padding: '0', overflowX: 'auto' }}>
-        <table className="activities-table">
-          <thead>
-            <tr>
-              <th style={{ paddingLeft: '2rem' }}>SEGMENT NAME</th>
-              <th>PB DATE</th>
-              <th>BEST TIME</th>
-              <th>AVG SPEED</th>
-              <th>DIST</th>
-              <th>GRADE</th>
-              <th style={{ paddingRight: '2rem', textAlign: 'right' }}>EFFORTS #</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSegments.map((segment) => (
-              <motion.tr 
-                key={segment.id} 
-                variants={item}
-                onClick={() => handleSegmentClick(segment)}
-                style={{ cursor: 'pointer' }}
-              >
-                <td style={{ paddingLeft: '2rem' }}>
-                  <div style={{ color: 'white', fontWeight: 700 }}>{segment.name}</div>
-                  <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '2px' }}>{segment.city || 'Unknown Location'}</div>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
-                    <Calendar size={12} /> {segment.best_date || '--'}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 800 }}>
-                    {formatDuration(segment.best_time)}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ fontWeight: 600 }}>{getSpeed(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>km/h</span></div>
-                </td>
-                <td>{(segment.distance || 0).toFixed(2)} km</td>
-                <td>{segment.average_grade || 0}%</td>
-                <td style={{ paddingRight: '2rem', textAlign: 'right' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
-                    <TrendingUp size={12} opacity={0.6} /> {segment.effort_count}
-                  </div>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+        {filteredSegments.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '6rem 2rem', opacity: 0.3 }}>
+            <RouteIcon size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>No segments matching filters</h3>
+            <p style={{ fontSize: '0.9rem' }}>Try syncing more data or check your <a href="https://www.strava.com/athlete/segments" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>Strava Segments</a>.</p>
+          </div>
+        ) : (
+          <table className="activities-table">
+            <thead>
+              <tr>
+                <th style={{ paddingLeft: '2rem' }}>SEGMENT NAME</th>
+                <th>PB DATE</th>
+                <th>BEST TIME</th>
+                <th>AVG SPEED</th>
+                <th>DIST</th>
+                <th>GRADE</th>
+                <th style={{ paddingRight: '2rem', textAlign: 'right' }}>EFFORTS #</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSegments.map((segment) => (
+                <motion.tr 
+                  key={segment.id || Math.random()} 
+                  variants={item}
+                  onClick={() => handleSegmentClick(segment)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td style={{ paddingLeft: '2rem' }}>
+                    <div style={{ color: 'white', fontWeight: 700 }}>{segment.name}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '2px' }}>{segment.city || 'Unknown Location'}</div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
+                      <Calendar size={12} /> {segment.best_date || '--'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ color: 'var(--accent-cyan)', fontWeight: 800 }}>
+                      {formatDuration(segment.best_time)}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{getSpeed(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>km/h</span></div>
+                  </td>
+                  <td>{(segment.distance / 1000).toFixed(2)} km</td>
+                  <td>{segment.average_grade || 0}%</td>
+                  <td style={{ paddingRight: '2rem', textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <TrendingUp size={12} opacity={0.6} /> {segment.effort_count}
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Detail Modal */}
@@ -234,7 +267,7 @@ const Segments = () => {
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 900 }}>{selectedSegment.name}</h2>
                   </div>
                   <div style={{ display: 'flex', gap: '1.5rem', opacity: 0.6, fontSize: '0.85rem', marginLeft: '3.5rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RouteIcon size={14} /> {selectedSegment.distance}km</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RouteIcon size={14} /> {(selectedSegment.distance / 1000).toFixed(2)}km</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><TrendingUp size={14} /> {selectedSegment.average_grade}% avg grade</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><MapPin size={14} /> {selectedSegment.city}</span>
                   </div>

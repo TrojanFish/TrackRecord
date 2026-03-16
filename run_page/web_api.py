@@ -31,7 +31,6 @@ from run_page.core.auth import load_creds, save_creds, get_credential
 from run_page.ui.i18n import I18N
 
 app = FastAPI(
-    title="TrackRecord Engine API", 
     description="Headless driver for multi-platform running data sync, powered by the core metadata system."
 )
 
@@ -2095,6 +2094,107 @@ def get_segment_efforts(segment_id: int):
     finally:
         conn.close()
 
+@app.post("/api/v1/sync_segments")
+def sync_segments_endpoint(background_tasks: BackgroundTasks, limit: int = 20):
+    def run_sync():
+        from run_page.generator import Generator
+        from run_page.core.auth import get_credential
+        gen = Generator("run_page/data.db")
+        
+        cid = get_credential("strava_client_id")
+        secret = get_credential("strava_client_secret")
+        refresh = get_credential("strava_refresh_token")
+        
+        if cid and secret and refresh:
+            gen.set_strava_config(cid, secret, refresh)
+            gen.sync_segments(limit=limit)
+        gen.close()
+
+    background_tasks.add_task(run_sync)
+    return {"status": "Syncing segments in background", "limit": limit}
+
+@app.post("/api/v1/sync")
+def full_sync_endpoint(background_tasks: BackgroundTasks):
+    def run_full_sync():
+        from run_page.generator import Generator
+        from run_page.core.auth import get_credential
+        gen = Generator("run_page/data.db")
+        
+        cid = get_credential("strava_client_id")
+        secret = get_credential("strava_client_secret")
+        refresh = get_credential("strava_refresh_token")
+        
+        if cid and secret and refresh:
+            gen.set_strava_config(cid, secret, refresh)
+            gen.sync(force=False)
+        gen.close()
+
+    background_tasks.add_task(run_full_sync)
+    return {"status": "Full data sync started in background"}
+
+# --- Self-Contained Auto-Sync Scheduler ---
+async def schedule_auto_sync():
+    """Background loop to sync data at 00:00 (SGT/CCT) every day."""
+    # Wait 30 seconds after startup for safety
+    await asyncio.sleep(30)
+    
+    while True:
+        # Calculate seconds until next 00:00 in East-8
+        import datetime as dt_mod
+        from datetime import timezone, timedelta
+        
+        # Current time in UTC, then convert to East-8
+        tz_e8 = timezone(timedelta(hours=8))
+        now_e8 = dt_mod.datetime.now(tz_e8)
+        
+        # Targeted 00:00 tomorrow
+        tomorrow = now_e8 + dt_mod.timedelta(days=1)
+        next_sync = dt_mod.datetime(tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, 0, tzinfo=tz_e8)
+        
+        delay_seconds = (next_sync - now_e8).total_seconds()
+        
+        # If distance to midnight is too large (like we just started at 10 AM), 
+        # let's do one sync now and THEN wait for midnight.
+        print(f"[{dt_mod.datetime.now()}] Next automatic sync scheduled for {next_sync} (in {delay_seconds/3600:.1f}h)")
+        
+        # Initial sync on startup if enabled
+        sync_on_start = os.environ.get("SYNC_ON_STARTUP", "true").lower() == "true"
+        if sync_on_start:
+            print(f"[{dt_mod.datetime.now()}] Performing initial startup sync...")
+            await perform_sync_logic()
+            # Disable for the next loops
+            os.environ["SYNC_ON_STARTUP"] = "false"
+
+        await asyncio.sleep(delay_seconds)
+        
+        print(f"[{dt_mod.datetime.now()}] Scheduled midnight sync starting...")
+        await perform_sync_logic()
+
+async def perform_sync_logic():
+    try:
+        from run_page.generator import Generator
+        from run_page.core.auth import get_credential
+        
+        gen = Generator("run_page/data.db")
+        cid = get_credential("strava_client_id")
+        secret = get_credential("strava_client_secret")
+        refresh = get_credential("strava_refresh_token")
+        
+        if cid and secret and refresh:
+            gen.set_strava_config(cid, secret, refresh)
+            gen.sync(force=False)
+            gen.sync_segments(limit=20)
+            print(f"[{datetime.now()}] Sync completed successfully.")
+        gen.close()
+    except Exception as e:
+        print(f"[{datetime.now()}] Sync failed: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    # Run the scheduler as a non-blocking background task
+    asyncio.create_task(schedule_auto_sync())
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("run_page.web_api:app", host="0.0.0.0", port=8000, reload=True)
+# Reload trigger

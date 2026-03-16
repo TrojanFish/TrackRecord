@@ -10,10 +10,10 @@ except ImportError:
     track_loader = None
 
 from sqlalchemy import func
-from polyline_processor import filter_out
-from db import Activity, init_db, update_or_create_activity
+from run_page.polyline_processor import filter_out
+from run_page.db import Activity, init_db, update_or_create_activity, update_or_create_segment_effort
 
-from synced_data_file_logger import save_synced_data_file_list
+from run_page.synced_data_file_logger import save_synced_data_file_list
 
 IGNORE_BEFORE_SAVING = os.getenv("IGNORE_BEFORE_SAVING", False)
 
@@ -100,11 +100,25 @@ class Generator:
             
             created = update_or_create_activity(self.session, activity)
             if created:
+                # For new activities, fetch details to get segments
+                try:
+                    detail = self.client.get_activity(activity.id)
+                    if hasattr(detail, 'segment_efforts') and detail.segment_efforts:
+                        for effort in detail.segment_efforts:
+                            update_or_create_segment_effort(self.session, effort, activity.id)
+                except Exception as e:
+                    print(f"\nError fetching segments for activity {activity.id}: {e}")
+                
                 sys.stdout.write("+")
                 old_ids.add(run_id)
             else:
                 sys.stdout.write(".")
             sys.stdout.flush()
+        
+        # After main sync, automatically backfill some missing segments for existing activities (auto-backfill)
+        print("\nChecking for missing segments in history...")
+        self.sync_segments(limit=10)
+        
         self.session.commit()
 
     def sync_from_data_dir(self, data_dir, file_suffix="gpx", activity_title_dict={}):
@@ -209,3 +223,35 @@ class Generator:
             # pass the error
             print(f"something wrong with {str(e)}")
             return []
+
+    def sync_segments(self, limit=10):
+        """Specifically sync segments for existing activities that don't have them."""
+        from run_page.db import SegmentEffort
+        self.check_access()
+        
+        # Find activities that don't have any segment efforts yet
+        # Using a subquery for performance
+        has_segments = self.session.query(SegmentEffort.activity_id).distinct()
+        activities = self.session.query(Activity).filter(~Activity.run_id.in_(has_segments)).order_by(Activity.start_date.desc()).limit(limit).all()
+        
+        if not activities:
+            print("No activities found missing segment data.")
+            return
+
+        print(f"Syncing segments for {len(activities)} activities...")
+        for a in activities:
+            try:
+                # Fetch detailed activity to get segments
+                detail = self.client.get_activity(a.run_id)
+                if hasattr(detail, 'segment_efforts') and detail.segment_efforts:
+                    for effort in detail.segment_efforts:
+                        update_or_create_segment_effort(self.session, effort, a.run_id)
+                    sys.stdout.write("S")
+                else:
+                    sys.stdout.write(".")
+                sys.stdout.flush()
+            except Exception as e:
+                print(f"\nError for activity {a.run_id}: {e}")
+                sys.stdout.write("E")
+        self.session.commit()
+        print("\nSegment sync complete.")

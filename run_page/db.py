@@ -302,7 +302,82 @@ def update_or_create_activity(session, run_activity):
         print(f"something wrong with {run_activity.id}")
         print(str(e))
 
-    return created
+def get_any_val(obj, attr_name, default=0.0):
+    val = getattr(obj, attr_name, None)
+    if val is None:
+        return default
+    # Handle stravalib Quantity objects (which can behave like tuples)
+    if hasattr(val, "num"):
+        return float(val.num)
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def update_or_create_segment(session, strava_segment):
+    segment = session.query(Segment).filter_by(id=strava_segment.id).first()
+    if not segment:
+        segment = Segment(
+            id=strava_segment.id,
+            name=strava_segment.name,
+            distance=get_any_val(strava_segment, "distance"),
+            average_grade=get_any_val(strava_segment, "average_grade"),
+            maximum_grade=get_any_val(strava_segment, "maximum_grade"),
+            elevation_high=get_any_val(strava_segment, "elevation_high"),
+            elevation_low=get_any_val(strava_segment, "elevation_low"),
+            city=strava_segment.city,
+            state=strava_segment.state,
+            country=strava_segment.country,
+            climb_category=strava_segment.climb_category,
+            total_elevation_gain=get_any_val(strava_segment, "total_elevation_gain"),
+            map_polyline=getattr(getattr(strava_segment, "map", {}), "polyline", "") or "",
+        )
+        session.add(segment)
+    else:
+        segment.name = strava_segment.name
+        segment.distance = get_any_val(strava_segment, "distance")
+        segment.average_grade = get_any_val(strava_segment, "average_grade")
+        # ... update other fields if needed
+    
+    return segment
+
+
+def update_or_create_segment_effort(session, strava_effort, activity_id):
+    effort = session.query(SegmentEffort).filter_by(id=strava_effort.id).first()
+    
+    # Extract segment info and update it first
+    seg_obj = update_or_create_segment(session, strava_effort.segment)
+    
+    if not effort:
+        effort = SegmentEffort(
+            id=strava_effort.id,
+            segment_id=strava_effort.segment.id,
+            activity_id=activity_id,
+            name=strava_effort.name,
+            elapsed_time=strava_effort.elapsed_time,
+            moving_time=strava_effort.moving_time,
+            start_date=strava_effort.start_date.isoformat() if hasattr(strava_effort.start_date, 'isoformat') else str(strava_effort.start_date),
+            start_date_local=strava_effort.start_date_local.isoformat() if hasattr(strava_effort.start_date_local, 'isoformat') else str(strava_effort.start_date_local),
+            distance=get_any_val(strava_effort, "distance"),
+            average_cadence=get_any_val(strava_effort, "average_cadence", None),
+            average_watts=get_any_val(strava_effort, "average_watts", None),
+            average_heartrate=get_any_val(strava_effort, "average_heartrate", None),
+            max_heartrate=get_any_val(strava_effort, "max_heartrate", None),
+            kom_rank=strava_effort.kom_rank,
+            pr_rank=strava_effort.pr_rank
+        )
+        session.add(effort)
+        
+        # Ensure seg_obj fields are initialized
+        if seg_obj.effort_count is None: seg_obj.effort_count = 0
+        
+        # Update segment's best stats if this effort is better
+        if not seg_obj.best_time or strava_effort.moving_time < seg_obj.best_time:
+            seg_obj.best_time = strava_effort.moving_time
+            seg_obj.best_date = strava_effort.start_date_local.strftime("%Y-%m-%d") if hasattr(strava_effort.start_date_local, 'strftime') else str(strava_effort.start_date_local)[:10]
+        
+        seg_obj.effort_count += 1
 
 
 def add_missing_columns(engine, model):

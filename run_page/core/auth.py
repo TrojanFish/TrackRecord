@@ -18,11 +18,19 @@ def save_creds(creds):
         json.dump(creds, f, indent=4, ensure_ascii=False)
 
 def get_credential(key, prompt_text=None, password=False, headless=False):
+    # 1. Try environment variables first (Standard for Docker/VPS)
+    env_key = key.upper()
+    val = os.environ.get(env_key)
+    if val:
+        return val
+
+    # 2. Try credentials.json
     creds = load_creds()
     val = creds.get(key, "")
     if val or headless or prompt_text is None:
         return val
     
+    # 3. Interactive prompt as last resort
     val = Prompt.ask(prompt_text, default=val, password=password)
     if val:
         creds[key] = val
