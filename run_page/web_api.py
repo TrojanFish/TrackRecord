@@ -2255,6 +2255,7 @@ async def schedule_auto_sync():
         await asyncio.to_thread(perform_sync_logic)
 
 def perform_sync_logic():
+    import datetime as dt_mod
     try:
         from run_page.generator import Generator
         from run_page.core.auth import get_credential
