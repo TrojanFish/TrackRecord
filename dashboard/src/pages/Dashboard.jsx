@@ -639,6 +639,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                     key={yr}
                     type="monotone"
                     dataKey={`${yr}_dist`}
+                    name={yr}
                     stroke={COLORS[i % COLORS.length]}
                     strokeWidth={yr === String(new Date().getFullYear()) ? 3 : 1}
                     dot={false}
