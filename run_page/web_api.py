@@ -135,19 +135,29 @@ CLUBS_CACHE = {"data": None, "expiry": 0}
 
 def get_strava_athlete_cached(creds):
     global ATHLETE_CACHE
-    if ATHLETE_CACHE["data"] and time.time() < ATHLETE_CACHE["expiry"]:
+    now = time.time()
+    if ATHLETE_CACHE["data"] and now < ATHLETE_CACHE["expiry"]:
         return ATHLETE_CACHE["data"]
     
-    if "strava_client_id" not in creds:
+    # Avoid rapid retries on error (especially 429)
+    if "error_expiry" in ATHLETE_CACHE and now < ATHLETE_CACHE["error_expiry"]:
+        return {"username": "KY", "profile": None}
+    
+    # Support env vars via get_credential
+    client_id = get_credential("strava_client_id")
+    client_secret = get_credential("strava_client_secret")
+    refresh_token = get_credential("strava_refresh_token")
+    
+    if not all([client_id, client_secret, refresh_token]):
         return {"username": "KY", "profile": None}
         
     try:
         from stravalib.client import Client
         client = Client()
         response = client.refresh_access_token(
-            client_id=creds["strava_client_id"],
-            client_secret=creds["strava_client_secret"],
-            refresh_token=creds["strava_refresh_token"]
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token=refresh_token
         )
         client.access_token = response["access_token"]
         athlete = client.get_athlete()
@@ -156,27 +166,37 @@ def get_strava_athlete_cached(creds):
             "profile": athlete.profile_medium
         }
         ATHLETE_CACHE["data"] = data
-        ATHLETE_CACHE["expiry"] = time.time() + 3600
+        ATHLETE_CACHE["expiry"] = now + 3600
         return data
     except Exception as e:
         print(f"Athlete profile fetch error: {e}")
+        # Cache the failure for 10 minutes to avoid spamming
+        ATHLETE_CACHE["error_expiry"] = now + 600
         return {"username": "KY", "profile": None}
 
 def get_strava_clubs_cached(creds):
     global CLUBS_CACHE
-    if CLUBS_CACHE["data"] and time.time() < CLUBS_CACHE["expiry"]:
+    now = time.time()
+    if CLUBS_CACHE["data"] and now < CLUBS_CACHE["expiry"]:
         return CLUBS_CACHE["data"]
     
-    if "strava_client_id" not in creds:
+    if "error_expiry" in CLUBS_CACHE and now < CLUBS_CACHE["error_expiry"]:
+        return []
+
+    client_id = get_credential("strava_client_id")
+    client_secret = get_credential("strava_client_secret")
+    refresh_token = get_credential("strava_refresh_token")
+    
+    if not all([client_id, client_secret, refresh_token]):
         return []
         
     try:
         from stravalib.client import Client
         client = Client()
         response = client.refresh_access_token(
-            client_id=creds["strava_client_id"],
-            client_secret=creds["strava_client_secret"],
-            refresh_token=creds["strava_refresh_token"]
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token=refresh_token
         )
         client.access_token = response["access_token"]
         clubs = client.get_athlete_clubs()
@@ -191,10 +211,11 @@ def get_strava_clubs_cached(creds):
                 "image": c.cover_photo_small
             })
         CLUBS_CACHE["data"] = clubs_data
-        CLUBS_CACHE["expiry"] = time.time() + 3600 # 1 hour cache
+        CLUBS_CACHE["expiry"] = now + 3600 # 1 hour cache
         return clubs_data
     except Exception as e:
         print(f"Club fetch error: {e}")
+        CLUBS_CACHE["error_expiry"] = now + 600
         return []
 
 def parse_and_save_trophies(html_content):
