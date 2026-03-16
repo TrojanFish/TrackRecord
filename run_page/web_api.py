@@ -375,7 +375,12 @@ def get_athlete_metrics():
 
 # Aggregated stats and heatmap logic
 def get_db_conn():
-    db_path = "run_page/data.db"
+    db_path = os.environ.get("DB_PATH", "run_page/data.db")
+    # Ensure directory exists for Docker/VPS deployments
+    db_dir = os.path.dirname(db_path)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+        
     if not os.path.exists(db_path):
         return None
     conn = sqlite3.connect(db_path)
@@ -2123,7 +2128,8 @@ def sync_segments_endpoint(background_tasks: BackgroundTasks, limit: int = 20):
     def run_sync():
         from run_page.generator import Generator
         from run_page.core.auth import get_credential
-        gen = Generator("run_page/data.db")
+        db_path = os.environ.get("DB_PATH", "run_page/data.db")
+        gen = Generator(db_path)
         
         cid = get_credential("strava_client_id")
         secret = get_credential("strava_client_secret")
@@ -2142,7 +2148,8 @@ def full_sync_endpoint(background_tasks: BackgroundTasks):
     def run_full_sync():
         from run_page.generator import Generator
         from run_page.core.auth import get_credential
-        gen = Generator("run_page/data.db")
+        db_path = os.environ.get("DB_PATH", "run_page/data.db")
+        gen = Generator(db_path)
         
         cid = get_credential("strava_client_id")
         secret = get_credential("strava_client_secret")
@@ -2199,7 +2206,8 @@ async def perform_sync_logic():
         from run_page.generator import Generator
         from run_page.core.auth import get_credential
         
-        gen = Generator("run_page/data.db")
+        db_path = os.environ.get("DB_PATH", "run_page/data.db")
+        gen = Generator(db_path)
         cid = get_credential("strava_client_id")
         secret = get_credential("strava_client_secret")
         refresh = get_credential("strava_refresh_token")

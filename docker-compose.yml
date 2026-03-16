@@ -5,7 +5,7 @@ services:
     ports:
       - "8081:8000"
     volumes:
-      - ./run_page/data.db:/app/run_page/data.db
+      - ./data:/app/data
       - ./run_page/settings.yaml:/app/run_page/settings.yaml
       - ./run_page/static/photos:/app/run_page/static/photos
     restart: always
@@ -13,4 +13,5 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - DB_PATH=/app/data/data.db
       - SYNC_ON_STARTUP=true
