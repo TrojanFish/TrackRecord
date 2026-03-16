@@ -717,6 +717,12 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           <div style={{ height: '120px' }}>
             <ResponsiveContainer>
               <BarChart data={stats.hr_zones}>
+                <XAxis dataKey="zone" hide />
+                <Tooltip 
+                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px', fontSize: '10px' }}
+                  itemStyle={{ color: 'white' }}
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                />
                 <Bar dataKey="count" radius={[2, 2, 0, 0]}>
                   {stats.hr_zones?.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#7c3aed'][index % 5]} />

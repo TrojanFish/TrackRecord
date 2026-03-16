@@ -721,7 +721,7 @@ def get_sports_stats():
         # 5.7b Curated Records for Dashboard Summary
         dashboard_records = []
         priority_run = ["5K", "10K", "Half Marathon", "Marathon"]
-        priority_ride = ["50K Ride", "100K Ride"]
+        priority_ride = ["30K Ride", "50K Ride", "极速 80K Ride", "80K Ride", "100K Ride"]
         
         for name in priority_run + priority_ride:
             if name in records:
