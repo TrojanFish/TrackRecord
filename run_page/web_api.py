@@ -2191,15 +2191,15 @@ async def schedule_auto_sync():
         # Initial sync on startup if enabled
         sync_on_start = os.environ.get("SYNC_ON_STARTUP", "true").lower() == "true"
         if sync_on_start:
-            print(f"[{dt_mod.datetime.now()}] Performing initial startup sync...")
-            await perform_sync_logic()
+            print(f"[{dt_mod.datetime.now()}] Performing initial startup sync (async thread)...")
+            await asyncio.to_thread(perform_sync_logic)
             # Disable for the next loops
             os.environ["SYNC_ON_STARTUP"] = "false"
 
         await asyncio.sleep(delay_seconds)
         
         print(f"[{dt_mod.datetime.now()}] Scheduled midnight sync starting...")
-        await perform_sync_logic()
+        await asyncio.to_thread(perform_sync_logic)
 
 async def perform_sync_logic():
     try:
