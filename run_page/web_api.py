@@ -1656,14 +1656,21 @@ def sync_strava_photos(limit: int = 1000):
         conn = get_db_conn()
         cur = conn.cursor()
         
-        # Ensure static folder exists
-        os.makedirs("run_page/static/photos", exist_ok=True)
+        # Ensure static folder exists locally
+        static_photos_dir = "run_page/static/photos"
+        os.makedirs(static_photos_dir, exist_ok=True)
         
-        for activity in client.get_activities(limit=limit):
-            if activity.total_photo_count > 0:
+        activities = list(client.get_activities(limit=limit))
+        print(f"[{dt_mod.datetime.now()}] Scanned {len(activities)} activities for photos.")
+        
+        photo_activities_count = 0
+        for activity in activities:
+            if getattr(activity, 'total_photo_count', 0) > 0:
+                photo_activities_count += 1
                 # Check if we already have photos for this activity
                 cur.execute("SELECT id FROM photos WHERE activity_id = ?", (activity.id,))
-                if cur.fetchone(): continue
+                if cur.fetchone():
+                    continue
                 
                 print(f"Syncing photos for activity {activity.id}")
                 activity_photos = client.get_activity_photos(activity.id, only_instagram=False, size=800)
@@ -1681,14 +1688,17 @@ def sync_strava_photos(limit: int = 1000):
                         
                         if not os.path.exists(local_path):
                             try:
-                                r = requests.get(remote_url, timeout=10)
+                                print(f"  - Downloading photo {photo_id} from {remote_url[:50]}...")
+                                r = requests.get(remote_url, timeout=15)
                                 if r.status_code == 200:
                                     with open(local_path, "wb") as f:
                                         f.write(r.content)
+                                    print(f"  - Successfully saved to {local_path}")
                                 else:
+                                    print(f"  - Download failed with status {r.status_code}")
                                     local_path = None
                             except Exception as e:
-                                print(f"Download failed: {e}")
+                                print(f"  - Download failed with error: {e}")
                                 local_path = None
                         
                         # Save to DB
@@ -1706,10 +1716,13 @@ def sync_strava_photos(limit: int = 1000):
                             getattr(activity, 'location_country', '')
                         ))
         conn.commit()
+        
+        print(f"[{dt_mod.datetime.now()}] Photo sync finished. Found {photo_activities_count} activities with photos.")
     except Exception as e:
-        print(f"Photo sync error: {e}")
+        print(f"[{dt_mod.datetime.now()}] Photo sync error: {e}")
     finally:
-        if conn: conn.close()
+        if 'conn' in locals() and conn:
+            conn.close()
 
 @app.get("/api/v1/challenges")
 def get_challenges_derived():
