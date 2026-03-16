@@ -1,0 +1,7 @@
+athlete:
+  birthday: "1990-01-01"
+  weight: 70
+  max_hr: 190
+  resting_hr: 60
+  vo2_estimate: 45.0
+  gears: []

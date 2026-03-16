@@ -6,7 +6,6 @@ services:
       - "8081:8000"
     volumes:
       - ./data:/app/data
-      - ./run_page/settings.yaml:/app/run_page/settings.yaml
       - ./run_page/static/photos:/app/run_page/static/photos
     restart: always
     env_file:

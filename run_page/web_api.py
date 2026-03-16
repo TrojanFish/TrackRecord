@@ -286,7 +286,7 @@ def L(key):
 # Professional Athletics Metrics
 def get_athlete_metrics():
     config_path = "run_page/settings.yaml"
-    if not os.path.exists(config_path):
+    if not os.path.exists(config_path) or os.path.isdir(config_path):
         return {
             "max_hr": 190,
             "resting_hr": 60,
@@ -2201,7 +2201,7 @@ async def schedule_auto_sync():
         print(f"[{dt_mod.datetime.now()}] Scheduled midnight sync starting...")
         await asyncio.to_thread(perform_sync_logic)
 
-async def perform_sync_logic():
+def perform_sync_logic():
     try:
         from run_page.generator import Generator
         from run_page.core.auth import get_credential
