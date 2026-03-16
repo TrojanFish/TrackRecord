@@ -1,7 +1,129 @@
 athlete:
-  birthday: "1990-01-01"
-  weight: 70
-  max_hr: 190
+  gender: 'male' # 'male' or 'female' - used for TRIMP physiological scaling
+  birthday: '1990-01-01'
+  max_hr: 0 # Set to a fixed number (e.g. 190), or 0 to use formula
+  max_hr_formula: 'fox' # fox (220-age), tanaka (208 - 0.7*age), gellish (192 - 0.007*age^2)
   resting_hr: 60
-  vo2_estimate: 45.0
-  gears: []
+  weight: 70
+  
+  # Race Prediction Exponents (Riegel Formula: T2 = T1 * (D2/D1)^exponent)
+  # Typical values: 1.06 (general), 1.04 (endurance monster), 1.08 (sprinter type)
+  riegel_exponents:
+    run: 1.06
+    ride: 1.05
+
+  # Heart Rate Zones (mode: relative means % of Max HR, absolute means bpm)
+  hr_zones:
+    mode: 'relative'
+    default:
+      zone1: { from: 50, to: 60 }
+      zone2: { from: 60, to: 70 }
+      zone3: { from: 70, to: 80 }
+      zone4: { from: 80, to: 90 }
+      zone5: { from: 90, to: 100 }
+      
+  # ------------------------------------------------------------------
+  # Gear & Equipment Management
+  # ------------------------------------------------------------------
+  gears:
+    - name: "Performance Running Shoes"
+      type: "Run"
+      limit: 800  # km before retirement
+      purchase_date: "2024-01-01"
+      active_from: "2024-01-01" # Only count activities after this date
+      # active_to: "2024-12-31" # Optional retirement date
+      icon: "Footprints"
+      components:
+        - { name: "Midsole Cushion", limit: 500 }
+        - { name: "Outsole Rubber", limit: 800 }
+        
+    - name: "Carbon Road Bike"
+      type: "Ride"
+      limit: 10000 
+      purchase_date: "2023-06-01"
+      active_from: "2023-06-01"
+      icon: "Bike"
+      components:
+        - { name: "Chain", limit: 3000 }
+        - { name: "Tires", limit: 4000 }
+        - { name: "Brake Pads", limit: 2500 }
+        - { name: "Cables", limit: 5000 }
+
+# ------------------------------------------------------------------
+# Analysis & Business Rules
+# ------------------------------------------------------------------
+analysis:
+  # Calorie Factors (kcal / kg / km)
+  calorie_factors:
+    run: 1.036
+    ride: 0.5
+    default: 0.8
+    
+  # Grade Adjusted Pace (GAP) coefficient
+  gap_factor: 6.0
+  
+  # Gear Warning Threshold (Fraction of limit used, e.g. 0.9 = 90%)
+  gear_warning_threshold: 0.9
+  
+  # Training Load Configuration
+  training_load:
+    ctl_days: 42
+    atl_days: 7
+    trimp_fallbacks: # Stress per km if HR data is missing
+      run: 8.0
+      ride: 2.0
+      
+  # Smart Coach TSB Thresholds
+  tsb_advice:
+    peak: 10
+    fresh: 0
+    optimal: -10
+    productive_fatigue: -25
+    
+  # Radar Chart Normalization (The value that represents 100 on the chart)
+  radar_normalization:
+    endurance_monthly_km: 150
+    climb_monthly_m: 1500
+    frequency_monthly_sessions: 16
+    long_run_km: 25
+    speed_pace_min_km: 4.0 # 4:00/km is 100, 6:00/km is 50
+    
+  # Global Activity Milestones (Distances in meters to track for PRs)
+  milestones:
+    run:
+      - { name: "5K", distance: 5000 }
+      - { name: "10K", distance: 10000 }
+      - { name: "Half Marathon", distance: 21097 }
+      - { name: "Marathon", distance: 42195 }
+    ride:
+      - { name: "30K Ride", distance: 30000 }
+      - { name: "50K Ride", distance: 50000 }
+      - { name: "80K Ride", distance: 80000 }
+      - { name: "100K Ride", distance: 100000 }
+      
+  # Distribution Bins for Analytics
+  bins:
+    distance: # km
+      - { label: "0-5km", min: 0, max: 5 }
+      - { label: "5-10km", min: 5, max: 10 }
+      - { label: "10-21km", min: 10, max: 21 }
+      - { label: "21-42km", min: 21, max: 42.2 }
+      - { label: "42km+", min: 42.2, max: 99999 }
+    cadence_run: # spm
+      - { label: "<150", min: 0, max: 150 }
+      - { label: "150-165", min: 150, max: 165 }
+      - { label: "165-175", min: 165, max: 175 }
+      - { label: "175-185", min: 175, max: 185 }
+      - { label: "185+", min: 185, max: 999 }
+    power_ride: # watts
+      - { label: "Low Intensity", min: 0, max: 150 }
+      - { label: "Moderate", min: 150, max: 250 }
+      - { label: "High Intensity", min: 250, max: 9999 }
+      
+  # Recording Device Label Mapping (Match patterns in device name)
+  device_mapping:
+    "Zwift": "Virtual Training (Zwift)"
+    "Wahoo": "Wahoo Computer"
+    "Garmin Edge": "Edge Computer"
+    "Garmin Forerunner": "Running Watch"
+    "Apple Watch": "Apple Health"
