@@ -1,6 +1,6 @@
 :root {
-  --bg-deep: #030712;
-  --bg-card: rgba(15, 23, 42, 0.65);
+  --bg-deep: #020617;
+  --bg-glass: rgba(15, 23, 42, 0.45);
   --glass-border: rgba(255, 255, 255, 0.08);
   --accent-cyan: #06b6d4;
   --accent-blue: #3b82f6;
@@ -8,8 +8,8 @@
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-  --sidebar-w: 260px;
-  --sidebar-collapsed-w: 80px;
+  --sidebar-floating-w: 240px;
+  --sidebar-collapsed-w: 72px;
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -19,16 +19,16 @@
   padding: 0;
 }
 
-/* Global Dynamic Background */
+/* Global Dynamic Background Architecture */
 .app-container {
   min-height: 100vh;
-  background: var(--bg-deep);
+  width: 100vw;
+  background: transparent;
   color: var(--text-primary);
   font-family: var(--font-main);
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
-  display: flex;
-  /* Critical for layout */
+  display: block;
 }
 
 .dynamic-bg {
@@ -38,9 +38,34 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: -2;
-  /* Ensure it stays behind everything */
+  z-index: -10; /* Bottom-most */
   overflow: hidden;
+  background-color: var(--bg-deep); /* Consistent black base */
+}
+
+/* 
+   THE OBSIDIAN GLOBAL TEXTURE 
+   Pure CSS Diagonal Weave. 
+   Guaranteed visibility - No Image needed.
+*/
+.dynamic-bg::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 0px,
+    rgba(255, 255, 255, 0.15) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+  opacity: 0.6;
+  mix-blend-mode: soft-light;
+  z-index: 5;
+  pointer-events: none;
 }
 
 .bg-blob {
@@ -110,82 +135,91 @@ body {
   position: absolute;
   width: 100%;
   height: 100%;
-  opacity: 0.2;
-  filter: grayscale(1) invert(1);
-  background-image: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+  opacity: 0.3;
+  /* Pure CSS Carbon Pattern - No external dependencies */
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1) 0px,
+    rgba(255, 255, 255, 0.1) 1px,
+    transparent 1px,
+    transparent 8px
+  );
 }
 
-/* Main App Layout */
-.app-container {
-  min-height: 100vh;
-  width: 100vw;
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  font-family: var(--font-main);
-  overflow: hidden;
-  /* Avoid double scrollbars */
-  position: relative;
-  display: flex;
+/* Sidebar handling moved to layout class */
+.sidebar-expanded + .main-content {
+  padding-left: calc(var(--sidebar-floating-w) + 4rem);
 }
 
+/* Floating Sidebar Dock */
 .sidebar {
-  background: rgba(3, 7, 18, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  height: 100vh;
+  position: fixed;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  height: calc(100vh - 3rem);
+  max-height: 850px;
   display: flex;
   flex-direction: column;
-  /* Removed transition: width to solve Framer Motion conflict lag */
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  flex-shrink: 0;
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border-radius: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255,255,255,0.05);
+  transition: width 0.4s var(--transition-smooth);
 }
 
 .sidebar.expanded {
-  width: 260px;
+  width: var(--sidebar-floating-w);
 }
 
 .sidebar.collapsed {
-  width: 80px;
+  width: var(--sidebar-collapsed-w);
 }
 
 .sidebar-header {
-  padding: 0 1.5rem;
-  height: 64px;
-  border-bottom: 1px solid var(--glass-border);
+  padding: 0;
+  height: 80px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   box-sizing: border-box;
 }
 
-.sidebar.collapsed .sidebar-header {
-  padding: 0;
-  justify-content: center;
-}
-
-.collapse-btn-top {
-  width: 32px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.05);
+/* Edge Handle Toggle - Obsidian Style */
+.edge-handle-toggle {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  color: var(--text-secondary);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
+  z-index: 1001;
+  color: var(--text-secondary);
+  transition: all 0.3s var(--transition-smooth);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
 }
 
-.collapse-btn-top:hover {
+.edge-handle-toggle:hover {
+  right: -14px;
   background: var(--accent-cyan);
-  color: var(--bg-deep);
+  color: black;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
   border-color: var(--accent-cyan);
+}
+
+.edge-handle-toggle svg {
+  transition: transform 0.4s var(--transition-smooth);
 }
 
 .logo-container {
@@ -369,38 +403,73 @@ body {
 }
 
 .main-content {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   height: 100vh;
+  padding: 6.5rem 2.5rem 2.5rem calc(var(--sidebar-collapsed-w) + 4rem);
   overflow-y: auto;
-  padding: 0 2.5rem 2.5rem;
-  /* Removed top padding */
+  transition: padding 0.4s var(--transition-smooth);
   scrollbar-gutter: stable;
-  position: relative;
-  transition: z-index 0.3s;
 }
 
-body.lightbox-open .main-content {
-  z-index: 2000;
+.sidebar-expanded + .main-content {
+  padding-left: calc(var(--sidebar-floating-w) + 4rem);
 }
 
+/* Updated Obsidian Glass Floating Header Layout */
 .main-header {
+  position: fixed;
+  top: 1.5rem;
+  left: calc(var(--sidebar-collapsed-w) + 4rem);
+  right: 2.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--glass-border);
-  position: sticky;
-  top: 0;
-  background: rgba(3, 7, 18, 0.5);
-  /* Slightly darker for better legibility */
-  backdrop-filter: blur(16px);
-  /* Stronger blur for glass effect */
-  -webkit-backdrop-filter: blur(16px);
-  z-index: 1000;
-  /* Higher than sidebar content but lower than modal-overlay */
-  height: 64px;
-  box-sizing: border-box;
+  z-index: 1100;
+  transition: left 0.4s var(--transition-smooth);
+  pointer-events: none; /* Allows scrolling content underneath */
+}
+
+.sidebar-expanded ~ .main-content .main-header {
+  left: calc(var(--sidebar-floating-w) + 4rem);
+}
+
+.page-title-hub, .action-hub {
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255,255,255,0.05);
+  pointer-events: auto; /* Re-enable clicks for islands */
+}
+
+.page-title-hub {
+  padding: 0.6rem 1.5rem;
+  border-radius: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 52px;
+}
+
+.page-title-hub h1 {
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin: 0;
+  color: white;
+  text-transform: uppercase;
+}
+
+.action-hub {
+  padding: 0.5rem;
+  border-radius: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 52px;
 }
 
 .header-center {

@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity } from 'lucide-react';
+import { 
+  LayoutDashboard, Activity, Map, Calendar, 
+  TrendingUp, Star, Award, History, Medal, 
+  Camera, Wrench 
+} from 'lucide-react';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -200,6 +204,22 @@ function App() {
     }
   };
 
+  const tabMetadata = {
+    'Overview': { title: 'DASHBOARD', icon: LayoutDashboard },
+    'Activities': { title: 'ACTIVITY CENTER', icon: Activity },
+    'Stats': { title: 'MONTHLY STATS', icon: Calendar },
+    'Analytics': { title: 'PERFORMANCE ANALYTICS', icon: TrendingUp },
+    'Rewind': { title: 'ANNUAL REWIND', icon: Star },
+    'Eddington': { title: 'EDDINGTON SCORE', icon: Award },
+    'Heatmap': { title: 'GLOBAL HEATMAP', icon: Map },
+    'Records': { title: 'PERSONAL RECORDS', icon: History },
+    'Challenges': { title: 'STRAVA CHALLENGES', icon: Medal },
+    'Photos': { title: 'ACTIVITY GALLERY', icon: Camera },
+    'Gear': { title: 'EQUIPMENT TRACKING', icon: Wrench }
+  };
+
+  const currentTabInfo = tabMetadata[activeTab] || { title: activeTab.toUpperCase(), icon: null };
+
   return (
     <div className="app-container">
       <div className="dynamic-bg">
@@ -217,7 +237,11 @@ function App() {
       />
 
       <main className="main-content">
-        <Header title={activeTab.toUpperCase()} profile={stats.athlete_profile} />
+        <Header 
+          title={currentTabInfo.title} 
+          icon={currentTabInfo.icon}
+          profile={stats.athlete_profile} 
+        />
         <AnimatePresence mode="wait">
           {renderTabContent()}
         </AnimatePresence>

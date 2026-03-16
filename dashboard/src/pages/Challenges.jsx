@@ -62,52 +62,64 @@ const Challenges = () => {
       className="page-content"
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Trophy size={24} color="var(--accent-cyan)" /> STRAVA CHALLENGES
-           </h2>
-           <button 
-             onClick={() => setIsImportModalOpen(true)}
-             style={{ 
-               display: 'flex', 
-               alignItems: 'center', 
-               gap: '8px', 
-               background: 'rgba(6, 182, 212, 0.1)', 
-               border: '1px solid rgba(6, 182, 212, 0.2)',
-               color: 'var(--accent-cyan)',
-               padding: '10px 16px',
-               borderRadius: '12px',
-               fontSize: '0.8rem',
-               fontWeight: 700,
-               cursor: 'pointer',
-               transition: 'all 0.3s'
-             }}
-             className="sync-btn"
-           >
-             <RefreshCw size={16} className={importing ? 'spinning' : ''} /> SYNC HISTORY
-           </button>
-        </div>
-
         <style>{`
           .sync-btn:hover { background: rgba(6, 182, 212, 0.2); transform: translateY(-2px); }
           .spinning { animation: spin 1s linear infinite; }
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         `}</style>
+        {challenges.length === 0 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
+             <button 
+               onClick={() => setIsImportModalOpen(true)}
+               style={{ 
+                 display: 'flex', alignItems: 'center', gap: '8px', 
+                 background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)',
+                 color: 'var(--accent-cyan)', padding: '10px 16px', borderRadius: '12px',
+                 fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s'
+               }}
+               className="sync-btn"
+             >
+               <RefreshCw size={16} className={importing ? 'spinning' : ''} /> SYNC HISTORY
+             </button>
+          </div>
+        )}
 
         {challenges.map((section, idx) => (
           <div key={idx} style={{ marginBottom: '3rem' }}>
-             <h3 style={{ 
-               fontSize: '1rem', 
-               fontWeight: 700, 
-               color: 'var(--text-secondary)', 
-               marginBottom: '1.5rem',
-               display: 'flex',
-               alignItems: 'center',
-               gap: '10px'
+             <div style={{ 
+               display: 'flex', 
+               justifyContent: 'space-between', 
+               alignItems: 'center', 
+               marginBottom: '1.5rem' 
              }}>
-               <Calendar size={16} /> {section.month.toUpperCase()} 
-               <span style={{ fontSize: '0.8rem', opacity: 0.4, fontWeight: 500 }}>({section.items.length})</span>
-             </h3>
+                <h3 style={{ 
+                  fontSize: '1rem', 
+                  fontWeight: 700, 
+                  color: 'var(--text-secondary)', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  margin: 0
+                }}>
+                  <Calendar size={16} /> {section.month.toUpperCase()} 
+                  <span style={{ fontSize: '0.8rem', opacity: 0.4, fontWeight: 500 }}>({section.items.length})</span>
+                </h3>
+
+                {idx === 0 && (
+                  <button 
+                    onClick={() => setIsImportModalOpen(true)}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: '8px', 
+                      background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)',
+                      color: 'var(--accent-cyan)', padding: '10px 16px', borderRadius: '12px',
+                      fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s'
+                    }}
+                    className="sync-btn"
+                  >
+                    <RefreshCw size={16} className={importing ? 'spinning' : ''} /> SYNC HISTORY
+                  </button>
+                )}
+             </div>
              
              <div style={{ 
                display: 'grid', 

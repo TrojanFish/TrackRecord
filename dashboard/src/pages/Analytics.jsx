@@ -30,8 +30,8 @@ const Analytics = ({ stats }) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       className="page-content"
     >
       {/* YoY Progress Chart */}

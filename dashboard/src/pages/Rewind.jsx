@@ -105,71 +105,136 @@ const Rewind = ({ stats: appStats }) => {
     <motion.div variants={container} initial="hidden" animate="show" className="page-content" style={{ paddingBottom: '5rem' }}>
       
       {/* Filters Toolbar */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', position: 'sticky', top: '5rem', zIndex: 5 }}>
-        <div style={{ position: 'relative' }}>
-          <button 
-            onClick={() => setShowYearPicker(!showYearPicker)}
-            className="platform-card"
-            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.8rem', fontWeight: 700, border: '1px solid var(--glass-border)', background: 'rgba(10, 22, 40, 0.95)', cursor: 'pointer', borderRadius: '12px', color: 'white' }}
-          >
-            {targetYear} <ChevronDown size={14} />
-          </button>
-          <AnimatePresence>
-            {showYearPicker && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: '#0a1628', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '8px', minWidth: '120px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
-              >
-                <div 
-                   onClick={() => { setTargetYear('ALL'); setShowYearPicker(false); }}
-                   style={{ padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '8px', background: targetYear === 'ALL' ? 'var(--accent-cyan)' : 'transparent', color: targetYear === 'ALL' ? '#000' : 'white', fontWeight: 600 }}
+      <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2.5rem', position: 'relative', zIndex: 10 }}>
+        
+        {/* Year Filter */}
+        <div className="filter-group">
+          <label><Calendar size={14} /> YEAR</label>
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowYearPicker(!showYearPicker)}
+              className="platform-card"
+              style={{ 
+                padding: '10px 16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                fontSize: '0.85rem', 
+                fontWeight: 700, 
+                border: '1px solid rgba(255, 255, 255, 0.1)', 
+                background: 'rgba(255, 255, 255, 0.05)', 
+                cursor: 'pointer', 
+                borderRadius: '8px', 
+                color: 'white',
+                minWidth: '120px',
+                justifyContent: 'space-between'
+              }}
+            >
+              {targetYear} <ChevronDown size={14} opacity={0.5} />
+            </button>
+            <AnimatePresence>
+              {showYearPicker && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                  style={{ 
+                    position: 'absolute', top: '100%', left: 0, marginTop: '8px', 
+                    background: '#111827', border: '1px solid var(--glass-border)', 
+                    borderRadius: '12px', padding: '8px', minWidth: '140px', 
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)', zIndex: 100
+                  }}
                 >
-                  ALL
-                </div>
-                {rewindData?.available_years?.map(y => (
                   <div 
-                    key={y} onClick={() => { setTargetYear(y); setShowYearPicker(false); }}
-                    style={{ padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '8px', background: targetYear === y ? 'var(--accent-cyan)' : 'transparent', color: targetYear === y ? '#000' : 'white', fontWeight: 600 }}
+                    onClick={() => { setTargetYear('ALL'); setShowYearPicker(false); }}
+                    style={{ 
+                      padding: '10px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '8px', 
+                      background: targetYear === 'ALL' ? 'var(--accent-cyan)' : 'transparent', 
+                      color: targetYear === 'ALL' ? '#000' : 'white', fontWeight: 600,
+                      transition: 'all 0.2s'
+                    }}
                   >
-                    {y}
+                    ALL
                   </div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {rewindData?.available_years?.map(y => (
+                    <div 
+                      key={y} onClick={() => { setTargetYear(y); setShowYearPicker(false); }}
+                      style={{ 
+                        padding: '10px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '8px', 
+                        background: targetYear === y ? 'var(--accent-cyan)' : 'transparent', 
+                        color: targetYear === y ? '#000' : 'white', fontWeight: 600,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {y}
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
-        <div style={{ position: 'relative' }}>
-          <button 
-            onClick={() => setShowComparePicker(!showComparePicker)}
-            className="platform-card"
-            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.8rem', fontWeight: 700, border: '1px solid var(--glass-border)', background: 'rgba(10, 22, 40, 0.95)', cursor: 'pointer', borderRadius: '12px', color: 'white' }}
-          >
-            {compareYear ? `vs ${compareYear}` : 'COMPARE'} <ChevronDown size={14} />
-          </button>
-          <AnimatePresence>
-            {showComparePicker && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: '#0a1628', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '8px', minWidth: '120px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
-              >
-                <div 
-                   onClick={() => { setCompareYear(''); setShowComparePicker(false); }}
-                   style={{ padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '8px', opacity: 0.5 }}
+        {/* Compare Filter */}
+        <div className="filter-group">
+          <label><ArrowRight size={14} /> COMPARE</label>
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowComparePicker(!showComparePicker)}
+              className="platform-card"
+              style={{ 
+                padding: '10px 16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                fontSize: '0.85rem', 
+                fontWeight: 700, 
+                border: '1px solid rgba(255, 255, 255, 0.1)', 
+                background: 'rgba(255, 255, 255, 0.05)', 
+                cursor: 'pointer', 
+                borderRadius: '8px', 
+                color: 'white',
+                minWidth: '140px',
+                justifyContent: 'space-between'
+              }}
+            >
+              {compareYear ? `vs ${compareYear}` : 'Compare Mode'} <ChevronDown size={14} opacity={0.5} />
+            </button>
+            <AnimatePresence>
+              {showComparePicker && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                  style={{ 
+                    position: 'absolute', top: '100%', left: 0, marginTop: '8px', 
+                    background: '#111827', border: '1px solid var(--glass-border)', 
+                    borderRadius: '12px', padding: '8px', minWidth: '160px', 
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)', zIndex: 100
+                  }}
                 >
-                  CANCEL
-                </div>
-                {rewindData?.available_years?.filter(y => y !== targetYear).map(y => (
                   <div 
-                    key={y} onClick={() => { setCompareYear(y); setShowComparePicker(false); }}
-                    style={{ padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '8px', background: compareYear === y ? 'var(--accent-blue)' : 'transparent', color: 'white', fontWeight: 600 }}
+                    onClick={() => { setCompareYear(''); setShowComparePicker(false); }}
+                    style={{ 
+                      padding: '10px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '8px', 
+                      opacity: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '4px'
+                    }}
                   >
-                    {y}
+                    DISABLE COMPARE
                   </div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  {rewindData?.available_years?.filter(y => y !== targetYear).map(y => (
+                    <div 
+                      key={y} onClick={() => { setCompareYear(y); setShowComparePicker(false); }}
+                      style={{ 
+                        padding: '10px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '8px', 
+                        background: compareYear === y ? 'var(--accent-blue)' : 'transparent', 
+                        color: 'white', fontWeight: 600,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {y}
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

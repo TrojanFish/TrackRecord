@@ -65,24 +65,25 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
 
   return (
     <motion.div 
-      className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}
-      animate={{ width: isExpanded ? 260 : 80 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      className={`sidebar ${isExpanded ? 'expanded sidebar-expanded' : 'collapsed'}`}
+      animate={{ width: isExpanded ? 240 : 72 }}
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
     >
-      <div className="sidebar-header">
-        <button className="collapse-btn-top" onClick={() => setIsExpanded(!isExpanded)}>
-          {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
+      <button className="edge-handle-toggle" onClick={() => setIsExpanded(!isExpanded)}>
+        {isExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+      </button>
+
+      <div className="sidebar-header" style={{ borderBottom: 'none' }}>
         <div className="logo-container">
-          <div className="logo-icon">TR</div>
-          {isExpanded && <span className="logo-text">TRACKRECORD</span>}
+          <div className="logo-icon" style={{ width: '32px', height: '32px', fontSize: '0.9rem', fontWeight: 900 }}>TR</div>
+          {isExpanded && <span className="logo-text" style={{ fontSize: '0.8rem', fontWeight: 900 }}>TRACKRECORD</span>}
         </div>
       </div>
 
       <nav className="sidebar-nav">
         {groups.map((group, idx) => (
           <div key={idx} className="nav-group">
-            {isExpanded && <div className="nav-group-title">{group.title}</div>}
+            {isExpanded && <div className="nav-group-title" style={{ opacity: 0.15, fontSize: '0.55rem' }}>{group.title}</div>}
             <div className="nav-group-items">
               {group.items.map((item) => (
                 <button
@@ -90,13 +91,14 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
                   className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
                   onClick={() => setActiveTab(item.id)}
                   title={!isExpanded ? item.label : ''}
+                  style={{ borderRadius: '14px', margin: '4px 8px' }}
                 >
-                  <item.icon size={20} />
+                  <item.icon size={18} />
                   {isExpanded && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center', marginLeft: '12px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.label}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center', marginLeft: '10px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.3px' }}>{item.label}</span>
                       {getBadgeValue(item.id) !== null && getBadgeValue(item.id) > 0 && (
-                        <span className="nav-badge">{getBadgeValue(item.id)}</span>
+                        <span className="nav-badge" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>{getBadgeValue(item.id)}</span>
                       )}
                     </div>
                   )}
@@ -106,7 +108,6 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
                 </button>
               ))}
             </div>
-            {isExpanded && idx < groups.length - 1 && <div className="nav-divider" />}
           </div>
         ))}
       </nav>

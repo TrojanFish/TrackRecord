@@ -72,8 +72,8 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       className="page-content"
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>

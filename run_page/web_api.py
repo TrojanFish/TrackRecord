@@ -37,7 +37,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -324,19 +324,34 @@ def get_athlete_metrics():
     resting_hr = athlete.get("resting_hr", 60)
     vo2_hr = 15.3 * (max_hr / resting_hr)
     
+    analysis = config.get("analysis", {})
+    
     return {
         "gender": athlete.get("gender", "male"),
         "age": age,
         "max_hr": int(max_hr),
         "resting_hr": resting_hr,
-        "weight": athlete.get("weight"),
+        "weight": athlete.get("weight", 70),
         "zones": calculated_zones,
         "vo2_estimate": round(vo2_hr, 1),
         "riegel_exponents": athlete.get("riegel_exponents", {"run": 1.06, "ride": 1.05}),
         "gears": athlete.get("gears", []),
         "annual_distance_target": athlete.get("annual_distance_target", 2000),
         "monthly_elevation_target": athlete.get("monthly_elevation_target", 1000),
-        "weekly_frequency_target": athlete.get("weekly_frequency_target", 5)
+        "weekly_frequency_target": athlete.get("weekly_frequency_target", 5),
+        "analysis": {
+            "calorie_factors": analysis.get("calorie_factors", {"run": 1.036, "ride": 0.5, "default": 0.8}),
+            "gap_factor": analysis.get("gap_factor", 6.0),
+            "gear_warning_threshold": analysis.get("gear_warning_threshold", 0.9),
+            "training_load": analysis.get("training_load", {"ctl_days": 42, "atl_days": 7, "trimp_fallbacks": {"run": 8.0, "ride": 2.0}}),
+            "tsb_advice": analysis.get("tsb_advice", {"peak": 10, "fresh": 0, "optimal": -10, "productive_fatigue": -25}),
+            "radar_normalization": analysis.get("radar_normalization", {
+                "endurance_monthly_km": 150, "climb_monthly_m": 1500, "frequency_monthly_sessions": 16, "long_run_km": 25, "speed_pace_min_km": 4.0
+            }),
+            "milestones": analysis.get("milestones", {}),
+            "bins": analysis.get("bins", {}),
+            "device_mapping": analysis.get("device_mapping", {})
+        }
     }
 
 # Aggregated stats and heatmap logic
@@ -395,7 +410,8 @@ def get_sports_stats():
                     
                     if total_sec > 0:
                         grade = d["elevation_gain"] / d["distance"]
-                        factor = 1.0 + (6.0 * grade)
+                        gap_coeff = athlete_metrics["analysis"]["gap_factor"]
+                        factor = 1.0 + (gap_coeff * grade)
                         gap_sec_per_km = (total_sec / (d["distance"] / 1000.0)) / factor
                         
                         # Format GAP Pace
@@ -408,10 +424,13 @@ def get_sports_stats():
             # Calorie Calculation for Recent Activities
             d_km = (d["distance"] or 0) / 1000.0
             weight = athlete_metrics.get("weight", 70)
+            cal_factors = athlete_metrics["analysis"]["calorie_factors"]
             if d["type"] in ["Run", "TrailRun", "VirtualRun"]:
-                d["calories"] = int(d_km * weight * 1.036)
+                d["calories"] = int(d_km * weight * cal_factors.get("run", 1.036))
+            elif d["type"] in ["Ride", "VirtualRide", "Velomobile"]:
+                d["calories"] = int(d_km * weight * cal_factors.get("ride", 0.5))
             else:
-                d["calories"] = int(d_km * weight * 0.5)
+                d["calories"] = int(d_km * weight * cal_factors.get("default", 0.8))
             
             recent.append(d)
         
@@ -529,17 +548,23 @@ def get_sports_stats():
 
         # 5.5 Records (Best Efforts)
         records = {}
-        # Best Efforts (sampled distances for Run and Ride)
-        record_configs = [
-            ("5K", 5000, ['Run', 'TrailRun', 'VirtualRun']),
-            ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
-            ("Half Marathon", 21097, ['Run', 'TrailRun', 'VirtualRun']),
-            ("Marathon", 42195, ['Run', 'TrailRun', 'VirtualRun']),
-            ("30K Ride", 30000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
-        ]
+        # Best Efforts (distances for Run and Ride from settings)
+        ms_config = athlete_metrics["analysis"]["milestones"]
+        record_configs = []
+        for ms in ms_config.get("run", []):
+            record_configs.append((ms["name"], ms["distance"], ['Run', 'TrailRun', 'VirtualRun']))
+        for ms in ms_config.get("ride", []):
+            record_configs.append((ms["name"], ms["distance"], ['Ride', 'VirtualRide', 'Velomobile']))
+            
+        if not record_configs: # Fallback
+            record_configs = [
+                ("5K", 5000, ['Run', 'TrailRun', 'VirtualRun']),
+                ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
+                ("Half Marathon", 21097, ['Run', 'TrailRun', 'VirtualRun']),
+                ("Marathon", 42195, ['Run', 'TrailRun', 'VirtualRun']),
+                ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
+                ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
+            ]
         
         for name, dist_m, types in record_configs:
             placeholder = ', '.join(['?'] * len(types))
@@ -576,16 +601,7 @@ def get_sports_stats():
 
         # 5.6 Best Efforts Trends (Historical Performance)
         records_trends = {}
-        trend_configs = [
-            ("5K", 5000, ['Run', 'TrailRun', 'VirtualRun']),
-            ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
-            ("21K", 21097, ['Run', 'TrailRun', 'VirtualRun']),
-            ("42K", 42195, ['Run', 'TrailRun', 'VirtualRun']),
-            ("30K Ride", 30000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
-        ]
+        trend_configs = record_configs # Reuse the same milestones
         
         for name, dist_m, types in trend_configs:
             placeholder = ', '.join(['?'] * len(types))
@@ -842,10 +858,11 @@ def get_sports_stats():
                 stress = duration_min * hr_reserve_fraction * y_factor
             else:
                 # Fallback: Estimated Stress (roughly 1 TSS per km for run, 0.3 for ride)
+                fallbacks = athlete_metrics["analysis"]["training_load"]["trimp_fallbacks"]
                 if act["type"] in ["Run", "VirtualRun", "TrailRun"]:
-                    stress = (act["dist"] / 1000.0) * 8.0 # Roughly 8 stress per km
+                    stress = (act["dist"] / 1000.0) * fallbacks.get("run", 8.0)
                 else: 
-                    stress = (act["dist"] / 1000.0) * 2.0 # Roughly 2 stress per km
+                    stress = (act["dist"] / 1000.0) * fallbacks.get("ride", 2.0)
             
             daily_stress[d] = daily_stress.get(d, 0) + stress
             
@@ -859,11 +876,13 @@ def get_sports_stats():
             curr_date = curr_date_obj.isoformat()
             stress = daily_stress.get(curr_date, 0)
             
-            # Exponential Moving Averages (CTL: 42 days, ATL: 7 days)
-            # Formula: EMA_today = EMA_yesterday + (today_stress - EMA_yesterday) * (2 / (N + 1))
-            # Traditional Fitness/Fatigue uses 1/N for decaying factor
-            ctl = ctl + (stress - ctl) * (1.0 / 42.0)
-            atl = atl + (stress - atl) * (1.0 / 7.0)
+            # Exponential Moving Averages (CTL: 42 days, ATL: 7 days - configured in settings)
+            tl_conf = athlete_metrics["analysis"]["training_load"]
+            ctl_decay = 1.0 / tl_conf.get("ctl_days", 42)
+            atl_decay = 1.0 / tl_conf.get("atl_days", 7)
+            
+            ctl = ctl + (stress - ctl) * ctl_decay
+            atl = atl + (stress - atl) * atl_decay
             
             if i >= 90: # Only return the last 90 days for the chart
                 training_series.append({
@@ -955,19 +974,26 @@ def get_sports_stats():
         hr_zones = [{"zone": k, "count": v} for k, v in zones_count.items()]
 
         # 10. Power Distribution (Cycling focus)
-        cur.execute("""
-            SELECT 
-                CASE 
-                    WHEN average_watts < 150 THEN 'Low Intensity'
-                    WHEN average_watts BETWEEN 150 AND 250 THEN 'Moderate'
-                    ELSE 'High Intensity'
-                END as power_zone,
-                COUNT(*) as count
-            FROM activities
-            WHERE average_watts > 0
-            GROUP BY power_zone
-        """)
-        power_distribution = [dict(row) for row in cur.fetchall()]
+        power_bins = athlete_metrics["analysis"]["bins"].get("power_ride", [])
+        if power_bins:
+            power_distribution = []
+            for b in power_bins:
+                cur.execute("SELECT COUNT(*) FROM activities WHERE average_watts BETWEEN ? AND ?", (b["min"], b["max"]))
+                power_distribution.append({"power_zone": b["label"], "count": cur.fetchone()[0]})
+        else:
+            cur.execute("""
+                SELECT 
+                    CASE 
+                        WHEN average_watts < 150 THEN 'Low Intensity'
+                        WHEN average_watts BETWEEN 150 AND 250 THEN 'Moderate'
+                        ELSE 'High Intensity'
+                    END as power_zone,
+                    COUNT(*) as count
+                FROM activities
+                WHERE average_watts > 0
+                GROUP BY power_zone
+            """)
+            power_distribution = [dict(row) for row in cur.fetchall()]
 
         # 11. Period Comparison (This Year vs Last Year Monthly)
         cur.execute("""
@@ -1115,19 +1141,26 @@ def get_sports_stats():
 
         # 15.5 Distance Breakdown Histogram
         dist_raw = [r["dist"] / 1000.0 for r in cur.execute("SELECT distance as dist FROM activities").fetchall()]
-        dist_bins = [
-            {"label": "0-5km", "min": 0, "max": 5, "count": 0},
-            {"label": "5-10km", "min": 5, "max": 10, "count": 0},
-            {"label": "10-21km", "min": 10, "max": 21, "count": 0},
-            {"label": "21-42km", "min": 21, "max": 42.2, "count": 0},
-            {"label": "42km+", "min": 42.2, "max": 99999, "count": 0},
-        ]
-        for d in dist_raw:
-            for b in dist_bins:
-                if b["min"] <= d < b["max"]:
-                    b["count"] += 1
-                    break
-        distance_breakdown = dist_bins
+        dist_bins_config = athlete_metrics["analysis"]["bins"].get("distance", [])
+        if dist_bins_config:
+            distance_breakdown = []
+            for b in dist_bins_config:
+                count = sum(1 for d in dist_raw if b["min"] <= d < b["max"])
+                distance_breakdown.append({"label": b["label"], "count": count})
+        else:
+            dist_bins = [
+                {"label": "0-5km", "min": 0, "max": 5, "count": 0},
+                {"label": "5-10km", "min": 5, "max": 10, "count": 0},
+                {"label": "10-21km", "min": 10, "max": 21, "count": 0},
+                {"label": "21-42km", "min": 21, "max": 42.2, "count": 0},
+                {"label": "42km+", "min": 42.2, "max": 99999, "count": 0},
+            ]
+            for d in dist_raw:
+                for b in dist_bins:
+                    if b["min"] <= d < b["max"]:
+                        b["count"] += 1
+                        break
+            distance_breakdown = dist_bins
 
         # 16. Bio-Analytics (P3)
         athlete_weight = athlete_metrics.get("athlete", {}).get("weight", 70)
@@ -1146,21 +1179,28 @@ def get_sports_stats():
         has_run_cadence = len(run_cadence_raw) > 0
         
         if has_run_cadence:
-            cadence_bins = [
-                {"label": "<150", "min": 0, "max": 150, "count": 0},
-                {"label": "150-160", "min": 150, "max": 160, "count": 0},
-                {"label": "160-170", "min": 160, "max": 170, "count": 0},
-                {"label": "170-180", "min": 170, "max": 180, "count": 0},
-                {"label": "180-190", "min": 180, "max": 190, "count": 0},
-                {"label": "190+", "min": 190, "max": 999, "count": 0}
-            ]
-            for row in run_cadence_raw:
-                c = row["average_cadence"]
-                if c < 120: c = c * 2
-                for b in cadence_bins:
-                    if b["min"] <= c < b["max"]:
-                        b["count"] += 1
-                        break
+            cadence_bins_config = athlete_metrics["analysis"]["bins"].get("cadence_run", [])
+            if cadence_bins_config:
+                cadence_bins = []
+                for b in cadence_bins_config:
+                    count = sum(1 for r in run_cadence_raw if b["min"] <= (r["average_cadence"] if r["average_cadence"] >= 120 else r["average_cadence"]*2) < b["max"])
+                    cadence_bins.append({"label": b["label"], "count": count})
+            else:
+                cadence_bins = [
+                    {"label": "<150", "min": 0, "max": 150, "count": 0},
+                    {"label": "150-160", "min": 150, "max": 160, "count": 0},
+                    {"label": "160-170", "min": 160, "max": 170, "count": 0},
+                    {"label": "170-180", "min": 170, "max": 180, "count": 0},
+                    {"label": "180-190", "min": 180, "max": 190, "count": 0},
+                    {"label": "190+", "min": 190, "max": 999, "count": 0}
+                ]
+                for row in run_cadence_raw:
+                    c = row["average_cadence"]
+                    if c < 120: c = c * 2
+                    for b in cadence_bins:
+                        if b["min"] <= c < b["max"]:
+                            b["count"] += 1
+                            break
             cadence_type = "RUNNING (SPM)"
         else:
             cadence_bins = [
@@ -1295,13 +1335,15 @@ def get_sports_stats():
 
         # 14. Smart Coach Advice
         tsb = training_series[-1]["tsb"] if training_series else 0
-        if tsb > 10:
+        tsb_conf = athlete_metrics["analysis"]["tsb_advice"]
+        
+        if tsb > tsb_conf.get("peak", 10):
             advice = "You are in peak form! This is the perfect window to attempt a Personal Best (PB) or a high-intensity race."
-        elif tsb > 0:
+        elif tsb > tsb_conf.get("fresh", 0):
             advice = "Feeling fresh. You have recovered well and are ready for quality interval training or a long effort."
-        elif tsb > -10:
+        elif tsb > tsb_conf.get("optimal", -10):
             advice = "Optimal training zone. You are maintaining a solid balance between load and recovery. Keep it up."
-        elif tsb > -25:
+        elif tsb > tsb_conf.get("productive_fatigue", -25):
             advice = "Productive fatigue. You are building significant fitness, but expect to feel some leg heaviness. Rest is coming soon."
         else:
             advice = "High fatigue detected. Your risk of injury is elevated. Consider an active recovery day or complete rest."
@@ -1316,17 +1358,31 @@ def get_sports_stats():
             "status": "Peak" if tsb > 10 else ("Fresh" if tsb > 0 else ("Optimal" if tsb > -10 else "Fatigued"))
         }
 
-        # 13. Recording Devices Calculation (Dynamic)
+        # 13. Recording Devices Calculation (Dynamic mapping from settings)
         recording_stats = []
-        cur.execute("""
-            SELECT 
+        device_mapping = athlete_metrics["analysis"].get("device_mapping", {})
+        
+        # Build dynamic Case Statement
+        case_parts = []
+        for pattern, label in device_mapping.items():
+            case_parts.append(f"WHEN name LIKE '%{pattern}%' THEN '{label}'")
+        
+        if not case_parts:
+            case_stmt = """
                 CASE 
                     WHEN name LIKE 'Zwift%' THEN 'Zwift'
                     WHEN type = 'VirtualRide' THEN 'Virtual Platform'
                     WHEN type = 'Ride' THEN 'Cycling Computer'
                     WHEN type = 'Run' THEN 'Running Watch'
                     ELSE 'Other App/Device'
-                END as device,
+                END
+            """
+        else:
+            case_stmt = f"CASE {' '.join(case_parts)} ELSE 'Other Device' END"
+
+        cur.execute(f"""
+            SELECT 
+                ({case_stmt}) as device,
                 COUNT(*) as count,
                 SUM(distance) as dist,
                 SUM(elevation_gain) as elev,
@@ -1410,27 +1466,32 @@ def get_sports_stats():
         """, (last_30_days,))
         r30 = cur.fetchone()
         
-        # Calculate Speed (Top pace in last 3 months)
-        last_90_days = (dt.date.today() - dt.timedelta(days=90)).isoformat()
-        cur.execute("SELECT distance, moving_time FROM activities WHERE type='Run' AND date(start_date_local) >= ? ORDER BY distance DESC LIMIT 20", (last_90_days,))
-        speed_rows = cur.fetchall()
-        max_speed_score = 50 # Default
+        # Normalization from settings
+        radar_norm = athlete_metrics["analysis"]["radar_normalization"]
+        
+        # Speed: 4:00 min/km = 100, 6:00 min/km = 50 (configured)
+        speed_base = radar_norm.get("speed_pace_min_km", 4.0)
+        speed_rows = cur.execute("""
+            SELECT moving_time, distance FROM activities 
+            WHERE type IN ('Run', 'TrailRun') AND date(start_date_local) >= ?
+        """, (last_30_days,)).fetchall()
+        
+        max_speed_score = 50 # Default middle ground
         if speed_rows:
             best_pace = 999
             for sr in speed_rows:
                 sec = row_to_seconds(sr["moving_time"])
-                if sec > 0:
+                if sec > 0 and sr["distance"] > 0:
                     pace_min_km = (sec / 60.0) / (sr["distance"] / 1000.0)
                     best_pace = min(best_pace, pace_min_km)
-            # 4:00 min/km = 100, 6:00 min/km = 50
             if best_pace < 999:
-                max_speed_score = max(20, min(100, int(100 - (best_pace - 4.0) * 25)))
+                max_speed_score = max(20, min(100, int(100 - (best_pace - speed_base) * 25)))
 
         athlete_radar = [
-            { "subject": "Endurance", "A": min(100, int((r30["dist"] or 0) / 1500)), "fullMark": 100 }, # 150km/mo
-            { "subject": "Climb", "A": min(100, int((r30["elev"] or 0) / 15)), "fullMark": 100 },      # 1500m/mo
-            { "subject": "Frequency", "A": min(100, int((r30["count"] or 0) * 6)), "fullMark": 100 },  # 16 sessions/mo
-            { "subject": "Distance", "A": min(100, int((r30["max_dist"] or 0) / 250)), "fullMark": 100 },# 25km session
+            { "subject": "Endurance", "A": min(100, int((r30["dist"] or 0) / (radar_norm.get("endurance_monthly_km", 150)*10))), "fullMark": 100 }, 
+            { "subject": "Climb", "A": min(100, int((r30["elev"] or 0) / (radar_norm.get("climb_monthly_m", 1500)/100))), "fullMark": 100 },      
+            { "subject": "Frequency", "A": min(100, int((r30["count"] or 0) * (100/radar_norm.get("frequency_monthly_sessions", 16)))), "fullMark": 100 },  
+            { "subject": "Distance", "A": min(100, int((r30["max_dist"] or 0) / (radar_norm.get("long_run_km", 25)*10))), "fullMark": 100 },
             { "subject": "Speed", "A": max_speed_score, "fullMark": 100 }
         ]
 

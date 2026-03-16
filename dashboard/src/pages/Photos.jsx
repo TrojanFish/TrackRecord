@@ -70,60 +70,58 @@ const Photos = () => {
       className="page-content"
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem' }}>
-           <div>
-             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
-                <Camera size={24} color="var(--accent-cyan)" /> ACTIVITY GALLERY
-             </h2>
-             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tag)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                   <Filter size={14} opacity={0.6} />
-                   <select 
-                     value={filterType} 
-                     onChange={(e) => setFilterType(e.target.value)}
-                     style={{ 
-                       background: 'rgba(5, 11, 26, 0.95)', 
-                       border: '1px solid rgba(255,255,255,0.1)', 
-                       color: 'white', 
-                       fontSize: '0.8rem', 
-                       fontWeight: 600, 
-                       outline: 'none', 
-                       cursor: 'pointer',
-                       borderRadius: '6px',
-                       padding: '2px 8px'
-                     }}
-                   >
-                     <option value="All" style={{ background: '#050b1a', color: 'white' }}>All Sports</option>
-                     {sportTypes.filter(t => t !== 'All').map(t => <option key={t} value={t} style={{ background: '#050b1a', color: 'white' }}>{t}</option>)}
-                   </select>
-                </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', gap: '2rem' }}>
+           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              
+              <div className="filter-group">
+                 <label><Filter size={14} /> TYPE</label>
+                 <select 
+                   value={filterType} 
+                   onChange={(e) => setFilterType(e.target.value)}
+                   style={{ 
+                     background: 'rgba(255, 255, 255, 0.05)', 
+                     border: '1px solid rgba(255,255,255,0.1)', 
+                     color: 'white', 
+                     fontSize: '0.85rem', 
+                     fontWeight: 600, 
+                     outline: 'none', 
+                     cursor: 'pointer',
+                     borderRadius: '8px',
+                     padding: '8px 12px',
+                     minWidth: '130px'
+                   }}
+                 >
+                   <option value="All">All Types</option>
+                   {sportTypes.filter(t => t !== 'All').map(t => <option key={t} value={t}>{t}</option>)}
+                 </select>
+              </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-tag)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                   <Globe size={14} opacity={0.6} />
-                   <select 
-                     value={filterCountry} 
-                     onChange={(e) => setFilterCountry(e.target.value)}
-                     style={{ 
-                       background: 'rgba(5, 11, 26, 0.95)', 
-                       border: '1px solid rgba(255,255,255,0.1)', 
-                       color: 'white', 
-                       fontSize: '0.8rem', 
-                       fontWeight: 600, 
-                       outline: 'none', 
-                       cursor: 'pointer',
-                       borderRadius: '6px',
-                       padding: '2px 8px'
-                     }}
-                   >
-                     <option value="All" style={{ background: '#050b1a', color: 'white' }}>All Countries</option>
-                     {countries.filter(c => c !== 'All').map(c => <option key={c} value={c} style={{ background: '#050b1a', color: 'white' }}>{c}</option>)}
-                   </select>
-                </div>
-                
-                <span style={{ fontSize: '0.8rem', opacity: 0.5, display: 'flex', alignItems: 'center' }}>
-                  {filteredPhotos.length} photos found
-                </span>
-             </div>
+              <div className="filter-group">
+                 <label><Globe size={14} /> COUNTRY</label>
+                 <select 
+                   value={filterCountry} 
+                   onChange={(e) => setFilterCountry(e.target.value)}
+                   style={{ 
+                     background: 'rgba(255, 255, 255, 0.05)', 
+                     border: '1px solid rgba(255,255,255,0.1)', 
+                     color: 'white', 
+                     fontSize: '0.85rem', 
+                     fontWeight: 600, 
+                     outline: 'none', 
+                     cursor: 'pointer',
+                     borderRadius: '8px',
+                     padding: '8px 12px',
+                     minWidth: '130px'
+                   }}
+                 >
+                   <option value="All">All Countries</option>
+                   {countries.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                 </select>
+              </div>
+              
+              <div style={{ paddingBottom: '8px', fontSize: '0.8rem', fontWeight: 700, opacity: 0.5 }}>
+                 {filteredPhotos.length} PHOTOS FOUND
+              </div>
            </div>
         </div>
 
@@ -203,8 +201,9 @@ const Photos = () => {
             style={{ 
               position: 'fixed', 
               inset: 0, 
-              zIndex: 1000, 
-              background: 'rgba(5, 11, 26, 0.98)',
+              zIndex: 3000, 
+              background: 'rgba(2, 6, 23, 0.95)',
+              backdropFilter: 'blur(20px)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',

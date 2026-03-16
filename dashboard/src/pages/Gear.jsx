@@ -22,8 +22,8 @@ const Gear = ({ stats }) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       className="page-content"
     >
       {/* Platform Tabs */}
@@ -87,10 +87,10 @@ const Gear = ({ stats }) => {
                              borderRadius: '12px', 
                              fontSize: '0.7rem', 
                              fontWeight: 800,
-                             background: (gear.distance / gear.limit) > 0.9 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                             color: (gear.distance / gear.limit) > 0.9 ? '#ef4444' : '#10b981'
+                             background: (gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                             color: (gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? '#ef4444' : '#10b981'
                            }}>
-                             {(gear.distance / gear.limit) > 0.9 ? 'REPLACE' : 'READY'}
+                             {(gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? 'REPLACE' : 'READY'}
                            </span>
                         </td>
                       </tr>
@@ -172,7 +172,7 @@ const Gear = ({ stats }) => {
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${totalPercent}%` }}
-                        style={{ height: '100%', background: totalPercent > 90 ? '#ef4444' : 'var(--accent-cyan)' }}
+                        style={{ height: '100%', background: totalPercent > ((stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) * 100) ? '#ef4444' : 'var(--accent-cyan)' }}
                       />
                    </div>
                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.75rem', opacity: 0.4 }}>

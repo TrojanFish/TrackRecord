@@ -139,11 +139,11 @@ const Heatmap = ({ activities, availableYears }) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       className={`page-content heatmap-page ${isFullScreen ? 'fullscreen' : ''}`}
       style={{ 
-          height: isFullScreen ? '100vh' : 'calc(100vh - 120px)', 
+          height: isFullScreen ? '100vh' : 'calc(100vh - 9rem)', 
           padding: 0, 
           margin: 0,
           position: isFullScreen ? 'fixed' : 'relative',

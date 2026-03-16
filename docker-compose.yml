@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  trackrecord:
+    build: .
+    container_name: trackrecord-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./run_page/data.db:/app/run_page/data.db
+      - ./run_page/settings.yaml:/app/run_page/settings.yaml
+      - ./run_page/static/photos:/app/run_page/static/photos
+    restart: always
+    environment:
+      - PYTHONUNBUFFERED=1

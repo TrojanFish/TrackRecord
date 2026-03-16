@@ -749,7 +749,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '2rem', marginBottom: '2.5rem' }}>
         {/* Bio Summary Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem' }}>
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ padding: '8px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', color: '#10b981' }}>
                 <Footprints size={18} />
@@ -761,7 +761,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             </div>
           </motion.div>
 
-          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem' }}>
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ padding: '8px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', color: '#ef4444' }}>
                 <Flame size={18} />
@@ -773,7 +773,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             </div>
           </motion.div>
 
-          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem' }}>
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ padding: '8px', background: 'rgba(6, 182, 212, 0.1)', borderRadius: '8px', color: 'var(--accent-cyan)' }}>
                 <Scale size={18} />
