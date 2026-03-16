@@ -638,6 +638,7 @@ def get_sports_stats():
                 ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
                 ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
                 ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
+                ("150K Ride", 150000, ['Ride', 'VirtualRide', 'Velomobile']),
             ]
         
         for name, dist_m, types in record_configs:
@@ -745,7 +746,7 @@ def get_sports_stats():
         # 5.7b Curated Records for Dashboard Summary - REFRESHED LOGIC
         dashboard_records = []
         priority_run = ["5K", "10K", "Half Marathon", "Marathon"]
-        priority_ride = ["30K Ride", "50K Ride", "80K Ride", "100K Ride"]
+        priority_ride = ["30K Ride", "50K Ride", "80K Ride", "100K Ride", "150K Ride"]
         
         for name in priority_run + priority_ride:
             if name in records:
