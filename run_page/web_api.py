@@ -449,9 +449,8 @@ def get_sports_stats():
             else:
                 d["moving_time_display"] = d["moving_time"]
             
-            # GAP Calculation (Grade Adjusted Pace) for Running
-            if d["type"] in ["Run", "VirtualRun", "TrailRun"] and d["distance"] > 0 and d["elevation_gain"]:
-                # Convert moving_time to seconds
+            # Pace/Speed Calculation for Recent Activities
+            if d["distance"] > 0:
                 t_str = d["moving_time"]
                 t_only = t_str.split(" ")[1] if " " in t_str else t_str
                 try:
@@ -459,15 +458,17 @@ def get_sports_stats():
                     total_sec = h * 3600 + m * 60 + s
                     
                     if total_sec > 0:
-                        grade = d["elevation_gain"] / d["distance"]
-                        gap_coeff = athlete_metrics["analysis"]["gap_factor"]
-                        factor = 1.0 + (gap_coeff * grade)
-                        gap_sec_per_km = (total_sec / (d["distance"] / 1000.0)) / factor
-                        
-                        # Format GAP Pace
-                        gm = int(gap_sec_per_km // 60)
-                        gs = int(gap_sec_per_km % 60)
-                        d["gap_pace"] = f"{gm}:{gs:02d}/km"
+                        dist_km = d["distance"] / 1000.0
+                        if d["type"] in ["Run", "VirtualRun", "TrailRun"]:
+                            # Pace: min/km
+                            pace_min_km = (total_sec / 60.0) / dist_km
+                            pm = int(pace_min_km // 1)
+                            ps = int((pace_min_km % 1) * 60)
+                            d["gap_pace"] = f"{pm}:{ps:02d}/km"
+                        elif d["type"] in ["Ride", "VirtualRide", "Velomobile", "E-BikeRide"]:
+                            # Speed: km/h
+                            speed_kmh = dist_km / (total_sec / 3600.0)
+                            d["gap_pace"] = f"{round(speed_kmh, 1)} km/h"
                 except:
                     pass
             

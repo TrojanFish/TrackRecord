@@ -458,7 +458,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                 <th style={{ textAlign: 'left', padding: '12px' }}>NAME / LOCATION</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>TYPE</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>DISTANCE / CLIMB</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>PACE / GAP</th>
+                <th style={{ textAlign: 'left', padding: '12px' }}>PACE / SPEED</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>HR / CAL</th>
               </tr>
             </thead>
