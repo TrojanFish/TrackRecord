@@ -26,3 +26,5 @@ certifi==2026.2.25
 fastapi
 uvicorn
 python-multipart
+beautifulsoup4
+requests
