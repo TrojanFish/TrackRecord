@@ -139,6 +139,26 @@ class Photo(Base):
             "url": f"/static/photos/{os.path.basename(self.local_path)}" if self.local_path else self.remote_url,
             "title": self.title,
             "date": self.date,
+class Trophy(Base):
+    __tablename__ = "trophies"
+
+    id = Column(String, primary_key=True)
+    name = Column(String)
+    image = Column(String)
+    color = Column(String)
+    progress = Column(String)
+    type = Column(String)
+    month = Column(String)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "image": self.image,
+            "color": self.color,
+            "progress": self.progress,
+            "type": self.type,
+            "month": self.month,
         }
 
 
@@ -410,6 +430,7 @@ def init_db(db_path):
     add_missing_columns(engine, Activity)
     add_missing_columns(engine, Segment)
     add_missing_columns(engine, SegmentEffort)
+    add_missing_columns(engine, Trophy)
 
     sm = sessionmaker(bind=engine)
     session = sm()
