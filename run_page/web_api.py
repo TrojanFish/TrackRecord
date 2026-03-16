@@ -2181,8 +2181,8 @@ def sync_segments_endpoint(background_tasks: BackgroundTasks, limit: int = 20):
     return {"status": "Syncing segments in background", "limit": limit}
 
 @app.post("/api/v1/sync")
-def full_sync_endpoint(background_tasks: BackgroundTasks):
-    def run_full_sync():
+def full_sync_endpoint(background_tasks: BackgroundTasks, force: bool = False):
+    def run_full_sync(force_val: bool):
         from run_page.generator import Generator
         from run_page.core.auth import get_credential
         db_path = os.environ.get("DB_PATH", "run_page/data.db")
@@ -2194,11 +2194,11 @@ def full_sync_endpoint(background_tasks: BackgroundTasks):
         
         if cid and secret and refresh:
             gen.set_strava_config(cid, secret, refresh)
-            gen.sync(force=False)
+            gen.sync(force=force_val)
         gen.close()
 
-    background_tasks.add_task(run_full_sync)
-    return {"status": "Full data sync started in background"}
+    background_tasks.add_task(run_full_sync, force)
+    return {"status": "Full data sync started in background", "force": force}
 
 # --- Self-Contained Auto-Sync Scheduler ---
 async def schedule_auto_sync():
