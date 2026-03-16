@@ -34,6 +34,15 @@ from run_page.ui.i18n import I18N
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize the database immediately on startup to ensure tables exist
+    try:
+        from run_page.db import init_db
+        db_path = os.environ.get("DB_PATH", "run_page/data.db")
+        init_db(db_path)
+        print(f"[{datetime.now()}] Database initialized successfully.")
+    except Exception as e:
+        print(f"[{datetime.now()}] Database initialization failed: {e}")
+
     # Run the scheduler as a non-blocking background task on startup
     asyncio.create_task(schedule_auto_sync())
     yield
@@ -411,11 +420,11 @@ def read_root():
 @app.get("/api/v1/stats")
 def get_sports_stats():
     """Comprehensive sports statistics for the public dashboard."""
-    conn = get_db_conn()
-    if not conn:
-        return {"total_distance": 0, "total_count": 0, "recent_activities": [], "heatmap": {}, "yearly": {}}
-    
     try:
+        conn = get_db_conn()
+        if not conn:
+            return {"total_distance": 0, "total_count": 0, "recent_activities": [], "heatmap": {}, "yearly": {}}
+        
         cur = conn.cursor()
         athlete_metrics = get_athlete_metrics()
         
@@ -1537,7 +1546,7 @@ def get_sports_stats():
         ]
 
         # Final Return Object
-        return {
+        out_data = {
             "total_distance": (agg["dist"] or 0) / 1000.0,
             "total_count": agg["count"] or 0,
             "recent_activities": recent,
@@ -1583,8 +1592,19 @@ def get_sports_stats():
             "training_details": training_details,
             "activity_pattern": activity_pattern
         }
+        return out_data
+        
+    except sqlite3.OperationalError as e:
+        print(f"[{datetime.now()}] Database operational error (likely missing table): {e}")
+        return {"total_distance": 0, "total_count": 0, "recent_activities": [], "heatmap": {}, "yearly": {}}
+    except Exception as e:
+        import traceback
+        print(f"[{datetime.now()}] Error in get_sports_stats: {e}")
+        traceback.print_exc()
+        return {"total_distance": 0, "total_count": 0, "recent_activities": [], "heatmap": {}, "yearly": {}}
     finally:
-        if conn: conn.close()
+        if 'conn' in locals() and conn:
+            conn.close()
 
 @app.get("/api/v1/photos")
 def get_activity_photos(background_tasks: BackgroundTasks):
