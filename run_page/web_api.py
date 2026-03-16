@@ -297,7 +297,20 @@ def get_athlete_metrics():
                 "zone4": {"from": 152, "to": 171},
                 "zone5": {"from": 171, "to": 190}
             },
-            "vo2_estimate": 45.0
+            "vo2_estimate": 45.0,
+            "analysis": {
+                "calorie_factors": {"run": 1.036, "ride": 0.5, "default": 0.8},
+                "gap_factor": 6.0,
+                "gear_warning_threshold": 0.9,
+                "training_load": {"ctl_days": 42, "atl_days": 7, "trimp_fallbacks": {"run": 8.0, "ride": 2.0}},
+                "tsb_advice": {"peak": 10, "fresh": 0, "optimal": -10, "productive_fatigue": -25},
+                "radar_normalization": {
+                    "endurance_monthly_km": 150, "climb_monthly_m": 1500, "frequency_monthly_sessions": 16, "long_run_km": 25, "speed_pace_min_km": 4.0
+                },
+                "milestones": {},
+                "bins": {},
+                "device_mapping": {}
+            }
         }
         
     with open(config_path, "r") as f:
