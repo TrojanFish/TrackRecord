@@ -16,7 +16,7 @@ import { MapContainer, TileLayer, Polyline, ZoomControl, useMap } from 'react-le
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
 const MapController = ({ points }) => {
   const map = useMap();

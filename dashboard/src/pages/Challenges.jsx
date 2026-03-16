@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Trophy, Calendar, Loader2, RefreshCw, X, ChevronRight, HelpCircle } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
 const Challenges = () => {
   const [challenges, setChallenges] = React.useState([]);

@@ -12,6 +12,7 @@ from typing import List, Optional, Dict
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
 import contextlib
 from pydantic import BaseModel
 
@@ -268,6 +269,16 @@ def get_imported_challenges_from_db():
 os.makedirs("run_page/static/photos", exist_ok=True)
 app.mount("/static", StaticFiles(directory="run_page/static"), name="static")
 
+# Mount production dashboard assets from the root if they exist
+dashboard_root = os.path.join("run_page", "static", "dashboard")
+if os.path.exists(dashboard_root):
+    # Support for Vite /assets/ path
+    assets_path = os.path.join(dashboard_root, "assets")
+    if os.path.exists(assets_path):
+        app.mount("/assets", StaticFiles(directory=assets_path), name="dashboard-assets")
+    # Also mount root dashboard for any other specific root files
+    app.mount("/dashboard", StaticFiles(directory=dashboard_root), name="dashboard-ui")
+
 # Simple localization for API
 def L(key):
     return I18N.get("en", {}).get(key, key)
@@ -371,8 +382,12 @@ def get_db_conn():
     conn.row_factory = sqlite3.Row
     return conn
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def read_root():
+    # Serve the dashboard index.html if it exists (for production/docker)
+    index_path = os.path.join("run_page", "static", "dashboard", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
     return {"message": "TrackRecord Public Data API", "status": "online"}
 
 @app.get("/api/v1/stats")

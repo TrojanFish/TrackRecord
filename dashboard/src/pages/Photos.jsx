@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { Camera, Maximize2, X, Filter, MapPin, Calendar, Loader2, Play, Pause, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
 const Photos = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
