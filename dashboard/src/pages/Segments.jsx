@@ -65,7 +65,6 @@ const Segments = () => {
   const fetchSegments = async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/v1/segments`);
-      // Ensure we always have an array even if the API returns an error object
       setSegments(Array.isArray(res.data) ? res.data : []);
       setLoading(false);
     } catch (err) {
@@ -91,21 +90,25 @@ const Segments = () => {
     setIsModalOpen(true);
   };
 
-  const filteredSegments = Array.isArray(segments) ? segments.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.city && s.city.toLowerCase().includes(searchTerm.toLowerCase()))
-  ) : [];
+  const filteredSegments = React.useMemo(() => {
+    if (!Array.isArray(segments)) return [];
+    const term = searchTerm.toLowerCase();
+    return segments.filter(s => 
+      s.name.toLowerCase().includes(term) ||
+      (s.city && s.city.toLowerCase().includes(term))
+    );
+  }, [segments, searchTerm]);
 
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.05 }
+      transition: { staggerChildren: 0.01 }
     }
   };
 
   const item = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0 }
   };
 

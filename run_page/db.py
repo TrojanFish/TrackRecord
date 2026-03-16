@@ -469,6 +469,22 @@ def init_db(db_path):
     add_missing_columns(engine, Segment)
     add_missing_columns(engine, SegmentEffort)
     add_missing_columns(engine, Trophy)
+    add_missing_columns(engine, Photo)
+
+    # Ensure indexes exist
+    with engine.connect() as conn:
+        try:
+            # Segment indexes
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_segments_effort_count ON segments (effort_count DESC)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_segments_city ON segments (city)"))
+            # SegmentEffort indexes
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_efforts_segment_id ON segment_efforts (segment_id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_efforts_activity_id ON segment_efforts (activity_id)"))
+            # Activity location index
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_activities_country ON activities (location_country)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_activities_city ON activities (location_city)"))
+        except Exception as ie:
+            print(f"Index creation hint: {ie}")
 
     sm = sessionmaker(bind=engine)
     session = sm()
