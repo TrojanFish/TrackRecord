@@ -32,7 +32,9 @@ debug_*.py
 verify_*.py
 tmp_*.json
 update_schema.py
-run_web.py
+
+# Security
+.env
 
 # Logs
 *.log
