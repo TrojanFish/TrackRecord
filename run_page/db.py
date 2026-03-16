@@ -138,7 +138,9 @@ class Photo(Base):
             "activity_id": self.activity_id,
             "url": f"/static/photos/{os.path.basename(self.local_path)}" if self.local_path else self.remote_url,
             "title": self.title,
-            "date": self.date,
+        }
+
+
 class Trophy(Base):
     __tablename__ = "trophies"
 

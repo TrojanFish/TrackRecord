@@ -1595,11 +1595,11 @@ def get_sports_stats():
         return out_data
         
     except sqlite3.OperationalError as e:
-        print(f"[{datetime.now()}] Database operational error (likely missing table): {e}")
+        print(f"[{dt_mod.datetime.now()}] Database operational error (likely missing table): {e}")
         return {"total_distance": 0, "total_count": 0, "recent_activities": [], "heatmap": {}, "yearly": {}}
     except Exception as e:
         import traceback
-        print(f"[{datetime.now()}] Error in get_sports_stats: {e}")
+        print(f"[{dt_mod.datetime.now()}] Error in get_sports_stats: {e}")
         traceback.print_exc()
         return {"total_distance": 0, "total_count": 0, "recent_activities": [], "heatmap": {}, "yearly": {}}
     finally:
