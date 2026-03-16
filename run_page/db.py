@@ -31,26 +31,47 @@ g = Nominatim(user_agent=randomword())
 # global cache for location to avoid redundant reverse geocoding
 _LOCATION_CACHE = {}
 
-def get_location_country(lat, lon):
+def get_location_location(lat, lon):
     # Use a precision of 2 decimal places (~1.1km) for better cache hit rate while maintaining location accuracy
     key = (round(lat, 2), round(lon, 2))
     if key in _LOCATION_CACHE:
         return _LOCATION_CACHE[key]
     
+    def parse_location(loc):
+        if not loc: return None
+        addr = loc.raw.get('address', {})
+        # Try to find city, town, village, etc.
+        city = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('county') or addr.get('suburb') or ""
+        country = addr.get('country', "")
+        
+        # Format for display: Country, City
+        if city and country:
+            if country == "中国":
+                return f"{country}{city}"
+            return f"{city}, {country}"
+        elif country:
+            return country
+        return str(loc) if loc else ""
+
     try:
         location = g.reverse(f"{lat}, {lon}", language="zh-CN")
-        country = str(location) if location else ""
-        _LOCATION_CACHE[key] = country
-        return country
+        formatted = parse_location(location)
+        _LOCATION_CACHE[key] = formatted
+        return formatted
     except Exception:
         # Retry once on failure
         try:
             location = g.reverse(f"{lat}, {lon}", language="zh-CN")
-            country = str(location) if location else ""
-            _LOCATION_CACHE[key] = country
-            return country
+            formatted = parse_location(location)
+            _LOCATION_CACHE[key] = formatted
+            return formatted
         except Exception:
-            return ""
+            return None
+
+def get_location_country(lat, lon):
+    # Compatibility wrapper
+    val = get_location_location(lat, lon)
+    return val if val else ""
 
 ACTIVITY_KEYS = [
     "run_id",
@@ -267,10 +288,16 @@ def update_or_create_activity(session, run_activity):
 
         if not activity:
             start_point = run_activity.start_latlng
+            location_city = getattr(run_activity, "location_city", "")
             location_country = getattr(run_activity, "location_country", "")
-            # or China for #176 to fix
-            if not location_country and start_point or location_country == "China":
-                location_country = get_location_country(start_point.lat, start_point.lon)
+
+            # If city is missing, try to geocode it (often happens with Strava)
+            if not location_city and start_point:
+                geocoded = get_location_location(start_point.lat, start_point.lon)
+                if geocoded:
+                    location_city = geocoded
+                    if not location_country:
+                        location_country = geocoded
 
             activity = Activity(
                 run_id=run_activity.id,
@@ -283,7 +310,7 @@ def update_or_create_activity(session, run_activity):
                 start_date=run_activity.start_date,
                 start_date_local=run_activity.start_date_local,
                 location_country=location_country,
-                location_city=getattr(run_activity, "location_city", ""),
+                location_city=location_city,
                 average_heartrate=run_activity.average_heartrate,
                 average_speed=float(run_activity.average_speed),
                 elevation_gain=current_elevation_gain,
@@ -313,6 +340,15 @@ def update_or_create_activity(session, run_activity):
             activity.summary_polyline = (
                 run_activity.map and run_activity.map.summary_polyline or ""
             )
+            
+            # Retroactively fix missing city/country
+            if (not activity.location_city or activity.location_city == "UNKNOWN") and run_activity.start_latlng:
+                geocoded = get_location_location(run_activity.start_latlng.lat, run_activity.start_latlng.lon)
+                if geocoded:
+                    activity.location_city = geocoded
+                    if not activity.location_country or activity.location_country == "UNKNOWN":
+                        activity.location_country = geocoded
+
             activity.max_heartrate = getattr(run_activity, "max_heartrate", None)
             activity.average_cadence = getattr(run_activity, "average_cadence", None)
             activity.average_watts = getattr(run_activity, "average_watts", None)

@@ -1637,9 +1637,10 @@ def get_activity_photos(background_tasks: BackgroundTasks):
     finally:
         conn.close()
 
-def sync_strava_photos():
+def sync_strava_photos(limit: int = 1000):
     """Background task to download photos from Strava."""
-    print("Starting photo sync...")
+    import datetime as dt_mod
+    print(f"[{dt_mod.datetime.now()}] Starting photo sync (limit={limit})...")
     creds = load_creds()
     if "strava_client_id" not in creds: return
 
@@ -1655,7 +1656,10 @@ def sync_strava_photos():
         conn = get_db_conn()
         cur = conn.cursor()
         
-        for activity in client.get_activities(limit=50):
+        # Ensure static folder exists
+        os.makedirs("run_page/static/photos", exist_ok=True)
+        
+        for activity in client.get_activities(limit=limit):
             if activity.total_photo_count > 0:
                 # Check if we already have photos for this activity
                 cur.execute("SELECT id FROM photos WHERE activity_id = ?", (activity.id,))
@@ -2249,10 +2253,17 @@ def perform_sync_logic():
             gen.set_strava_config(cid, secret, refresh)
             gen.sync(force=False)
             gen.sync_segments(limit=20)
-            print(f"[{datetime.now()}] Sync completed successfully.")
+            
+            # Also sync photos
+            try:
+                sync_strava_photos(limit=1000)
+            except Exception as pe:
+                print(f"[{dt_mod.datetime.now()}] Photo sync failed: {pe}")
+
+            print(f"[{dt_mod.datetime.now()}] Sync completed successfully.")
         gen.close()
     except Exception as e:
-        print(f"[{datetime.now()}] Sync failed: {e}")
+        print(f"[{dt_mod.datetime.now()}] Sync failed: {e}")
 
 # (startup scheduler moved to lifespan)
 
