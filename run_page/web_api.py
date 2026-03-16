@@ -1667,12 +1667,15 @@ def sync_strava_photos(limit: int = 1000):
         for activity in activities:
             if getattr(activity, 'total_photo_count', 0) > 0:
                 photo_activities_count += 1
-                # Check if we already have photos for this activity
-                cur.execute("SELECT id FROM photos WHERE activity_id = ?", (activity.id,))
-                if cur.fetchone():
+                
+                # Check DB for existing records
+                cur.execute("SELECT local_path FROM photos WHERE activity_id = ?", (activity.id,))
+                row = cur.fetchone()
+                if row and row[0] and os.path.exists(row[0]):
+                    # We have both the record and the file
                     continue
                 
-                print(f"Syncing photos for activity {activity.id}")
+                print(f"Syncing photos for activity {activity.id} (Found {activity.total_photo_count} photos)")
                 activity_photos = client.get_activity_photos(activity.id, only_instagram=False, size=800)
                 for idx, photo in enumerate(activity_photos):
                     if hasattr(photo, 'urls') and photo.urls:
