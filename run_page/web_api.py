@@ -226,7 +226,7 @@ def parse_and_save_trophies(html_content):
         cur = conn.cursor()
         
         # Ensure trophy icons directory exists
-        trophy_icons_dir = os.path.join("run_page", "static", "trophy_icons")
+        trophy_icons_dir = os.path.join(BASE_DIR, "static", "trophy_icons")
         os.makedirs(trophy_icons_dir, exist_ok=True)
         
         # Enhanced selectors to match real Strava HTML
