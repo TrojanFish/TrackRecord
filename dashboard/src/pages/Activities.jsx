@@ -41,7 +41,8 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
     const totalSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
     const km = distM / 1000;
     
-    if (type === 'Ride') {
+    const rideTypes = ['Ride', 'VirtualRide', 'Velomobile', 'E-BikeRide'];
+    if (rideTypes.includes(type)) {
       return `${(km / (totalSeconds / 3600)).toFixed(1)} km/h`;
     }
     
@@ -283,7 +284,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                 <td>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                        <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{formatPace(activity.distance, activity.moving_time, activity.type)}</span>
-                       {activity.gap_pace && (
+                       {activity.gap_pace && activity.gap_pace !== formatPace(activity.distance, activity.moving_time, activity.type) && (
                          <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
                            GAP: {activity.gap_pace}
                          </span>
@@ -402,7 +403,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                         <span className="label">PACE / SPEED</span>
                         <span className="value">
                             {formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type)}
-                            {selectedActivity.gap_pace && (
+                            {selectedActivity.gap_pace && selectedActivity.gap_pace !== formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type) && (
                                 <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', marginTop: '4px' }}>
                                     GAP: {selectedActivity.gap_pace}
                                 </div>
