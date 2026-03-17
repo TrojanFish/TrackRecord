@@ -250,13 +250,20 @@ def parse_and_save_trophies(html_content):
                     filename = f"{safe_name}.{file_ext}"
                     local_path = os.path.join(trophy_icons_dir, filename)
                     
+                    # Download only if successfully getting the image
                     if not os.path.exists(local_path):
+                        # Add a small delay for rate limit safety
+                        import time
+                        time.sleep(0.5) 
                         r = requests.get(img_url, stream=True, timeout=10)
                         if r.status_code == 200:
                             with open(local_path, 'wb') as f:
                                 for chunk in r.iter_content(1024):
                                     f.write(chunk)
-                    local_img_url = f"/static/trophy_icons/{filename}"
+                    
+                    # Only use local path if the file successfully exists now
+                    if os.path.exists(local_path):
+                        local_img_url = f"/static/trophy_icons/{filename}"
                 except Exception as img_e:
                     print(f"Failed to download trophy icon {name}: {img_e}")
 
