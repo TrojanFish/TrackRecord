@@ -265,6 +265,12 @@ def parse_and_save_trophies(html_content):
                 month_key = month_match.group(1) if month_match else "HISTORICAL"
                 
                 tid = f"strava-trophy-{abs(hash(name))}"
+                
+                # Check duplication by name
+                cur.execute("SELECT id FROM trophies WHERE name = ?", (name,))
+                if cur.fetchone():
+                    continue
+                    
                 cur.execute("""
                     INSERT OR REPLACE INTO trophies (id, name, image, color, progress, type, month)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -419,13 +425,15 @@ def get_athlete_metrics():
 # Aggregated stats and heatmap logic
 def get_db_conn():
     db_path = os.environ.get("DB_PATH", "run_page/data.db")
-    # Ensure directory exists for Docker/VPS deployments
     db_dir = os.path.dirname(db_path)
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
         
-    if not os.path.exists(db_path):
-        return None
+    # Auto-initialize if it's a new environment or empty file
+    if not os.path.exists(db_path) or os.path.getsize(db_path) == 0:
+        from run_page.db import init_db
+        init_db(db_path)
+        
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
