@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Activity, Map, Calendar, 
   TrendingUp, Star, Award, History, Medal, 
-  Camera, Wrench 
+  Image, Wrench, Milestone 
 } from 'lucide-react';
 
 // Components
@@ -43,14 +43,20 @@ function App() {
     activity_pattern: []
   });
   const [activeTab, setActiveTab] = useState('Overview');
+  const [sportType, setSportType] = useState('Ride'); 
   const [initialSearch, setInitialSearch] = useState('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { fetchStats(); }, []);
+
+  // Sync with sportType change
+  useEffect(() => { 
+    fetchStats(); 
+  }, [sportType]);
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/api/v1/stats`);
+      setLoading(true);
+      const res = await axios.get(`${API_BASE}/api/v1/stats?sport_type=${sportType}`);
       setStats(res.data);
       setLoading(false);
     } catch (err) {
@@ -191,17 +197,17 @@ function App() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Overview': return <Dashboard stats={stats} setActiveTab={setActiveTab} renderHeatmap={renderHeatmap} setInitialSearch={setInitialSearch} />;
-      case 'Activities': return <Activities stats={stats} setActiveTab={setActiveTab} initialSearch={initialSearch} onSearchClear={() => setInitialSearch('')} />;
-      case 'Analytics': return <Analytics stats={stats} />;
-      case 'Eddington': return <Eddington stats={stats} />;
-      case 'Heatmap': return <Heatmap activities={stats.recent_activities} availableYears={stats.available_years} />;
-      case 'Records': return <Records stats={stats} setActiveTab={setActiveTab} setInitialSearch={setInitialSearch} />;
-      case 'Gear': return <Gear stats={stats} />;
-      case 'Stats': return <MonthlyStats stats={stats} renderHeatmap={renderHeatmap} />;
+      case 'Activities': return <Activities stats={stats} setActiveTab={setActiveTab} initialSearch={initialSearch} onSearchClear={() => setInitialSearch('')} sportType={sportType} />;
+      case 'Analytics': return <Analytics stats={stats} sportType={sportType} />;
+      case 'Eddington': return <Eddington stats={stats} sportType={sportType} />;
+      case 'Heatmap': return <Heatmap activities={stats.recent_activities} availableYears={stats.available_years} sportType={sportType} />;
+      case 'Records': return <Records stats={stats} setActiveTab={setActiveTab} setInitialSearch={setInitialSearch} sportType={sportType} />;
+      case 'Gear': return <Gear stats={stats} sportType={sportType} />;
+      case 'Stats': return <MonthlyStats stats={stats} renderHeatmap={renderHeatmap} sportType={sportType} />;
       case 'Challenges': return <Challenges />;
-      case 'Photos': return <Photos />;
-      case 'Rewind': return <Rewind stats={stats} />;
-      case 'Segments': return <Segments />;
+      case 'Photos': return <Photos sportType={sportType} />;
+      case 'Rewind': return <Rewind stats={stats} sportType={sportType} />;
+      case 'Segments': return <Segments sportType={sportType} />;
       default: return <Dashboard stats={stats} setActiveTab={setActiveTab} />;
     }
   };
@@ -216,15 +222,15 @@ function App() {
     'Heatmap': { title: 'GLOBAL HEATMAP', icon: Map },
     'Records': { title: 'PERSONAL RECORDS', icon: History },
     'Challenges': { title: 'STRAVA CHALLENGES', icon: Medal },
-    'Photos': { title: 'ACTIVITY GALLERY', icon: Camera },
-    'Segments': { title: 'SEGMENTS PERFORMANCE', icon: Star },
+    'Photos': { title: 'ACTIVITY GALLERY', icon: Image },
+    'Segments': { title: 'SEGMENTS PERFORMANCE', icon: Milestone },
     'Gear': { title: 'EQUIPMENT TRACKING', icon: Wrench }
   };
 
   const currentTabInfo = tabMetadata[activeTab] || { title: activeTab.toUpperCase(), icon: null };
 
   return (
-    <div className="app-container">
+    <div className={`app-container sport-${sportType.toLowerCase()}`}>
       <div className="dynamic-bg">
         <div className="bg-blob blob-1"></div>
         <div className="bg-blob blob-2"></div>
@@ -244,6 +250,8 @@ function App() {
           title={currentTabInfo.title} 
           icon={currentTabInfo.icon}
           profile={stats.athlete_profile} 
+          sportType={sportType}
+          setSportType={setSportType}
         />
         <AnimatePresence mode="wait">
           {renderTabContent()}

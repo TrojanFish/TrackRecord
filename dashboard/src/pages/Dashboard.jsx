@@ -38,6 +38,9 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
   const [detailType, setDetailType] = React.useState(null);
   const [heatMetric, setHeatMetric] = React.useState('count');
   const [panelTab, setPanelTab] = React.useState('history');
+  
+  const accent = stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
+  const isRun = stats.sport_type === 'Run';
 
   const getACStatus = (ratio) => {
     if (ratio < 0.8) return { label: 'Low load', color: '#f59e0b' };
@@ -100,7 +103,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                     key={h}
                     title={`${day} ${h}:00 - ${val} activities`}
                     style={{
-                      background: val > 0 ? 'var(--accent-cyan)' : 'white',
+                      background: val > 0 ? accent : 'white',
                       height: '14px',
                       borderRadius: '2px',
                       opacity: opacity,
@@ -126,28 +129,42 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
     >
       {/* 1. Hero Summary Row */}
       <div className="hero-grid" style={{ marginBottom: '1.5rem' }}>
-        <motion.div variants={item} className="platform-card stat-card main-stat interactive-card">
+        <motion.div variants={item} className="platform-card stat-card main-stat interactive-card" style={{
+          borderLeft: `4px solid ${accent}`
+        }}>
           <div className="card-shine"></div>
           <span className="stat-label">TOTAL DISTANCE</span>
           <span className="stat-value">{stats.total_distance?.toFixed(1)} <small>KM</small></span>
           <div className="stat-graph-mini">
-            <TrendingUp size={16} color="var(--accent-cyan)" />
-            <span> History ALL-TIME </span>
+            <TrendingUp size={16} color={accent} />
+            <span> {stats.sport_type?.toUpperCase()} LIFE-TIME </span>
           </div>
         </motion.div>
 
         <motion.div variants={item} className="platform-card stat-card interactive-card">
-          <span className="stat-label">ACTIVE SESSIONS</span>
-          <span className="stat-value">{stats.total_count}</span>
+          <span className="stat-label">{stats.sport_type === 'Ride' ? 'TOTAL ELEVATION' : 'ACTIVE SESSIONS'}</span>
+          <span className="stat-value">
+            {stats.sport_type === 'Ride' 
+              ? `${Math.round(stats.recent_activities?.reduce((acc, a) => acc + (a.elevation_gain || 0), 0) || 0)}`
+              : stats.total_count
+            }
+            {stats.sport_type === 'Ride' && <small style={{fontSize: '0.8rem', opacity: 0.4, marginLeft: '5px'}}>M</small>}
+          </span>
           <div style={{ marginTop: '10px' }}>
-            <span className="badge run" style={{ padding: '2px 8px' }}>{stats.breakdown?.Run?.count || 0} RUNS</span>
-            <span className="badge ride" style={{ padding: '2px 8px', marginLeft: '5px' }}>{stats.breakdown?.Ride?.count || 0} RIDES</span>
+            {stats.sport_type === 'All' ? (
+              <>
+                <span className="badge run" style={{ padding: '2px 8px' }}>{stats.breakdown?.Run?.count || 0} RUNS</span>
+                <span className="badge ride" style={{ padding: '2px 8px', marginLeft: '5px' }}>{stats.breakdown?.Ride?.count || 0} RIDES</span>
+              </>
+            ) : (
+              <span className="stat-sub">{stats.sport_type?.toUpperCase()} FOCUS MODE</span>
+            )}
           </div>
         </motion.div>
 
         <motion.div variants={item} className="platform-card stat-card interactive-card">
           <span className="stat-label">FITNESS (CTL)</span>
-          <span className="stat-value" style={{ color: 'var(--accent-cyan)' }}>{currentLoad.ctl.toFixed(1)}</span>
+          <span className="stat-value" style={{ color: stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)' }}>{currentLoad.ctl.toFixed(1)}</span>
           <span className="stat-sub">Steady Progress</span>
         </motion.div>
 
@@ -254,7 +271,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                   <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>vs last week ({stats.recent_form.last_week.distance}km)</span>
                 </div>
               </div>
-              <div style={{ padding: '10px', background: 'rgba(6, 182, 212, 0.1)', borderRadius: '10px', color: 'var(--accent-cyan)' }}>
+              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isRun ? 'rgba(255, 51, 102, 0.1)' : 'rgba(6, 182, 212, 0.1)', borderRadius: '10px', color: 'var(--accent-cyan)' }}>
                 <TrendingUp size={18} />
               </div>
             </div>
@@ -281,7 +298,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                   <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>Prev: {stats.recent_form.last_week.stress}</span>
                 </div>
               </div>
-              <div style={{ padding: '10px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '10px', color: '#8b5cf6' }}>
+              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '10px', color: '#8b5cf6' }}>
                 <Zap size={18} />
               </div>
             </div>
@@ -308,7 +325,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                   <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>sessions / 7 days</span>
                 </div>
               </div>
-              <div style={{ padding: '10px', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '10px', color: '#ec4899' }}>
+              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(236, 72, 153, 0.1)', borderRadius: '10px', color: '#ec4899' }}>
                 <Calendar size={18} />
               </div>
             </div>
@@ -360,8 +377,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               <AreaChart data={stats.training_load}>
                 <defs>
                   <linearGradient id="colorCtl" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-cyan)" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="var(--accent-cyan)" stopOpacity={0} />
+                    <stop offset="5%" stopColor={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorAtl" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#bd00ff" stopOpacity={0.2} />
@@ -388,7 +405,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                     fontSize: '11px'
                   }}
                 />
-                <Area type="monotone" dataKey="ctl" stroke="var(--accent-cyan)" strokeWidth={3} fillOpacity={1} fill="url(#colorCtl)" name="Fitness" />
+                <Area type="monotone" dataKey="ctl" stroke={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} strokeWidth={3} fillOpacity={1} fill="url(#colorCtl)" name="Fitness" />
                 <Area type="monotone" dataKey="atl" stroke="#bd00ff" strokeWidth={1.5} fillOpacity={1} fill="url(#colorAtl)" name="Fatigue" />
               </AreaChart>
             </ResponsiveContainer>
@@ -398,7 +415,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         {/* Goals Summary (Moved here for tighter correlation) */}
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
           <h3 style={{ fontSize: '1rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Target size={18} color="#f59e0b" /> PERFORMANCE GOALS
+            <Target size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#f59e0b'} /> PERFORMANCE GOALS
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {stats.goals?.map(goal => (
@@ -412,7 +429,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, (goal.current / goal.target) * 100)}%` }}
                     transition={{ duration: 1.5, ease: "easeOut" }}
-                    style={{ height: '100%', background: 'linear-gradient(90deg, var(--accent-cyan), #bd00ff)', borderRadius: '2px' }}
+                    style={{ height: '100%', background: stats.sport_type === 'Run' ? 'linear-gradient(90deg, #ff3366, #ff85a1)' : 'linear-gradient(90deg, var(--accent-cyan), #bd00ff)', borderRadius: '2px' }}
                   />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.7rem', opacity: 0.4 }}>
@@ -458,7 +475,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                 <th style={{ textAlign: 'left', padding: '12px' }}>NAME / LOCATION</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>TYPE</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>DISTANCE / CLIMB</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>PACE / SPEED</th>
+                <th style={{ textAlign: 'left', padding: '12px' }}>{stats.primary_metric?.toUpperCase()} / TIME</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>HR / CAL</th>
               </tr>
             </thead>
@@ -563,7 +580,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         {/* Sport Distribution Pie */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PieIcon size={18} color="#bd00ff" /> SPORT TYPES
+            <PieIcon size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#bd00ff'} /> ACTIVITY BREAKDOWN
           </h3>
           <div style={{ height: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: '100%', height: '140px' }}>
@@ -576,9 +593,12 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {sportData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
+                    {sportData.map((entry, index) => {
+                      const sportColors = stats.sport_type === 'Run' 
+                        ? ['#ff3366', '#ff85a1', '#ffb3c1', '#ffd9e0'] 
+                        : ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b'];
+                      return <Cell key={`cell-${index}`} fill={sportColors[index % sportColors.length]} />;
+                    })}
                   </Pie>
                   <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '10px' }} />
                 </PieChart>
@@ -587,7 +607,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
               {sportData.slice(0, 4).map((s, idx) => (
                 <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: COLORS[idx % COLORS.length] }}></div>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: (stats.sport_type === 'Run' ? ['#ff3366', '#ff85a1', '#ffb3c1', '#ffd9e0'][idx % 4] : COLORS[idx % COLORS.length]) }}></div>
                   <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>{s.name}</span>
                 </div>
               ))}
@@ -666,14 +686,15 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                 padding: '12px',
                 background: 'rgba(255,255,255,0.02)',
                 border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: '10px'
+                borderRadius: '10px',
+                borderLeft: `3px solid ${stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'}`
               }}>
                 <div>
                   <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>{rec.name}</div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>{rec.date}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>{rec.best}</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)' }}>{rec.best}</div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>{rec.pace}</div>
                 </div>
               </div>
@@ -743,7 +764,10 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             <ResponsiveContainer>
               <BarChart data={stats.distance_breakdown}>
                 <Bar dataKey="count" fill="#bd00ff" radius={[2, 2, 0, 0]} />
-                <Tooltip contentStyle={{ background: '#0a1628', border: 'none', fontSize: '10px' }} />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px', fontSize: '10px' }} 
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -758,7 +782,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ padding: '8px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', color: '#10b981' }}>
+              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px', color: '#10b981' }}>
                 <Footprints size={18} />
               </div>
               <div>
@@ -770,7 +794,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
           <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ padding: '8px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', color: '#ef4444' }}>
+              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', color: '#ef4444' }}>
                 <Flame size={18} />
               </div>
               <div>
@@ -782,7 +806,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
           <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ padding: '8px', background: 'rgba(6, 182, 212, 0.1)', borderRadius: '8px', color: 'var(--accent-cyan)' }}>
+              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isRun ? 'rgba(255, 51, 102, 0.1)' : 'rgba(6, 182, 212, 0.1)', borderRadius: '10px', color: 'var(--accent-cyan)' }}>
                 <Scale size={18} />
               </div>
               <div>
@@ -796,15 +820,18 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         {/* Cadence Distribution */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={18} color="#10b981" /> {stats.bio_stats?.cadence_type || 'CADENCE PROFILE'}
+            <Activity size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#10b981'} /> {stats.bio_stats?.cadence_type || 'CADENCE PROFILE'}
           </h3>
           <div style={{ flex: 1, minHeight: '200px' }}>
             <ResponsiveContainer>
               <BarChart data={stats.bio_stats?.cadence_distribution}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                 <XAxis dataKey="label" stroke="rgba(255,255,255,0.2)" fontSize={9} />
-                <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
-                <Bar dataKey="count" fill="#10b981" radius={[3, 3, 0, 0]} barSize={30} />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} 
+                />
+                <Bar dataKey="count" fill={stats.sport_type === 'Run' ? '#ff3366' : '#10b981'} radius={[3, 3, 0, 0]} barSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -815,7 +842,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
-            <Map size={18} color="var(--accent-cyan)" /> YEARLY ACTIVITY CONTRIBUTION
+            <Map size={18} color={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} /> YEARLY ACTIVITY CONTRIBUTION
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             {/* Metric Toggle */}
@@ -831,7 +858,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                     borderRadius: '6px',
                     border: 'none',
                     cursor: 'pointer',
-                    background: heatMetric === m ? 'var(--accent-cyan)' : 'transparent',
+                    background: heatMetric === m ? (stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)') : 'transparent',
                     color: heatMetric === m ? '#000' : 'var(--text-secondary)',
                     transition: 'all 0.2s'
                   }}
@@ -899,11 +926,11 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                             background: 'none',
                             border: 'none',
                             padding: '10px 0',
-                            color: panelTab === t ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                             color: panelTab === t ? accent : 'var(--text-secondary)',
                             fontSize: '0.85rem',
                             fontWeight: 700,
                             cursor: 'pointer',
-                            borderBottom: panelTab === t ? '2px solid var(--accent-cyan)' : '2px solid transparent',
+                            borderBottom: panelTab === t ? `2px solid ${accent}` : '2px solid transparent',
                             textTransform: 'uppercase'
                           }}
                         >
@@ -1055,8 +1082,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                             <div style={{
                               height: '30px',
                               borderRadius: '8px',
-                              background: i < stats.recent_form.this_week.count ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.05)',
-                              boxShadow: i < stats.recent_form.this_week.count ? '0 0 10px rgba(6, 182, 212, 0.3)' : 'none'
+                              background: i < stats.recent_form.this_week.count ? accent : 'rgba(255,255,255,0.05)',
+                              boxShadow: i < stats.recent_form.this_week.count ? `0 0 10px ${isRun ? 'rgba(255, 51, 102, 0.3)' : 'rgba(6, 182, 212, 0.3)'}` : 'none'
                             }}></div>
                           </div>
                         ))}

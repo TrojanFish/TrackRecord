@@ -1,6 +1,7 @@
-import { Settings, Bell, Search, Github } from 'lucide-react';
+import { Settings, Bell, Search, Github, Bike, Footprints } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-const Header = ({ title, icon: Icon, profile }) => {
+const Header = ({ title, icon: Icon, profile, sportType, setSportType }) => {
   return (
     <header className="main-header">
       <div className="page-title-hub">
@@ -9,6 +10,60 @@ const Header = ({ title, icon: Icon, profile }) => {
       </div>
 
       <div className="action-hub">
+        {/* Sport Switcher "Floating Island" */}
+        <div className="sport-switcher-island" style={{ 
+          background: 'rgba(255, 255, 255, 0.05)', 
+          padding: '4px', 
+          borderRadius: '12px', 
+          display: 'flex', 
+          gap: '4px',
+          marginRight: '15px',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSportType('Ride')}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: sportType === 'Ride' ? 'var(--accent-cyan)' : 'transparent',
+              color: sportType === 'Ride' ? '#000' : 'rgba(255, 255, 255, 0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.7rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <Bike size={14} /> RIDE
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSportType('Run')}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: sportType === 'Run' ? '#ff3366' : 'transparent',
+              color: sportType === 'Run' ? '#fff' : 'rgba(255, 255, 255, 0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.7rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <Footprints size={14} /> RUN
+          </motion.button>
+        </div>
+
         <a 
           href="https://github.com/TrojanFish/TrackRecord" 
           target="_blank" 

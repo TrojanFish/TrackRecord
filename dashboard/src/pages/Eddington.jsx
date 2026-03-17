@@ -6,12 +6,17 @@ import {
   CartesianGrid, ReferenceLine, Label 
 } from 'recharts';
 
-const Eddington = ({ stats }) => {
-  const [activeType, setActiveType] = useState('Run'); // 'Run' or 'Ride'
+const Eddington = ({ stats, sportType }) => {
+  // Use global sportType if it's Run or Ride, otherwise fallback to internal state
+  const isGlobalFilterActive = sportType !== 'All';
+  const [internalActiveType, setInternalActiveType] = useState('Run');
+  
+  const activeType = isGlobalFilterActive ? sportType : internalActiveType;
 
   if (!stats || !stats.eddington) return null;
 
   const currentData = stats.eddington[activeType] || { value: 0, next_gap: 0, chart_data: [] };
+  const themeColor = activeType === 'Run' ? 'var(--accent-cyan)' : '#bd00ff';
 
   return (
     <motion.div 
@@ -19,47 +24,49 @@ const Eddington = ({ stats }) => {
       animate={{ opacity: 1, y: 0 }}
       className="page-content"
     >
-      {/* Type Toggle */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem' }}>
-          <button 
-            onClick={() => setActiveType('Run')}
-            className={`platform-card ${activeType === 'Run' ? 'active' : ''}`}
-            style={{ 
-              padding: '1rem 2rem', 
-              cursor: 'pointer',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              letterSpacing: '1px',
-              border: activeType === 'Run' ? '1px solid var(--accent-cyan)' : '1px solid transparent',
-              background: activeType === 'Run' ? 'rgba(6, 182, 212, 0.2)' : 'var(--bg-card)'
-            }}
-          >
-            RUNNING EDDINGTON
-          </button>
-          <button 
-            onClick={() => setActiveType('Ride')}
-            className={`platform-card ${activeType === 'Ride' ? 'active' : ''}`}
-            style={{ 
-              padding: '1rem 2rem', 
-              cursor: 'pointer',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              letterSpacing: '1px',
-              border: activeType === 'Ride' ? '1px solid #bd00ff' : '1px solid transparent',
-              background: activeType === 'Ride' ? 'rgba(189, 0, 255, 0.2)' : 'var(--bg-card)'
-            }}
-          >
-            CYCLING EDDINGTON
-          </button>
-      </div>
+      {/* Type Toggle - Only show if no global filter is active */}
+      {!isGlobalFilterActive && (
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem' }}>
+            <button 
+              onClick={() => setInternalActiveType('Run')}
+              className={`platform-card ${activeType === 'Run' ? 'active' : ''}`}
+              style={{ 
+                padding: '1rem 2rem', 
+                cursor: 'pointer',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                letterSpacing: '1px',
+                border: activeType === 'Run' ? '1px solid var(--accent-cyan)' : '1px solid transparent',
+                background: activeType === 'Run' ? 'rgba(6, 182, 212, 0.2)' : 'var(--bg-card)'
+              }}
+            >
+              RUNNING EDDINGTON
+            </button>
+            <button 
+              onClick={() => setInternalActiveType('Ride')}
+              className={`platform-card ${activeType === 'Ride' ? 'active' : ''}`}
+              style={{ 
+                padding: '1rem 2rem', 
+                cursor: 'pointer',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                letterSpacing: '1px',
+                border: activeType === 'Ride' ? '1px solid #bd00ff' : '1px solid transparent',
+                background: activeType === 'Ride' ? 'rgba(189, 0, 255, 0.2)' : 'var(--bg-card)'
+              }}
+            >
+              CYCLING EDDINGTON
+            </button>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '2rem', alignItems: 'stretch' }}>
         {/* Left: Summary Card */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%' }}>
           <div className="platform-card stat-card interactive-card" style={{ 
-            borderBottom: `4px solid ${activeType === 'Run' ? 'var(--accent-cyan)' : '#bd00ff'}`,
+            borderBottom: `4px solid ${themeColor}`,
             padding: '2.5rem'
           }}>
             <span className="stat-label">CURRENT EDDINGTON</span>

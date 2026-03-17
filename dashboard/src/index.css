@@ -1303,7 +1303,7 @@ body {
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
-  z-index: 1000;
+  z-index: 2100;
   display: flex;
   justify-content: flex-end;
 }
@@ -1405,4 +1405,14 @@ body {
 .full-report-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 20px rgba(6, 182, 212, 0.3);
+}
+/* Sport Specific Overrides */
+.sport-run {
+  --accent-cyan: #ff3366;
+  --accent-blue: #ff85a1;
+}
+
+.sport-run .logo-icon {
+  background: linear-gradient(135deg, #ff3366, #ff85a1);
+  box-shadow: 0 4px 15px rgba(255, 51, 102, 0.4);
 }

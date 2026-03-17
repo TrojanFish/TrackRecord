@@ -439,8 +439,29 @@ def read_root():
     return {"message": "TrackRecord Public Data API", "status": "online"}
 
 @app.get("/api/v1/stats")
-def get_sports_stats():
+def get_sports_stats(sport_type: Optional[str] = Query(None)):
     """Comprehensive sports statistics for the public dashboard."""
+    # Define type mappings
+    RIDE_TYPES = ['Ride', 'VirtualRide', 'Velomobile', 'E-BikeRide']
+    RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']
+    
+    # Determine active types based on param
+    if sport_type == "Ride":
+        active_types = RIDE_TYPES
+        is_run_active = False
+        is_ride_active = True
+    elif sport_type == "Run":
+        active_types = RUN_TYPES
+        is_run_active = True
+        is_ride_active = False
+    else:
+        active_types = RIDE_TYPES + RUN_TYPES # Default to both for now (backward compat)
+        is_run_active = True
+        is_ride_active = True
+    
+    placeholders = ','.join(['?'] * len(active_types))
+    filter_sql = f"type IN ({placeholders})"
+    
     try:
         conn = get_db_conn()
         if not conn:
@@ -450,18 +471,19 @@ def get_sports_stats():
         athlete_metrics = get_athlete_metrics()
         
         # 1. Basic Aggregates
-        cur.execute("SELECT COUNT(*) as count, SUM(distance) as dist FROM activities")
+        cur.execute(f"SELECT COUNT(*) as count, SUM(distance) as dist FROM activities WHERE {filter_sql}", (*active_types,))
         agg = cur.fetchone()
         
         # 2. Tracks and Recent Activities (Top 50 for map/heatmap)
-        cur.execute("""
+        cur.execute(f"""
             SELECT run_id, name, distance, moving_time, type, start_date_local, summary_polyline, 
                    average_heartrate, max_speed, location_country, location_city, commute, workout_type,
                    elevation_gain, average_cadence, average_watts
             FROM activities 
+            WHERE {filter_sql}
             ORDER BY start_date_local DESC 
             LIMIT 2000
-        """)
+        """, (*active_types,))
         recent = []
         for row in cur.fetchall():
             d = dict(row)
@@ -507,18 +529,19 @@ def get_sports_stats():
             recent.append(d)
         
         # 3. Yearly Aggregates
-        cur.execute("""
+        cur.execute(f"""
             SELECT strftime('%Y', start_date_local) as year, 
                    COUNT(*) as count, 
                    SUM(distance) as dist 
             FROM activities 
+            WHERE {filter_sql}
             GROUP BY year 
             ORDER BY year DESC
-        """)
+        """, (*active_types,))
         yearly = {row["year"]: {"count": row["count"], "distance": row["dist"] / 1000.0} for row in cur.fetchall()}
         
         # 4. Heatmap Data (Multi-metric per day for the last 365 days)
-        cur.execute("""
+        cur.execute(f"""
             SELECT date(start_date_local) as date, 
                    type,
                    distance,
@@ -526,7 +549,8 @@ def get_sports_stats():
                    elevation_gain
             FROM activities 
             WHERE start_date_local > date('now', '-1 year')
-        """)
+            AND {filter_sql}
+        """, (*active_types,))
         heatmap_rows = cur.fetchall()
         weight = athlete_metrics.get("weight", 70)
         heatmap_data = {}
@@ -572,11 +596,12 @@ def get_sports_stats():
                 y -= 1
             
             m_key = f"{y}-{m:02d}"
-            cur.execute("""
+            cur.execute(f"""
                 SELECT SUM(distance) as dist, COUNT(*) as count 
                 FROM activities 
                 WHERE strftime('%Y-%m', start_date_local) = ?
-            """, (m_key,))
+                AND {filter_sql}
+            """, (m_key, *active_types))
             row = cur.fetchone()
             
             monthly_data.append({
@@ -594,11 +619,12 @@ def get_sports_stats():
             week_start = current_monday - datetime.timedelta(weeks=i)
             week_end = week_start + datetime.timedelta(days=6)
             
-            cur.execute("""
+            cur.execute(f"""
                 SELECT SUM(distance) as dist, COUNT(*) as count 
                 FROM activities 
                 WHERE date(start_date_local) >= ? AND date(start_date_local) <= ?
-            """, (week_start.isoformat(), week_end.isoformat()))
+                AND {filter_sql}
+            """, (str(week_start), str(week_end), *active_types))
             row = cur.fetchone()
             
             weekly_data.append({
@@ -623,23 +649,30 @@ def get_sports_stats():
         # Best Efforts (distances for Run and Ride from settings)
         ms_config = athlete_metrics["analysis"]["milestones"]
         record_configs = []
-        for ms in ms_config.get("run", []):
-            record_configs.append((ms["name"], ms["distance"], ['Run', 'TrailRun', 'VirtualRun']))
-        for ms in ms_config.get("ride", []):
-            record_configs.append((ms["name"], ms["distance"], ['Ride', 'VirtualRide', 'Velomobile']))
+
+        if is_run_active:
+            for ms in ms_config.get("run", []):
+                record_configs.append((ms["name"], ms["distance"], ['Run', 'TrailRun', 'VirtualRun']))
+        if is_ride_active:
+            for ms in ms_config.get("ride", []):
+                record_configs.append((ms["name"], ms["distance"], ['Ride', 'VirtualRide', 'Velomobile']))
             
         if not record_configs: # Fallback
-            record_configs = [
-                ("5K", 5000, ['Run', 'TrailRun', 'VirtualRun']),
-                ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
-                ("Half Marathon", 21097, ['Run', 'TrailRun', 'VirtualRun']),
-                ("Marathon", 42195, ['Run', 'TrailRun', 'VirtualRun']),
-                ("30K Ride", 30000, ['Ride', 'VirtualRide', 'Velomobile']),
-                ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
-                ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
-                ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
-                ("150K Ride", 150000, ['Ride', 'VirtualRide', 'Velomobile']),
-            ]
+            if is_run_active or not is_ride_active:
+                record_configs += [
+                    ("5K", 5000, ['Run', 'TrailRun', 'VirtualRun']),
+                    ("10K", 10000, ['Run', 'TrailRun', 'VirtualRun']),
+                    ("Half Marathon", 21097, ['Run', 'TrailRun', 'VirtualRun']),
+                    ("Marathon", 42195, ['Run', 'TrailRun', 'VirtualRun']),
+                ]
+            if is_ride_active:
+                record_configs += [
+                    ("30K Ride", 30000, ['Ride', 'VirtualRide', 'Velomobile']),
+                    ("50K Ride", 50000, ['Ride', 'VirtualRide', 'Velomobile']),
+                    ("80K Ride", 80000, ['Ride', 'VirtualRide', 'Velomobile']),
+                    ("100K Ride", 100000, ['Ride', 'VirtualRide', 'Velomobile']),
+                    ("150K Ride", 150000, ['Ride', 'VirtualRide', 'Velomobile']),
+                ]
         
         for name, dist_m, types in record_configs:
             placeholder = ', '.join(['?'] * len(types))
@@ -666,13 +699,30 @@ def get_sports_stats():
                 records[name] = d
 
         # Cycling Specific: FTP Estimate (Functional Threshold Power)
-        # Scan all rides > 15km to find the best average power as a proxy for threshold
-        cur.execute("""
-            SELECT MAX(average_watts) FROM activities 
-            WHERE type IN ('Ride', 'VirtualRide', 'Velomobile') AND distance > 15000
-        """)
-        best_avg_power = cur.fetchone()[0] or 0
-        athlete_metrics["ftp_estimate"] = int(best_avg_power * 0.95)
+        athlete_metrics["ftp_estimate"] = 0
+        if is_ride_active:
+            cur.execute("""
+                SELECT MAX(average_watts) FROM activities 
+                WHERE type IN ('Ride', 'VirtualRide', 'Velomobile') AND distance > 15000
+            """)
+            best_avg_power = cur.fetchone()[0] or 0
+            athlete_metrics["ftp_estimate"] = int(best_avg_power * 0.95)
+
+        # Running Specific: Threshold Pace Estimate
+        athlete_metrics["threshold_pace"] = "--"
+        if is_run_active:
+            cur.execute("""
+                SELECT MIN(strftime('%H', moving_time) * 3600 + strftime('%M', moving_time) * 60 + strftime('%S', moving_time)) 
+                FROM activities 
+                WHERE type IN ('Run', 'TrailRun', 'VirtualRun') AND distance BETWEEN 9500 AND 10500
+            """)
+            best_10k_sec = cur.fetchone()[0]
+            if best_10k_sec:
+                # T-Pace ≈ 10K pace (very rough estimate)
+                t_pace_sec = best_10k_sec / 10.0
+                pm = int(t_pace_sec // 60)
+                ps = int(t_pace_sec % 60)
+                athlete_metrics["threshold_pace"] = f"{pm}:{ps:02d}"
 
         # 5.6 Best Efforts Trends (Historical Performance)
         records_trends = {}
@@ -730,7 +780,7 @@ def get_sports_stats():
         athlete_metrics["peak_performance"] = peak_performance
 
         # 5.7 Daily Details (for heatmap & monthly drill-down)
-        cur.execute("""
+        cur.execute(f"""
             SELECT date(start_date_local) as date,
                    SUM(distance) as dist,
                    SUM(moving_time) as time,
@@ -738,9 +788,10 @@ def get_sports_stats():
                    COUNT(*) as count,
                    type
             FROM activities
+            WHERE {filter_sql}
             GROUP BY date, type
             ORDER BY date ASC
-        """)
+        """, (*active_types,))
         daily_stats = [dict(row) for row in cur.fetchall()]
 
         # 5.7b Curated Records for Dashboard Summary - REFRESHED LOGIC
@@ -748,7 +799,15 @@ def get_sports_stats():
         priority_run = ["5K", "10K", "Half Marathon", "Marathon"]
         priority_ride = ["30K Ride", "50K Ride", "80K Ride", "100K Ride", "150K Ride"]
         
-        for name in priority_run + priority_ride:
+        # Determine which priorities to use
+        if sport_type == "Run":
+            active_priorities = priority_run
+        elif sport_type == "Ride":
+            active_priorities = priority_ride
+        else:
+            active_priorities = priority_run + priority_ride
+            
+        for name in active_priorities:
             if name in records:
                 rec = records[name]
                 dashboard_records.append({
@@ -822,16 +881,17 @@ def get_sports_stats():
         eddington_ride = calculate_eddington_detailed(['Ride', 'VirtualRide', 'Velomobile'])
 
         # 7. YoY Cumulative Stats (Distance, Time, Elevation)
-        cur.execute("""
+        cur.execute(f"""
             SELECT strftime('%Y', start_date_local) as year,
                    CAST(strftime('%j', start_date_local) AS INTEGER) as day_of_year,
                    SUM(distance) as daily_dist,
                    SUM(moving_time) as daily_time,
                    SUM(elevation_gain) as daily_elev
             FROM activities
+            WHERE {filter_sql}
             GROUP BY year, day_of_year
             ORDER BY year ASC, day_of_year ASC
-        """)
+        """, (*active_types,))
         yoy_raw = cur.fetchall()
         
         # Organize data into a map: year -> day -> stats
@@ -871,7 +931,7 @@ def get_sports_stats():
 
         # 8. Training Load (CTL/ATL/TSB) Calculation (TRIMP Based)
         # Fetch individual activities for the last 200 days to ensure stable CTL at start of 90-day chart
-        cur.execute("""
+        cur.execute(f"""
             SELECT date(start_date_local) as date,
                    distance as dist,
                    average_heartrate as hr,
@@ -879,8 +939,9 @@ def get_sports_stats():
                    type
             FROM activities
             WHERE start_date_local > date('now', '-200 days')
+            AND {filter_sql}
             ORDER BY start_date_local ASC
-        """)
+        """, (*active_types,))
         activities_for_load = cur.fetchall()
         
         # Group by date and calculate TRIMP for each activity
@@ -999,7 +1060,7 @@ def get_sports_stats():
         }
 
         # 9. Heart Rate Zones Distribution (Dynamic based on settings.yaml)
-        cur.execute("SELECT average_heartrate as hr FROM activities WHERE average_heartrate > 0")
+        cur.execute(f"SELECT average_heartrate as hr FROM activities WHERE average_heartrate > 0 AND {filter_sql}", (*active_types,))
         all_hr_data = cur.fetchall()
         
         zones_count = {
@@ -1043,10 +1104,10 @@ def get_sports_stats():
         if power_bins:
             power_distribution = []
             for b in power_bins:
-                cur.execute("SELECT COUNT(*) FROM activities WHERE average_watts BETWEEN ? AND ?", (b["min"], b["max"]))
+                cur.execute(f"SELECT COUNT(*) FROM activities WHERE average_watts BETWEEN ? AND ? AND {filter_sql}", (b["min"], b["max"], *active_types))
                 power_distribution.append({"power_zone": b["label"], "count": cur.fetchone()[0]})
         else:
-            cur.execute("""
+            cur.execute(f"""
                 SELECT 
                     CASE 
                         WHEN average_watts < 150 THEN 'Low Intensity'
@@ -1055,21 +1116,22 @@ def get_sports_stats():
                     END as power_zone,
                     COUNT(*) as count
                 FROM activities
-                WHERE average_watts > 0
+                WHERE average_watts > 0 AND {filter_sql}
                 GROUP BY power_zone
-            """)
+            """, (*active_types,))
             power_distribution = [dict(row) for row in cur.fetchall()]
 
         # 11. Period Comparison (This Year vs Last Year Monthly)
-        cur.execute("""
+        cur.execute(f"""
             SELECT strftime('%m', start_date_local) as month,
                    strftime('%Y', start_date_local) as year,
                    SUM(distance) as dist
             FROM activities
             WHERE year IN (strftime('%Y', 'now'), strftime('%Y', 'now', '-1 year'))
+            AND {filter_sql}
             GROUP BY year, month
             ORDER BY month ASC
-        """)
+        """, (*active_types,))
         period_raw = cur.fetchall()
         period_comparison = []
         this_year = str(datetime.date.today().year)
@@ -1094,34 +1156,43 @@ def get_sports_stats():
         lw_stress = sum(daily_stress.get((fourteen_days_ago + datetime.timedelta(days=i)).isoformat(), 0) for i in range(7))
         
         # Distance and count from DB
-        cur.execute("""
+        cur.execute(f"""
             SELECT SUM(distance) as dist, COUNT(*) as count
             FROM activities 
-            WHERE date(start_date_local) >= ?
-        """, (seven_days_ago.isoformat(),))
+            WHERE date(start_date_local) >= ? AND {filter_sql}
+        """, (seven_days_ago.isoformat(), *active_types))
         tw_row = cur.fetchone()
         
-        cur.execute("""
+        cur.execute(f"""
             SELECT SUM(distance) as dist, COUNT(*) as count
             FROM activities 
-            WHERE date(start_date_local) >= ? AND date(start_date_local) < ?
-        """, (fourteen_days_ago.isoformat(), seven_days_ago.isoformat()))
+            WHERE date(start_date_local) >= ? AND date(start_date_local) < ? AND {filter_sql}
+        """, (fourteen_days_ago.isoformat(), seven_days_ago.isoformat(), *active_types))
         lw_row = cur.fetchone()
 
         # Monthly Elevation Gain
-        cur.execute("""
+        cur.execute(f"""
             SELECT SUM(elevation_gain) as elev
             FROM activities
-            WHERE strftime('%Y-%m', start_date_local) = strftime('%Y-%m', 'now')
-        """)
+            WHERE strftime('%Y-%m', start_date_local) = strftime('%Y-%m', 'now') AND {filter_sql}
+        """, (*active_types,))
         mtd_row = cur.fetchone()
         mtd_elev = mtd_row["elev"] if mtd_row and mtd_row["elev"] else 0
         tw_count = tw_row["count"] or 0
         
-        # Pull targets from config or use defaults
-        target_dist = athlete_metrics.get("annual_distance_target", 2000)
-        target_elev = athlete_metrics.get("monthly_elevation_target", 1000)
-        target_freq = athlete_metrics.get("weekly_frequency_target", 5)
+        # Pull targets based on active mode
+        if sport_type == "Run":
+            target_dist = athlete_metrics.get("run_annual_distance_target", 1000)
+            target_elev = athlete_metrics.get("run_monthly_elevation_target", 500)
+            target_freq = athlete_metrics.get("run_weekly_frequency_target", 4)
+        elif sport_type == "Ride":
+            target_dist = athlete_metrics.get("ride_annual_distance_target", 5000)
+            target_elev = athlete_metrics.get("ride_monthly_elevation_target", 3000)
+            target_freq = athlete_metrics.get("ride_weekly_frequency_target", 3)
+        else: # All/Combined
+            target_dist = athlete_metrics.get("run_annual_distance_target", 1000) + athlete_metrics.get("ride_annual_distance_target", 5000)
+            target_elev = athlete_metrics.get("run_monthly_elevation_target", 500) + athlete_metrics.get("ride_monthly_elevation_target", 3000)
+            target_freq = max(athlete_metrics.get("run_weekly_frequency_target", 4), athlete_metrics.get("ride_weekly_frequency_target", 3))
 
         goals = [
             {"title": f"Annual Distance {this_year}", "target": target_dist, "current": round(yearly.get(this_year, {}).get("distance", 0), 1), "unit": "km"},
@@ -1154,13 +1225,14 @@ def get_sports_stats():
         # 11. Athlete Metrics (Already fetched at start)
 
         # 15. Time & Weekday Preferences
-        time_raw = cur.execute("""
+        time_raw = cur.execute(f"""
             SELECT (CAST(strftime('%H', start_date_local) AS INTEGER) / 2) * 2 as slot,
                    COUNT(*) as count
             FROM activities
+            WHERE {filter_sql}
             GROUP BY slot
             ORDER BY slot ASC
-        """).fetchall()
+        """, (*active_types,)).fetchall()
         
         time_labels = {i: f"{i:02d}:00" for i in range(0, 24, 2)}
         time_preference = []
@@ -1168,13 +1240,14 @@ def get_sports_stats():
             count = next((r["count"] for r in time_raw if r["slot"] == i), 0)
             time_preference.append({"slot": time_labels[i], "count": count})
         
-        weekday_raw = cur.execute("""
+        weekday_raw = cur.execute(f"""
             SELECT CAST(strftime('%w', start_date_local) AS INTEGER) as weekday,
                    COUNT(*) as count
             FROM activities
+            WHERE {filter_sql}
             GROUP BY weekday
             ORDER BY weekday ASC
-        """).fetchall()
+        """, (*active_types,)).fetchall()
         
         day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         weekday_preference = []
@@ -1183,13 +1256,14 @@ def get_sports_stats():
             weekday_preference.append({"day": day_names[i], "count": count, "weekday": i})
 
         # 15.2 Activity Pattern Heatmap Matrix (Weekday vs Hour)
-        pattern_raw = cur.execute("""
+        pattern_raw = cur.execute(f"""
             SELECT CAST(strftime('%w', start_date_local) AS INTEGER) as weekday,
                    (CAST(strftime('%H', start_date_local) AS INTEGER) / 2) * 2 as slot,
                    COUNT(*) as count
             FROM activities
+            WHERE {filter_sql}
             GROUP BY weekday, slot
-        """).fetchall()
+        """, (*active_types,)).fetchall()
         
         activity_pattern = []
         for h in range(0, 24, 2):
@@ -1205,21 +1279,32 @@ def get_sports_stats():
                 })
 
         # 15.5 Distance Breakdown Histogram
-        dist_raw = [r["dist"] / 1000.0 for r in cur.execute("SELECT distance as dist FROM activities").fetchall()]
-        dist_bins_config = athlete_metrics["analysis"]["bins"].get("distance", [])
+        dist_raw = [r["dist"] / 1000.0 for r in cur.execute(f"SELECT distance as dist FROM activities WHERE {filter_sql}", (*active_types,)).fetchall()]
+        
+        bins_key = "distance_ride" if is_ride_active else "distance_run"
+        dist_bins_config = athlete_metrics["analysis"]["bins"].get(bins_key, [])
         if dist_bins_config:
             distance_breakdown = []
             for b in dist_bins_config:
                 count = sum(1 for d in dist_raw if b["min"] <= d < b["max"])
                 distance_breakdown.append({"label": b["label"], "count": count})
         else:
-            dist_bins = [
-                {"label": "0-5km", "min": 0, "max": 5, "count": 0},
-                {"label": "5-10km", "min": 5, "max": 10, "count": 0},
-                {"label": "10-21km", "min": 10, "max": 21, "count": 0},
-                {"label": "21-42km", "min": 21, "max": 42.2, "count": 0},
-                {"label": "42km+", "min": 42.2, "max": 99999, "count": 0},
-            ]
+            if is_ride_active:
+                dist_bins = [
+                    {"label": "0-30km", "min": 0, "max": 30, "count": 0},
+                    {"label": "30-60km", "min": 30, "max": 60, "count": 0},
+                    {"label": "60-100km", "min": 60, "max": 100, "count": 0},
+                    {"label": "100-150km", "min": 100, "max": 150, "count": 0},
+                    {"label": "150km+", "min": 150, "max": 99999, "count": 0},
+                ]
+            else:
+                dist_bins = [
+                    {"label": "0-5km", "min": 0, "max": 5, "count": 0},
+                    {"label": "5-10km", "min": 5, "max": 10, "count": 0},
+                    {"label": "10-21km", "min": 10, "max": 21, "count": 0},
+                    {"label": "21-42km", "min": 21, "max": 42.2, "count": 0},
+                    {"label": "42km+", "min": 42.2, "max": 99999, "count": 0},
+                ]
             for d in dist_raw:
                 for b in dist_bins:
                     if b["min"] <= d < b["max"]:
@@ -1228,22 +1313,28 @@ def get_sports_stats():
             distance_breakdown = dist_bins
 
         # 16. Bio-Analytics (P3)
-        athlete_weight = athlete_metrics.get("athlete", {}).get("weight", 70)
+        athlete_weight = athlete_metrics.get("weight", 70)
         
-        # 16.1 Cadence Distribution (Dynamic)
-        run_cadence_raw = cur.execute("""
+        # 16.1 Cadence Distribution (Dynamic) - Sport Aware
+        run_cadence_raw = cur.execute(f"""
             SELECT average_cadence FROM activities 
-            WHERE type IN ('Run', 'VirtualRun', 'TrailRun') AND average_cadence > 0
-        """).fetchall()
+            WHERE type IN ('Run', 'VirtualRun', 'TrailRun') AND average_cadence > 0 AND {filter_sql}
+        """, (*active_types,)).fetchall()
         
-        ride_cadence_raw = cur.execute("""
+        ride_cadence_raw = cur.execute(f"""
             SELECT average_cadence FROM activities 
-            WHERE type IN ('Ride', 'VirtualRide') AND average_cadence > 0
-        """).fetchall()
+            WHERE type IN ('Ride', 'VirtualRide') AND average_cadence > 0 AND {filter_sql}
+        """, (*active_types,)).fetchall()
         
-        has_run_cadence = len(run_cadence_raw) > 0
+        # Decide which cadence to show based on active mode
+        if is_ride_active and not is_run_active:
+             show_run_cadence = False
+        elif is_run_active:
+             show_run_cadence = True
+        else:
+             show_run_cadence = len(run_cadence_raw) >= len(ride_cadence_raw)
         
-        if has_run_cadence:
+        if show_run_cadence:
             cadence_bins_config = athlete_metrics["analysis"]["bins"].get("cadence_run", [])
             if cadence_bins_config:
                 cadence_bins = []
@@ -1268,24 +1359,31 @@ def get_sports_stats():
                             break
             cadence_type = "RUNNING (SPM)"
         else:
-            cadence_bins = [
-                {"label": "<70", "min": 0, "max": 70, "count": 0},
-                {"label": "70-80", "min": 70, "max": 80, "count": 0},
-                {"label": "80-90", "min": 80, "max": 90, "count": 0},
-                {"label": "90-100", "min": 90, "max": 100, "count": 0},
-                {"label": "100-110", "min": 100, "max": 110, "count": 0},
-                {"label": "110+", "min": 110, "max": 999, "count": 0}
-            ]
-            for row in ride_cadence_raw:
-                c = row["average_cadence"]
-                for b in cadence_bins:
-                    if b["min"] <= c < b["max"]:
-                        b["count"] += 1
-                        break
+            cadence_bins_config = athlete_metrics["analysis"]["bins"].get("cadence_ride", [])
+            if cadence_bins_config:
+                cadence_bins = []
+                for b in cadence_bins_config:
+                    count = sum(1 for r in ride_cadence_raw if b["min"] <= r["average_cadence"] < b["max"])
+                    cadence_bins.append({"label": b["label"], "count": count})
+            else:
+                cadence_bins = [
+                    {"label": "<70", "min": 0, "max": 70, "count": 0},
+                    {"label": "70-80", "min": 70, "max": 80, "count": 0},
+                    {"label": "80-90", "min": 80, "max": 90, "count": 0},
+                    {"label": "90-100", "min": 90, "max": 100, "count": 0},
+                    {"label": "100-110", "min": 100, "max": 110, "count": 0},
+                    {"label": "110+", "min": 110, "max": 999, "count": 0}
+                ]
+                for row in ride_cadence_raw:
+                    c = row["average_cadence"]
+                    for b in cadence_bins:
+                        if b["min"] <= c < b["max"]:
+                            b["count"] += 1
+                            break
             cadence_type = "CYCLING (RPM)"
         
         # 16.2 Total Energy Output (Calories) & Steps
-        cur.execute("SELECT average_cadence, moving_time, type FROM activities WHERE average_cadence > 0")
+        cur.execute(f"SELECT average_cadence, moving_time, type FROM activities WHERE average_cadence > 0 AND {filter_sql}", (*active_types,))
         rows = cur.fetchall()
         total_steps = 0
         for r in rows:
@@ -1296,25 +1394,44 @@ def get_sports_stats():
             
         # 16.3 Estimated Calories
         total_calories = 0
-        for row in cur.execute("SELECT distance, type FROM activities").fetchall():
+        cur.execute(f"SELECT distance, type FROM activities WHERE {filter_sql}", (*active_types,))
+        for row in cur.fetchall():
             d_km = row["distance"] / 1000.0
             if row["type"] in ["Run", "TrailRun", "VirtualRun"]:
                 total_calories += d_km * athlete_weight * 1.036
             else:
                 total_calories += d_km * athlete_weight * 0.5
         
+        # 16.4 Cadence Trend
+        cur.execute(f"SELECT AVG(average_cadence) as avg_c FROM activities WHERE average_cadence > 0 AND {filter_sql} AND date(start_date_local) >= date('now', '-30 days')", (*active_types,))
+        recent_c = cur.fetchone()["avg_c"] or 0
+        cur.execute(f"SELECT AVG(average_cadence) as avg_c FROM activities WHERE average_cadence > 0 AND {filter_sql} AND date(start_date_local) >= date('now', '-60 days') AND date(start_date_local) < date('now', '-30 days')", (*active_types,))
+        prev_c = cur.fetchone()["avg_c"] or 0
+        
+        if sport_type == "Run" and recent_c < 120: recent_c *= 2
+        if sport_type == "Run" and prev_c < 120: prev_c *= 2
+        
+        c_trend = round(((recent_c - prev_c) / prev_c * 100), 1) if prev_c > 0 else 0
+
         bio_stats = {
             "estimated_steps": int(total_steps),
             "total_calories": int(total_calories),
             "cadence_distribution": cadence_bins,
             "cadence_type": cadence_type,
-            "weight": athlete_weight
+            "weight": athlete_weight,
+            "avg_cadence": round(recent_c, 1),
+            "cadence_trend": c_trend
         }
 
         # 12. Dynamic Gear & Equipment Calculation
         gear_stats = []
+        # Filter gears by selected sport type if global filter is active
         configured_gears = athlete_metrics.get("gears", [])
-        
+        if sport_type == "Ride":
+            configured_gears = [g for g in configured_gears if g.get("type") == "Ride"]
+        elif sport_type == "Run":
+            configured_gears = [g for g in configured_gears if g.get("type") == "Run"]
+            
         gear_alerts = []
         for g in configured_gears:
             g_name = g.get("name", "Unknown")
@@ -1403,15 +1520,15 @@ def get_sports_stats():
         tsb_conf = athlete_metrics["analysis"]["tsb_advice"]
         
         if tsb > tsb_conf.get("peak", 10):
-            advice = "You are in peak form! This is the perfect window to attempt a Personal Best (PB) or a high-intensity race."
+            advice = f"You are in peak {sport_type or ''} form! Perfect for a PB attempt."
         elif tsb > tsb_conf.get("fresh", 0):
-            advice = "Feeling fresh. You have recovered well and are ready for quality interval training or a long effort."
+            advice = "Feeling fresh. Ready for high-intensity intervals."
         elif tsb > tsb_conf.get("optimal", -10):
-            advice = "Optimal training zone. You are maintaining a solid balance between load and recovery. Keep it up."
+            advice = "Optimal training zone. Balancing load and recovery perfectly."
         elif tsb > tsb_conf.get("productive_fatigue", -25):
-            advice = "Productive fatigue. You are building significant fitness, but expect to feel some leg heaviness. Rest is coming soon."
+            advice = "Productive fatigue. You are building fitness, keep the consistency."
         else:
-            advice = "High fatigue detected. Your risk of injury is elevated. Consider an active recovery day or complete rest."
+            advice = "High fatigue! Risk of overtraining. Take a rest day."
         
         # Append Gear Advice if any
         if gear_alerts:
@@ -1453,9 +1570,10 @@ def get_sports_stats():
                 SUM(elevation_gain) as elev,
                 SUM(moving_time) as time
             FROM activities
+            WHERE {filter_sql}
             GROUP BY device
             ORDER BY count DESC
-        """)
+        """, (*active_types,))
         recording_rows = cur.fetchall()
         for row in recording_rows:
             # moving_time in database is INTERVAL (which sqlite treats as numeric seconds usually if inserted that way)
@@ -1520,48 +1638,70 @@ def get_sports_stats():
 
         # 17. Athlete Radar Chart Data
         last_30_days = (dt.date.today() - dt.timedelta(days=30)).isoformat()
-        cur.execute("""
+        cur.execute(f"""
             SELECT 
                 COUNT(*) as count, 
                 SUM(distance) as dist, 
                 SUM(elevation_gain) as elev,
                 MAX(distance) as max_dist
             FROM activities 
-            WHERE date(start_date_local) >= ?
-        """, (last_30_days,))
+            WHERE date(start_date_local) >= ? AND {filter_sql}
+        """, (last_30_days, *active_types))
         r30 = cur.fetchone()
         
         # Normalization from settings
         radar_norm = athlete_metrics["analysis"]["radar_normalization"]
-        
-        # Speed: 4:00 min/km = 100, 6:00 min/km = 50 (configured)
-        speed_base = radar_norm.get("speed_pace_min_km", 4.0)
-        speed_rows = cur.execute("""
-            SELECT moving_time, distance FROM activities 
-            WHERE type IN ('Run', 'TrailRun') AND date(start_date_local) >= ?
-        """, (last_30_days,)).fetchall()
-        
-        max_speed_score = 50 # Default middle ground
-        if speed_rows:
+          # Custom Radar Thresholds based on Sport
+        if is_ride_active:
+            # Cycling thresholds (much higher volume)
+            norm_dist = radar_norm.get("endurance_ride_monthly_km", 600)
+            norm_long = radar_norm.get("long_ride_km", 100)
+            norm_elev = radar_norm.get("climb_ride_monthly_m", 5000)
+            
+            # Speed for Cycling (km/h)
+            best_speed = 0
+            speed_rows = cur.execute(f"""
+                SELECT moving_time, distance FROM activities 
+                WHERE type IN ('Ride', 'VirtualRide', 'Velomobile') AND date(start_date_local) >= ? AND {filter_sql}
+            """, (last_30_days, *active_types)).fetchall()
+            for sr in speed_rows:
+                sec = row_to_seconds(sr["moving_time"])
+                if sec > 0:
+                    kmh = (sr["distance"] / 1000.0) / (sec / 3600.0)
+                    best_speed = max(best_speed, kmh)
+            # 30 km/h = 75 score, 40 km/h = 100 score
+            max_speed_score = max(20, min(100, int((best_speed / 40.0) * 100)))
+        else:
+            # Running specific thresholds
+            norm_dist = radar_norm.get("endurance_run_monthly_km", radar_norm.get("endurance_monthly_km", 150))
+            norm_long = radar_norm.get("long_run_km", 25)
+            norm_elev = radar_norm.get("climb_run_monthly_m", radar_norm.get("climb_monthly_m", 1500))
+            
             best_pace = 999
+            speed_rows = cur.execute(f"""
+                SELECT moving_time, distance FROM activities 
+                WHERE type IN ('Run', 'TrailRun') AND date(start_date_local) >= ? AND {filter_sql}
+            """, (last_30_days, *active_types)).fetchall()
             for sr in speed_rows:
                 sec = row_to_seconds(sr["moving_time"])
                 if sec > 0 and sr["distance"] > 0:
                     pace_min_km = (sec / 60.0) / (sr["distance"] / 1000.0)
                     best_pace = min(best_pace, pace_min_km)
-            if best_pace < 999:
-                max_speed_score = max(20, min(100, int(100 - (best_pace - speed_base) * 25)))
+            speed_base = radar_norm.get("speed_pace_min_km", 4.0)
+            max_speed_score = max(20, min(100, int(100 - (best_pace - speed_base) * 25))) if best_pace < 999 else 50
 
         athlete_radar = [
-            { "subject": "Endurance", "A": min(100, int((r30["dist"] or 0) / (radar_norm.get("endurance_monthly_km", 150)*10))), "fullMark": 100 }, 
-            { "subject": "Climb", "A": min(100, int((r30["elev"] or 0) / (radar_norm.get("climb_monthly_m", 1500)/100))), "fullMark": 100 },      
+            { "subject": "Endurance", "A": min(100, int((r30["dist"] or 0) / (norm_dist * 10))), "fullMark": 100 }, 
+            { "subject": "Climb", "A": min(100, int((r30["elev"] or 0) / (norm_elev / 100))), "fullMark": 100 },      
             { "subject": "Frequency", "A": min(100, int((r30["count"] or 0) * (100/radar_norm.get("frequency_monthly_sessions", 16)))), "fullMark": 100 },  
-            { "subject": "Distance", "A": min(100, int((r30["max_dist"] or 0) / (radar_norm.get("long_run_km", 25)*10))), "fullMark": 100 },
+            { "subject": "Distance", "A": min(100, int((r30["max_dist"] or 0) / (norm_long * 10))), "fullMark": 100 },
             { "subject": "Speed", "A": max_speed_score, "fullMark": 100 }
         ]
 
         # Final Return Object
         out_data = {
+            "sport_type": sport_type or "All",
+            "primary_metric": "Pace" if sport_type == "Run" else "Speed",
             "total_distance": (agg["dist"] or 0) / 1000.0,
             "total_count": agg["count"] or 0,
             "recent_activities": recent,
@@ -1622,17 +1762,30 @@ def get_sports_stats():
             conn.close()
 
 @app.get("/api/v1/photos")
-def get_activity_photos(background_tasks: BackgroundTasks):
-    """Fetch photos from local DB, trigger background sync if empty."""
+def get_activity_photos(background_tasks: BackgroundTasks, sport_type: Optional[str] = Query(None)):
+    """Fetch photos from local DB, trigger background sync if empty, with sport filtering."""
     conn = get_db_conn()
     if not conn: return []
     try:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM photos ORDER BY date DESC LIMIT 50")
+        
+        RIDE_TYPES = ['Ride', 'VirtualRide', 'Velomobile', 'E-BikeRide']
+        RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']
+        
+        if sport_type == "Ride":
+            active_types = RIDE_TYPES
+        elif sport_type == "Run":
+            active_types = RUN_TYPES
+        else:
+            active_types = RIDE_TYPES + RUN_TYPES
+            
+        placeholders = ','.join(['?'] * len(active_types))
+        query = f"SELECT * FROM photos WHERE type IN ({placeholders}) ORDER BY date DESC LIMIT 500"
+        
+        cur.execute(query, (*active_types,))
         rows = cur.fetchall()
         
-        if not rows:
-            # Trigger initial sync
+        if not rows and not sport_type: # Only sync if specifically no filters and empty
             background_tasks.add_task(sync_strava_photos)
             return []
             
@@ -1873,11 +2026,24 @@ def import_challenges(req: TrophyImportRequest):
     return {"status": "success", "count": count}
 
 @app.get("/api/v1/stats/rewind")
-def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = None):
+def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = None, sport_type: Optional[str] = Query(None)):
     """Detailed annual report data for the Rewind page with comparison support."""
     conn = get_db_conn()
     if not conn: return {}
     
+    RIDE_TYPES = ['Ride', 'VirtualRide', 'Velomobile', 'E-BikeRide']
+    RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']
+    
+    if sport_type == "Ride":
+        active_types = RIDE_TYPES
+    elif sport_type == "Run":
+        active_types = RUN_TYPES
+    else:
+        active_types = RIDE_TYPES + RUN_TYPES
+        
+    placeholders = ','.join(['?'] * len(active_types))
+    type_filter = f"type IN ({placeholders})"
+
     try:
         cur = conn.cursor()
         athlete = get_athlete_metrics()
@@ -1887,23 +2053,24 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
         target_year = year if year else "ALL"
         
         # Get Available Years
-        cur.execute("SELECT DISTINCT strftime('%Y', start_date_local) as yr FROM activities WHERE yr IS NOT NULL ORDER BY yr DESC")
+        cur.execute(f"SELECT DISTINCT strftime('%Y', start_date_local) as yr FROM activities WHERE yr IS NOT NULL AND {type_filter} ORDER BY yr DESC", (*active_types,))
         available_years = [r["yr"] for r in cur.fetchall()]
 
         def fetch_year_stats(yr):
             if not yr or yr == "ALL":
-                cur.execute("""
+                cur.execute(f"""
                     SELECT SUM(distance) as dist, SUM(moving_time) as time, 
                            SUM(elevation_gain) as elev, COUNT(*) as count
                     FROM activities
-                """)
+                    WHERE {type_filter}
+                """, (*active_types,))
             else:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT SUM(distance) as dist, SUM(moving_time) as time, 
                            SUM(elevation_gain) as elev, COUNT(*) as count
                     FROM activities
-                    WHERE strftime('%Y', start_date_local) = ?
-                """, (str(yr),))
+                    WHERE strftime('%Y', start_date_local) = ? AND {type_filter}
+                """, (str(yr), *active_types))
             row = cur.fetchone()
             if not row or row["count"] == 0:
                 return {"distance": 0, "hours": 0, "elevation": 0, "count": 0, "calories": 0}
@@ -1921,8 +2088,8 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
         comp_stats = fetch_year_stats(compare_year) if compare_year else None
         
         def fetch_carbon(yr):
-            sql = "SELECT type, SUM(distance) as dist FROM activities WHERE 1=1"
-            params = []
+            sql = f"SELECT type, SUM(distance) as dist FROM activities WHERE {type_filter}"
+            params = [*active_types]
             if yr and yr != "ALL":
                 sql += " AND strftime('%Y', start_date_local) = ?"
                 params.append(str(yr))
@@ -1930,9 +2097,9 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
             cur.execute(sql, params)
             total = 0
             for r in cur.fetchall():
-                if r["type"] in ["Run", "Walk", "Hike", "TrailRun"]:
+                if r["type"] in RUN_TYPES:
                     total += (r["dist"] / 1000.0) * 0.16 
-                elif r["type"] in ["Ride", "Cycling", "VirtualRide"]:
+                elif r["type"] in RIDE_TYPES:
                     total += (r["dist"] / 1000.0) * 0.12
             return round(total, 1)
 
@@ -1960,12 +2127,16 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
             g_to = g.get("active_to", "2099-12-31")
             g_original_type = g.get("type", "Run")
             types = ["Run", "VirtualRun", "TrailRun"] if g_original_type == "Run" else ["Ride", "VirtualRide", "Velomobile"]
-            p = ",".join(["?"] * len(types))
             
+            # Intersection with active_types
+            actual_types = [t for t in types if t in active_types]
+            if not actual_types: continue
+            
+            p = ",".join(["?"] * len(actual_types))
             if target_year == "ALL":
-                cur.execute(f"SELECT SUM(moving_time) FROM activities WHERE type IN ({p}) AND date(start_date_local) BETWEEN ? AND ?", (*types, g_from, g_to))
+                cur.execute(f"SELECT SUM(moving_time) FROM activities WHERE type IN ({p}) AND date(start_date_local) BETWEEN ? AND ?", (*actual_types, g_from, g_to))
             else:
-                cur.execute(f"SELECT SUM(moving_time) FROM activities WHERE type IN ({p}) AND strftime('%Y', start_date_local) = ? AND date(start_date_local) BETWEEN ? AND ?", (*types, str(target_year), g_from, g_to))
+                cur.execute(f"SELECT SUM(moving_time) FROM activities WHERE type IN ({p}) AND strftime('%Y', start_date_local) = ? AND date(start_date_local) BETWEEN ? AND ?", (*actual_types, str(target_year), g_from, g_to))
             
             t_res = cur.fetchone()[0]
             hours = row_to_seconds(t_res) / 3600.0
@@ -1973,8 +2144,8 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
                 gear_usage.append({"name": g.get("name"), "hours": round(hours, 1)})
             
         # 3. Monthly Metrics Matrix
-        mon_filter = "strftime('%Y', start_date_local) = ?" if target_year != "ALL" else "1=1"
-        mon_params = (str(target_year),) if target_year != "ALL" else ()
+        mon_filter = f"strftime('%Y', start_date_local) = ? AND {type_filter}" if target_year != "ALL" else type_filter
+        mon_params = (str(target_year), *active_types) if target_year != "ALL" else (*active_types,)
         
         cur.execute(f"""
             SELECT strftime('%m', start_date_local) as month_num,
@@ -1987,21 +2158,21 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
         
         # Fetch PRs
         month_prs = {f"{m:02d}": 0 for m in range(1, 13)}
-        record_configs = [5000, 10000, 21097, 42195, 50000, 100000]
+        record_configs = [5000, 10000, 21097, 42195, 30000, 50000, 80000, 100000]
         for dist_m in record_configs:
             if target_year == "ALL":
-                cur.execute("""
+                cur.execute(f"""
                     SELECT strftime('%m', start_date_local) as month
-                    FROM activities WHERE distance >= ?
+                    FROM activities WHERE distance >= ? AND {type_filter}
                     ORDER BY moving_time ASC LIMIT 1
-                """, (dist_m,))
+                """, (dist_m, *active_types))
             else:
-                cur.execute("""
+                cur.execute(f"""
                     SELECT strftime('%m', start_date_local) as month
                     FROM activities 
-                    WHERE distance >= ? AND strftime('%Y', start_date_local) = ?
+                    WHERE distance >= ? AND strftime('%Y', start_date_local) = ? AND {type_filter}
                     ORDER BY moving_time ASC LIMIT 1
-                """, (dist_m, str(target_year)))
+                """, (dist_m, str(target_year), *active_types))
             row = cur.fetchone()
             if row:
                 month_prs[row["month"]] += 1
@@ -2022,9 +2193,9 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
 
         # 4. Longest Session
         if target_year == "ALL":
-            cur.execute("SELECT name, moving_time, distance, date(start_date_local) as date, summary_polyline FROM activities ORDER BY moving_time DESC LIMIT 1")
+            cur.execute(f"SELECT name, moving_time, distance, date(start_date_local) as date, summary_polyline FROM activities WHERE {type_filter} ORDER BY moving_time DESC LIMIT 1", (*active_types,))
         else:
-            cur.execute("SELECT name, moving_time, distance, date(start_date_local) as date, summary_polyline FROM activities WHERE strftime('%Y', start_date_local) = ? ORDER BY moving_time DESC LIMIT 1", (str(target_year),))
+            cur.execute(f"SELECT name, moving_time, distance, date(start_date_local) as date, summary_polyline FROM activities WHERE strftime('%Y', start_date_local) = ? AND {type_filter} ORDER BY moving_time DESC LIMIT 1", (str(target_year), *active_types))
         row = cur.fetchone()
         longest = dict(row) if row else {"name": "None", "moving_time": "0", "distance": 0, "date": ""}
         longest["hours"] = round(row_to_seconds(longest.get("moving_time", "0")) / 3600.0, 1)
@@ -2032,27 +2203,26 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
 
         # 5. Streaks (Dynamic based on selected year)
         if target_year == "ALL":
-            cur.execute("SELECT date(start_date_local) as date FROM activities")
+            cur.execute(f"SELECT date(start_date_local) as date FROM activities WHERE {type_filter}", (*active_types,))
         else:
-            cur.execute("SELECT date(start_date_local) as date FROM activities WHERE strftime('%Y', start_date_local) = ?", (str(target_year),))
+            cur.execute(f"SELECT date(start_date_local) as date FROM activities WHERE strftime('%Y', start_date_local) = ? AND {type_filter}", (str(target_year), *active_types))
         filtered_dates = [r["date"] for r in cur.fetchall()]
         streaks = calculate_streaks_detailed(filtered_dates)
         
         # 6. Habit Stats
         if target_year == "ALL":
-            cur.execute("SELECT COUNT(DISTINCT date(start_date_local)) as active_days FROM activities")
+            cur.execute(f"SELECT COUNT(DISTINCT date(start_date_local)) as active_days FROM activities WHERE {type_filter}", (*active_types,))
             active_days = cur.fetchone()["active_days"] or 0
-            # Total days from first activity to now
-            cur.execute("SELECT MIN(date(start_date_local)), MAX(date(start_date_local)) FROM activities")
+            cur.execute(f"SELECT MIN(date(start_date_local)), MAX(date(start_date_local)) FROM activities WHERE {type_filter}", (*active_types,))
             row = cur.fetchone()
-            if row[0]:
+            if row and row[0]:
                 d1 = dt.date.fromisoformat(row[0])
                 d2 = dt.date.today()
                 total_days = (d2 - d1).days + 1
             else:
                 total_days = 365
         else:
-            cur.execute("SELECT COUNT(DISTINCT date(start_date_local)) as active_days FROM activities WHERE strftime('%Y', start_date_local) = ?", (str(target_year),))
+            cur.execute(f"SELECT COUNT(DISTINCT date(start_date_local)) as active_days FROM activities WHERE strftime('%Y', start_date_local) = ? AND {type_filter}", (str(target_year), *active_types))
             active_days = cur.fetchone()["active_days"] or 0
             i_year = int(target_year)
             total_days = 366 if (i_year % 4 == 0 and (i_year % 100 != 0 or i_year % 400 == 0)) else 365
@@ -2061,8 +2231,8 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
                 total_days = (today - dt.date(i_year, 1, 1)).days + 1
 
         # 8. Time of Day
-        tod_sql = "SELECT strftime('%H', start_date_local) as hour, COUNT(*) as count FROM activities WHERE 1=1"
-        tod_params = []
+        tod_sql = f"SELECT strftime('%H', start_date_local) as hour, COUNT(*) as count FROM activities WHERE {type_filter}"
+        tod_params = [*active_types]
         if target_year != "ALL":
             tod_sql += " AND strftime('%Y', start_date_local) = ?"
             tod_params.append(str(target_year))
@@ -2074,10 +2244,10 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
             hours_data[f"{r['hour']}:00"] = r["count"]
 
         # 9. Locations & Polylines
-        loc_sql = "SELECT location_city, COUNT(*) as count FROM activities WHERE location_city IS NOT NULL"
-        poly_sql = "SELECT summary_polyline FROM activities WHERE summary_polyline IS NOT NULL"
-        loc_params = []
-        poly_params = []
+        loc_sql = f"SELECT location_city, COUNT(*) as count FROM activities WHERE location_city IS NOT NULL AND {type_filter}"
+        poly_sql = f"SELECT summary_polyline FROM activities WHERE summary_polyline IS NOT NULL AND {type_filter}"
+        loc_params = [*active_types]
+        poly_params = [*active_types]
         
         if target_year != "ALL":
             loc_sql += " AND strftime('%Y', start_date_local) = ?"
@@ -2100,7 +2270,13 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
         if target_year != "ALL":
             photo_sql += " AND strftime('%Y', date) = ?"
             photo_params.append(str(target_year))
-        photo_sql += " ORDER BY date DESC LIMIT 10"
+        
+        if sport_type:
+            placeholders = ','.join(['?'] * len(active_types))
+            photo_sql += f" AND type IN ({placeholders})"
+            photo_params.extend(active_types)
+
+        photo_sql += " ORDER BY date DESC LIMIT 5"
         
         cur.execute(photo_sql, photo_params)
         photo_rows = cur.fetchall()
@@ -2108,7 +2284,7 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
         for p in photo_rows:
             photos.append({
                 "id": p["id"],
-                "url": f"/static/photos/{os.path.basename(p['local_path'])}" if p["local_path"] else p["remote_url"],
+                "url": f"/static/photos/{os.path.basename(p['local_path'])}" if p['local_path'] else p["remote_url"],
                 "title": p["title"],
                 "date": p["date"]
             })
@@ -2120,6 +2296,8 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
             "overall": main_stats,
             "comparison": comparison,
             "carbon": round(carbon_total, 1),
+            "passed_cars": int(carbon_total / 20) if carbon_total > 0 else 0,
+            "google_searches": int(main_stats["calories"] / 0.2) if main_stats["calories"] > 0 else 0,
             "longest": longest,
             "streaks": streaks,
             "habit": {
@@ -2142,23 +2320,36 @@ def get_rewind_report(year: Optional[str] = None, compare_year: Optional[str] = 
         conn.close()
 
 @app.get("/api/v1/segments")
-def get_segments():
+def get_segments(sport_type: Optional[str] = Query(None)):
     try:
         conn = get_db_conn()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM segments ORDER BY effort_count DESC")
+        base_query = """
+            SELECT s.*, 
+                   (SELECT MIN(se.kom_rank) FROM segment_efforts se WHERE se.segment_id = s.id) as best_rank
+            FROM segments s
+        """
+        if sport_type == "Ride":
+            cur.execute(f"{base_query} WHERE activity_type IN ('Ride', 'VirtualRide', 'Velomobile') ORDER BY effort_count DESC")
+        elif sport_type == "Run":
+            cur.execute(f"{base_query} WHERE activity_type IN ('Run', 'TrailRun', 'VirtualRun') ORDER BY effort_count DESC")
+        else:
+            cur.execute(f"{base_query} ORDER BY effort_count DESC")
         rows = cur.fetchall()
         
-        # If no segments, provide some mock ones for demonstration
-        if not rows:
+        # Only provide mock data if the entire table is empty to avoid confusion when filtering
+        cur.execute("SELECT COUNT(*) FROM segments")
+        total_in_db = cur.fetchone()[0]
+        
+        if total_in_db == 0:
             return [
                 {
-                    "id": 123, "name": "Sprint Finish Line", "distance": 1.1, "city": "Hangzhou",
-                    "effort_count": 42, "best_time": "0:01:42", "best_date": "2024-03-12"
+                    "id": 123, "name": "Sprint Finish Line", "distance": 1100, "city": "Hangzhou",
+                    "effort_count": 42, "best_time": "0:01:42", "best_date": "2024-03-12", "average_grade": 2.5
                 },
                 {
-                    "id": 124, "name": "Central Park Loop", "distance": 6.2, "city": "Shanghai",
-                    "effort_count": 15, "best_time": "0:24:15", "best_date": "2023-11-05"
+                    "id": 124, "name": "Central Park Loop", "distance": 6200, "city": "Shanghai",
+                    "effort_count": 15, "best_time": "0:24:15", "best_date": "2023-11-05", "average_grade": 0.5
                 }
             ]
             

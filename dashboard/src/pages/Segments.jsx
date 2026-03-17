@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -26,13 +26,15 @@ import {
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
-const Segments = () => {
+const Segments = ({ sportType }) => {
   const [segments, setSegments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSegment, setSelectedSegment] = useState(null);
   const [segmentEfforts, setSegmentEfforts] = useState([]);
   const [modalMode, setModalMode] = useState('history'); // 'history' | 'charts'
+  const [countryFilter, setCountryFilter] = useState('All');
+  const [otherFilter, setOtherFilter] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -60,11 +62,14 @@ const Segments = () => {
 
   useEffect(() => {
     fetchSegments();
-  }, []);
+  }, [sportType]);
 
   const fetchSegments = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/api/v1/segments`);
+      const url = sportType && sportType !== 'All' 
+        ? `${API_BASE}/api/v1/segments?sport_type=${sportType}`
+        : `${API_BASE}/api/v1/segments`;
+      const res = await axios.get(url);
       setSegments(Array.isArray(res.data) ? res.data : []);
       setLoading(false);
     } catch (err) {
@@ -93,11 +98,33 @@ const Segments = () => {
   const filteredSegments = React.useMemo(() => {
     if (!Array.isArray(segments)) return [];
     const term = searchTerm.toLowerCase();
-    return segments.filter(s => 
-      s.name.toLowerCase().includes(term) ||
-      (s.city && s.city.toLowerCase().includes(term))
-    );
-  }, [segments, searchTerm]);
+    return segments.filter(s => {
+      // Search term
+      const matchesSearch = s.name.toLowerCase().includes(term) ||
+      (s.city && s.city.toLowerCase().includes(term));
+      
+      // Country
+      const matchesCountry = countryFilter === 'All' || s.country === countryFilter;
+      
+      // Other
+      let matchesOther = true;
+      if (otherFilter === 'KOM/QOM Only') {
+        matchesOther = s.effort_count > 0 && s.best_rank === 1;
+      } else if (otherFilter === 'Starred Only') {
+        matchesOther = s.starred === true;
+      }
+
+      return matchesSearch && matchesCountry && matchesOther;
+    });
+  }, [segments, searchTerm, countryFilter, otherFilter]);
+
+  const formatCity = (city) => city ? city.replace('市', '') : 'Unknown';
+
+  const countries = useMemo(() => {
+    if (!Array.isArray(segments)) return ['All'];
+    const c = new Set(segments.map(s => s.country).filter(Boolean));
+    return ['All', ...Array.from(c).sort()];
+  }, [segments]);
 
   const container = {
     hidden: { opacity: 0 },
@@ -121,6 +148,20 @@ const Segments = () => {
     return timeStr.split('.')[0];
   };
 
+  const formatPace = (distMeters, timeStr) => {
+      if (!timeStr) return '--';
+      try {
+          const tOnly = timeStr.includes(' ') ? timeStr.split(' ')[1] : timeStr;
+          const parts = tOnly.split(':');
+          const seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+          if (seconds === 0 || distMeters === 0) return '--';
+          const paceSeconds = seconds / (distMeters / 1000);
+          const m = Math.floor(paceSeconds / 60);
+          const s = Math.round(paceSeconds % 60);
+          return `${m}:${s < 10 ? '0' : ''}${s}`;
+      } catch { return '--'; }
+  };
+
   const getSpeed = (distMeters, timeStr) => {
       if (!timeStr) return '--';
       try {
@@ -131,6 +172,8 @@ const Segments = () => {
           return ((distMeters / 1000) / (seconds / 3600)).toFixed(1);
       } catch { return '--'; }
   };
+
+  const isRun = sportType === 'Run';
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="page-content" style={{ paddingBottom: '5rem' }}>
@@ -151,27 +194,41 @@ const Segments = () => {
 
         <div className="filter-group">
           <label><RouteIcon size={14} /> ACTIVITY TYPE</label>
-          <select className="platform-card" style={{ padding: '8px 12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', borderRadius: '8px', fontSize: '0.85rem' }}>
-            <option>All Sports</option>
-            <option>Running</option>
-            <option>Cycling</option>
+          <select 
+            disabled={sportType !== 'All'}
+            value={sportType !== 'All' ? sportType : 'All'}
+            className="platform-card" 
+            style={{ padding: '8px 12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', borderRadius: '8px', fontSize: '0.85rem', opacity: sportType !== 'All' ? 0.6 : 1 }}
+          >
+            <option value="All">All Sports</option>
+            <option value="Run">Running</option>
+            <option value="Ride">Cycling</option>
           </select>
         </div>
 
         <div className="filter-group">
           <label><MapPin size={14} /> COUNTRY</label>
-          <select className="platform-card" style={{ padding: '8px 12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', borderRadius: '8px', fontSize: '0.85rem' }}>
-            <option>All Locations</option>
-            <option>China</option>
+          <select 
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value)}
+            className="platform-card" 
+            style={{ padding: '8px 12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', borderRadius: '8px', fontSize: '0.85rem' }}
+          >
+            {countries.map(c => <option key={c} value={c}>{c === 'All' ? 'All Locations' : c}</option>)}
           </select>
         </div>
 
         <div className="filter-group">
           <label><Filter size={14} /> OTHER</label>
-          <select className="platform-card" style={{ padding: '8px 12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', borderRadius: '8px', fontSize: '0.85rem' }}>
-            <option>All Segments</option>
-            <option>Starred Only</option>
-            <option>KOM/QOM Only</option>
+          <select 
+            value={otherFilter}
+            onChange={(e) => setOtherFilter(e.target.value)}
+            className="platform-card" 
+            style={{ padding: '8px 12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'white', borderRadius: '8px', fontSize: '0.85rem' }}
+          >
+            <option value="All">All Segments</option>
+            <option value="Starred Only">Starred Only</option>
+            <option value="KOM/QOM Only">KOM/QOM Only</option>
           </select>
         </div>
       </div>
@@ -195,7 +252,7 @@ const Segments = () => {
                 <th style={{ paddingLeft: '2rem' }}>SEGMENT NAME</th>
                 <th>PB DATE</th>
                 <th>BEST TIME</th>
-                <th>AVG SPEED</th>
+                <th>{isRun ? 'PACE' : 'AVG SPEED'}</th>
                 <th>DIST</th>
                 <th>GRADE</th>
                 <th style={{ paddingRight: '2rem', textAlign: 'right' }}>EFFORTS #</th>
@@ -211,7 +268,7 @@ const Segments = () => {
                 >
                   <td style={{ paddingLeft: '2rem' }}>
                     <div style={{ color: 'white', fontWeight: 700 }}>{segment.name}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '2px' }}>{segment.city || 'Unknown Location'}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '2px' }}>{formatCity(segment.city)}</div>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
@@ -224,7 +281,11 @@ const Segments = () => {
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{getSpeed(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>km/h</span></div>
+                    {isRun ? (
+                      <div style={{ fontWeight: 600 }}>{formatPace(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>/km</span></div>
+                    ) : (
+                      <div style={{ fontWeight: 600 }}>{getSpeed(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>km/h</span></div>
+                    )}
                   </td>
                   <td>{(segment.distance / 1000).toFixed(2)} km</td>
                   <td>{segment.average_grade || 0}%</td>
@@ -272,7 +333,7 @@ const Segments = () => {
                   <div style={{ display: 'flex', gap: '1.5rem', opacity: 0.6, fontSize: '0.85rem', marginLeft: '3.5rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RouteIcon size={14} /> {(selectedSegment.distance / 1000).toFixed(2)}km</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><TrendingUp size={14} /> {selectedSegment.average_grade}% avg grade</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><MapPin size={14} /> {selectedSegment.city}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><MapPin size={14} /> {formatCity(selectedSegment.city)}</span>
                   </div>
                 </div>
                 <button onClick={() => setIsModalOpen(false)} className="icon-btn-circle">
@@ -308,7 +369,7 @@ const Segments = () => {
                         <th>DATE</th>
                         <th>ACTIVITY</th>
                         <th>TIME</th>
-                        <th>AVG SPEED</th>
+                        <th>{isRun ? 'PACE' : 'AVG SPEED'}</th>
                         <th>AVG HR</th>
                         <th>POWER</th>
                       </tr>
@@ -320,7 +381,13 @@ const Segments = () => {
                           <td>{effort.start_date_local.split(' ')[0]}</td>
                           <td style={{ fontWeight: 700 }}>{effort.name}</td>
                           <td style={{ color: 'var(--accent-cyan)', fontWeight: 800 }}>{formatDuration(effort.moving_time)}</td>
-                          <td>{getSpeed(selectedSegment.distance, effort.moving_time)} <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>km/h</span></td>
+                          <td>
+                            {isRun ? (
+                               <>{formatPace(selectedSegment.distance, effort.moving_time)} <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>/km</span></>
+                            ) : (
+                               <>{getSpeed(selectedSegment.distance, effort.moving_time)} <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>km/h</span></>
+                            )}
+                          </td>
                           <td>{effort.average_heartrate ? `❤️ ${Math.round(effort.average_heartrate)}` : '--'}</td>
                           <td>{effort.average_watts ? `⚡ ${Math.round(effort.average_watts)}w` : '--'}</td>
                         </tr>

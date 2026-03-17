@@ -10,11 +10,14 @@ import {
 
 const COLORS = ['var(--accent-cyan)', '#bd00ff', '#3b82f6', '#f59e0b', '#10b981'];
 
-const MonthlyStats = ({ stats, renderHeatmap }) => {
+const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [heatMetric, setHeatMetric] = useState('count');
 
   if (!stats) return null;
+
+  const themeColor = sportType === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
+  const secondaryColors = ['#ff3366', 'var(--accent-cyan)', '#bd00ff', '#f59e0b', '#10b981'];
 
   // Process data for the selected month
   const monthData = useMemo(() => {
@@ -79,7 +82,7 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
-            <Calendar size={20} color="var(--accent-cyan)" /> ANNUAL ACTIVITY HEATMAP
+            <Calendar size={20} color={themeColor} /> ANNUAL {sportType.toUpperCase()} HEATMAP
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
               <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
@@ -94,8 +97,8 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
                             borderRadius: '6px',
                             border: 'none',
                             cursor: 'pointer',
-                            background: heatMetric === m ? 'var(--accent-cyan)' : 'transparent',
-                            color: heatMetric === m ? '#000' : 'var(--text-secondary)',
+                            background: heatMetric === m ? themeColor : 'transparent',
+                            color: heatMetric === m ? (sportType === 'Run' ? 'white' : '#000') : 'var(--text-secondary)',
                             transition: 'all 0.2s'
                         }}
                     >
@@ -112,9 +115,16 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '1.5rem', opacity: 0.4 }}>
             <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>LESS</span>
             <div style={{ display: 'flex', gap: '3px' }}>
-                {[0, 1, 2, 3, 4].map(l => (
-                    <div key={l} className={`heatmap-day level-${l}`} style={{ width: '10px', height: '10px' }}></div>
-                ))}
+                {[0, 1, 2, 3, 4].map(l => {
+                  const colors = {
+                    Run: ['rgba(255, 255, 255, 0.05)', '#4d0f1f', '#801a33', '#b32447', '#ff3366'],
+                    Ride: ['rgba(255, 255, 255, 0.05)', '#03353e', '#045967', '#068d9f', 'var(--accent-cyan)'],
+                    All: ['rgba(255, 255, 255, 0.05)', '#1e293b', '#334155', '#475569', '#64748b']
+                  }[sportType] || ['rgba(255, 255, 255, 0.05)', '#1e293b', '#334155', '#475569', '#64748b'];
+                  return (
+                    <div key={l} style={{ width: '10px', height: '10px', background: colors[l], borderRadius: '2px' }}></div>
+                  )
+                })}
             </div>
             <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>MORE</span>
         </div>
@@ -132,7 +142,7 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
             
             <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 800 }}>MONTHLY DISTANCE</div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: themeColor }}>
                     {(monthData.totalDist / 1000).toFixed(1)} <small style={{ fontSize: '0.8rem' }}>KM</small>
                 </div>
             </div>
@@ -186,7 +196,7 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
                             dataKey="value"
                         >
                             {monthData.pieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                <Cell key={`cell-${index}`} fill={secondaryColors[index % secondaryColors.length]} />
                             ))}
                         </Pie>
                         <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '12px' }} />
@@ -196,7 +206,7 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '1rem', justifyContent: 'center' }}>
                 {monthData.pieData.map((entry, index) => (
                     <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: COLORS[index % COLORS.length] }} />
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: secondaryColors[index % secondaryColors.length] }} />
                         <span>{entry.name}</span>
                     </div>
                 ))}
@@ -208,7 +218,7 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
             <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Activity size={18} color="var(--accent-cyan)" /> DAILY DISTANCE BREAKDOWN
+              <Activity size={18} color={themeColor} /> DAILY DISTANCE BREAKDOWN
             </h3>
           </div>
           {monthData.totalCount === 0 ? (
@@ -227,13 +237,13 @@ const MonthlyStats = ({ stats, renderHeatmap }) => {
                       cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                       contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px' }} 
                   />
-                  <Bar dataKey="dist" fill="var(--accent-cyan)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="dist" fill={themeColor} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
           <p style={{ marginTop: '1.5rem', opacity: 0.4, fontSize: '0.75rem', textAlign: 'center' }}>
-            Showing activity intensity across {selectedMonth}. Bars represent cumulative distance in kilometers per day.
+            Showing {sportType} activity intensity across {selectedMonth}. Bars represent cumulative distance in kilometers per day.
           </p>
         </div>
       </div>

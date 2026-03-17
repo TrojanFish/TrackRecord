@@ -2,17 +2,28 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, Calendar, Activity, Maximize2, Minimize2, Layers } from 'lucide-react';
 
-const Heatmap = ({ activities, availableYears }) => {
+const Heatmap = ({ activities, availableYears, sportType }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const layerGroup = useRef(null);
   
   const [selectedYear, setSelectedYear] = useState('All');
-  const [selectedType, setSelectedType] = useState('All');
+  const [selectedType, setSelectedType] = useState(sportType || 'All');
   const [colorMode, setColorMode] = useState('Type'); // Type, Pace, Altitude
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [hoveredActivity, setHoveredActivity] = useState(null);
   const coordsCache = useRef({});
+
+  // Sync internal type with global sportType
+  useEffect(() => {
+    if (sportType && sportType !== 'All') {
+      setSelectedType(sportType);
+    }
+  }, [sportType]);
+
+  const isRun = sportType === 'Run';
+  const isRide = sportType === 'Ride';
+  const themeColor = isRun ? '#ef4444' : '#06b6d4';
 
   const decodePolyline = (str, precision = 5) => {
     if (coordsCache.current[str]) return coordsCache.current[str];
@@ -32,12 +43,20 @@ const Heatmap = ({ activities, availableYears }) => {
     return coordinates;
   };
 
-  const getPaceColor = (pace) => {
-     // Pace is in min/km (lower is faster)
-     if (pace < 4) return '#ef4444'; // Fast (Red)
-     if (pace < 5) return '#f59e0b'; // Medium-Fast (Orange)
-     if (pace < 6) return '#10b981'; // Steady (Green)
-     return '#3b82f6'; // Relaxed (Blue)
+  const getMetricColor = (val, type) => {
+     if (type === 'Run') {
+         // Pace (min/km, lower is faster)
+         if (val < 4) return '#ef4444'; // Fast (Red)
+         if (val < 5) return '#f59e0b'; // Medium-Fast (Orange)
+         if (val < 6) return '#10b981'; // Steady (Green)
+         return '#3b82f6'; // Relaxed (Blue)
+     } else {
+         // Speed (km/h, higher is faster)
+         if (val >= 35) return '#ef4444'; // Fast (Red)
+         if (val >= 28) return '#f59e0b'; // Medium (Orange)
+         if (val >= 20) return '#10b981'; // Steady (Green)
+         return '#3b82f6'; // Relaxed (Blue)
+     }
   };
 
   useEffect(() => {
@@ -47,8 +66,7 @@ const Heatmap = ({ activities, availableYears }) => {
         mapInstance.current = window.L.map(mapRef.current, { 
             zoomControl: false, 
             attributionControl: false,
-            fadeAnimation: true,
-            preferCanvas: true
+            fadeAnimation: true
         }).setView([20, 0], 2);
 
         window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
@@ -79,21 +97,34 @@ const Heatmap = ({ activities, availableYears }) => {
     filtered.forEach(activity => {
         const coords = decodePolyline(activity.summary_polyline);
         if (coords.length > 1) {
-            let color = 'var(--accent-cyan)';
+            let color = themeColor;
             
             if (colorMode === 'Type') {
-                color = activity.type === 'Run' ? 'var(--accent-cyan)' : '#bd00ff';
-            } else if (colorMode === 'Pace' && activity.type === 'Run') {
-                const pace = (activity.moving_time_display ? 
+                if (!sportType || sportType === 'All') {
+                    color = activity.type === 'Run' ? '#ef4444' : '#06b6d4';
+                } else {
+                    color = themeColor;
+                }
+            } else if (colorMode === 'Pace') {
+                const isActivityRun = activity.type === 'Run' || activity.type === 'TrailRun' || activity.type === 'VirtualRun';
+                const distKm = activity.distance / 1000;
+                const timeMin = (activity.moving_time_display ? 
                     (activity.moving_time_display.split(':').reduce((acc, time) => (60 * acc) + +time) / 60) : 
-                    (activity.moving_time / 60)) / (activity.distance / 1000);
-                color = getPaceColor(pace);
+                    (activity.moving_time / 60));
+                
+                if (isActivityRun) {
+                    const pace = timeMin / distKm;
+                    color = getMetricColor(pace, 'Run');
+                } else {
+                    const speed = (distKm / (timeMin / 60));
+                    color = getMetricColor(speed, 'Ride');
+                }
             }
 
             const poly = window.L.polyline(coords, { 
                 color: color, 
                 weight: 2.5, 
-                opacity: 0.4,
+                opacity: 0.6,
                 lineJoin: 'round',
                 className: 'glow-polyline'
             }).addTo(layerGroup.current);
@@ -103,7 +134,7 @@ const Heatmap = ({ activities, availableYears }) => {
                 setHoveredActivity(activity);
             });
             poly.on('mouseout', () => {
-                poly.setStyle({ opacity: 0.4, weight: 2.5, color: color });
+                poly.setStyle({ opacity: 0.6, weight: 2.5, color: color });
                 setHoveredActivity(null);
             });
 
@@ -179,7 +210,7 @@ const Heatmap = ({ activities, availableYears }) => {
       }}>
          {/* Title & Stats Bubble */}
          <div style={{ background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
-            <h2 style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', color: 'var(--accent-cyan)', margin: 0 }}>ROUTE EXPLORER</h2>
+            <h2 style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', color: themeColor, margin: 0 }}>{sportType ? sportType.toUpperCase() : ''} ROUTE EXPLORER</h2>
             <div style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '2px' }}>{activities.length} TRACKS LOADED IN DB</div>
          </div>
 
@@ -197,8 +228,8 @@ const Heatmap = ({ activities, availableYears }) => {
                    fontSize: '0.7rem',
                    fontWeight: 800,
                    letterSpacing: '1px',
-                   background: colorMode === mode ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.05)',
-                   color: colorMode === mode ? 'black' : 'rgba(255,255,255,0.6)',
+                   background: colorMode === mode ? themeColor : 'rgba(255,255,255,0.05)',
+                   color: colorMode === mode ? (isRun ? 'white' : 'black') : 'rgba(255,255,255,0.6)',
                    cursor: 'pointer',
                    transition: 'all 0.2s ease',
                    display: 'flex',
@@ -207,7 +238,7 @@ const Heatmap = ({ activities, availableYears }) => {
                    lineHeight: 1
                 }}
               >
-                {mode.toUpperCase()}
+                {mode === 'Pace' ? (isRun ? 'PACE' : 'SPEED') : mode.toUpperCase()}
               </button>
             ))}
          </div>
@@ -268,16 +299,25 @@ const Heatmap = ({ activities, availableYears }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                {colorMode === 'Type' ? (
                  <>
-                  <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot run" /> RUNNING</div>
-                  <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot ride" /> CYCLING</div>
+                  {(!sportType || sportType === 'All' || sportType === 'Run') && <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#ef4444' }} /> RUNNING</div>}
+                  {(!sportType || sportType === 'All' || sportType === 'Ride') && <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#06b6d4' }} /> CYCLING</div>}
                  </>
-               ) : (
-                 <>
-                  <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#ef4444' }} /> FAST (&lt;4:00)</div>
-                  <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#f59e0b' }} /> STEADY (5:00)</div>
-                  <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#3b82f6' }} /> EASY (&gt;6:00)</div>
-                 </>
-               )}
+                ) : (
+                  <>
+                   <div className="legend-item" style={{ fontSize: '0.7rem' }}>
+                     <div className="dot" style={{ background: '#ef4444' }} /> 
+                     {isRun ? 'FAST (<4:00)' : 'FAST (>35 km/h)'}
+                   </div>
+                   <div className="legend-item" style={{ fontSize: '0.7rem' }}>
+                     <div className="dot" style={{ background: '#f59e0b' }} /> 
+                     {isRun ? 'STEADY (5:00)' : 'STEADY (28 km/h)'}
+                   </div>
+                   <div className="legend-item" style={{ fontSize: '0.7rem' }}>
+                     <div className="dot" style={{ background: '#3b82f6' }} /> 
+                     {isRun ? 'EASY (>6:00)' : 'EASY (<20 km/h)'}
+                   </div>
+                  </>
+                )}
             </div>
          </div>
       </div>
@@ -292,16 +332,19 @@ const Heatmap = ({ activities, availableYears }) => {
             </select>
          </div>
 
-         <div className="divider-v" />
-
-         <div className="control-group">
-            <div className="control-label"><Filter size={12} /> CATEGORY</div>
-            <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-               <option value="All">All Disciplines</option>
-               <option value="Run">Running</option>
-               <option value="Ride">Cycling</option>
-            </select>
-         </div>
+         {(!sportType || sportType === 'All') && (
+           <>
+            <div className="divider-v" />
+            <div className="control-group">
+                <div className="control-label"><Filter size={12} /> CATEGORY</div>
+                <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+                  <option value="All">All Disciplines</option>
+                  <option value="Run">Running</option>
+                  <option value="Ride">Cycling</option>
+                </select>
+            </div>
+           </>
+         )}
 
          <div className="divider-v" />
 

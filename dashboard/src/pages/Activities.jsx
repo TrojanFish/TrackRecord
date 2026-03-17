@@ -10,9 +10,10 @@ import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import polyline from 'polyline';
 import 'leaflet/dist/leaflet.css';
 
-const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
+const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportType }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('All');
+  const isGlobalFilterActive = sportType !== 'All';
+  const [internalFilterType, setInternalFilterType] = useState('All');
   const [sortConfig, setSortConfig] = useState({ key: 'start_date_local', direction: 'desc' });
   const [distanceFilter, setDistanceFilter] = useState('All');
   const [commuteFilter, setCommuteFilter] = useState('All'); // All, Commute, Exclude
@@ -22,6 +23,8 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
+  const filterType = isGlobalFilterActive ? sportType : internalFilterType;
+
   useEffect(() => {
     if (initialSearch) {
       setSearchTerm(initialSearch);
@@ -52,6 +55,29 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
     return `${m}:${s.toString().padStart(2, '0')}/km`;
   };
 
+  const formatLocationShort = (locStr) => {
+    if (!locStr) return 'Main Route';
+    const parts = locStr.split(',').map(p => p.trim());
+    if (parts.length >= 2) {
+      const country = parts[parts.length - 1];
+      if (country === '中国' || country === 'China') {
+        // Try to find the city (ends with 市)
+        const cityWithShi = parts.find(p => p.endsWith('市'));
+        if (cityWithShi) return `中国 ${cityWithShi.replace('市', '')}`;
+        
+        // If no 市 found, it might be a district. We want the city.
+        // Usually: [City], [District], [Province], China
+        // Or: [District], [City], [Province], China
+        // We'll try to skip known district suffixes like '区', '县'
+        const cityCandidate = parts.find(p => !p.endsWith('区') && !p.endsWith('县') && p !== '中国' && p !== country);
+        return `中国 ${cityCandidate || parts[0]}`;
+      }
+      const stateOrCity = parts[parts.length - 2] || parts[0];
+      return `${stateOrCity}, ${country}`;
+    }
+    return locStr;
+  };
+
   const decodePolyline = (str) => {
     if (!str) return [];
     return polyline.decode(str);
@@ -79,9 +105,17 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
     }
 
     // Distance filter
-    if (distanceFilter === 'Short') items = items.filter(a => a.distance < 5000);
-    if (distanceFilter === 'Medium') items = items.filter(a => a.distance >= 5000 && a.distance < 15000);
-    if (distanceFilter === 'Long') items = items.filter(a => a.distance >= 15000);
+    if (distanceFilter === 'Short') {
+      items = items.filter(a => a.distance < (filterType === 'Ride' ? 20000 : 5000));
+    }
+    if (distanceFilter === 'Medium') {
+      const min = (filterType === 'Ride' ? 20000 : 5000);
+      const max = (filterType === 'Ride' ? 50000 : 15000);
+      items = items.filter(a => a.distance >= min && a.distance < max);
+    }
+    if (distanceFilter === 'Long') {
+      items = items.filter(a => a.distance >= (filterType === 'Ride' ? 50000 : 15000));
+    }
 
     // Commute filter
     if (commuteFilter === 'Commute') items = items.filter(a => a.commute === 1);
@@ -95,7 +129,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
 
     // Country filter
     if (countryFilter !== 'All') {
-      items = items.filter(a => a.location_country === countryFilter);
+      items = items.filter(a => formatLocationShort(a.location_country) === countryFilter);
     }
 
     // Year filter
@@ -121,7 +155,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
   }, [stats.recent_activities, searchTerm, filterType, distanceFilter, commuteFilter, workoutTypeFilter, countryFilter, selectedYear, sortConfig]);
 
   const countries = useMemo(() => {
-    const c = new Set(stats.recent_activities?.map(a => a.location_country).filter(Boolean));
+    const c = new Set(stats.recent_activities?.map(a => formatLocationShort(a.location_country)).filter(Boolean));
     return ['All', ...Array.from(c).sort()];
   }, [stats.recent_activities]);
 
@@ -132,7 +166,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 10 }} 
       animate={{ opacity: 1, y: 0 }}
       className="page-content activity-center"
     >
@@ -152,25 +186,43 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                />
             </div>
 
-            {/* Type Filter */}
-            <div className="filter-group">
-               <label><Filter size={14} /> TYPE</label>
-               <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                  <option value="All">All Types</option>
-                  <option value="Run">Running</option>
-                  <option value="Ride">Cycling</option>
-                  <option value="Walk">Walking</option>
-               </select>
-            </div>
+            {/* Type Filter - Only show if no global filter active */}
+            {!isGlobalFilterActive && (
+              <div className="filter-group">
+                <label><Filter size={14} /> TYPE</label>
+                <select value={internalFilterType} onChange={(e) => setInternalFilterType(e.target.value)}>
+                    <option value="All">All Types</option>
+                    <option value="Run">Running</option>
+                    <option value="Ride">Cycling</option>
+                    <option value="Walk">Walking</option>
+                </select>
+              </div>
+            )}
 
             {/* Distance Filter */}
             <div className="filter-group">
                <label><Zap size={14} /> RANGE</label>
                <select value={distanceFilter} onChange={(e) => setDistanceFilter(e.target.value)}>
                   <option value="All">Any Distance</option>
-                  <option value="Short">&lt; 5km</option>
-                  <option value="Medium">5 - 15km</option>
-                  <option value="Long">&gt; 15km</option>
+                  {filterType === 'Ride' ? (
+                    <>
+                      <option value="Short">&lt; 30km</option>
+                      <option value="Medium">30 - 80km</option>
+                      <option value="Long">&gt; 80km</option>
+                    </>
+                  ) : filterType === 'Walk' || filterType === 'Hike' ? (
+                    <>
+                      <option value="Short">&lt; 3km</option>
+                      <option value="Medium">3 - 10km</option>
+                      <option value="Long">&gt; 10km</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Short">&lt; 5km</option>
+                      <option value="Medium">5 - 15km</option>
+                      <option value="Long">&gt; 15km</option>
+                    </>
+                  )}
                </select>
             </div>
 
@@ -259,7 +311,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ fontWeight: 700 }}>{activity.name}</div>
                         <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <MapPin size={10} /> {activity.location_city || 'Main Route'}
+                          <MapPin size={10} /> {formatLocationShort(activity.location_country) || activity.location_city || 'Main Route'}
                         </div>
                     </div>
                 </td>
@@ -271,7 +323,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                 <td>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <div>
-                      <b style={{ color: 'var(--accent-cyan)', fontSize: '1rem' }}>{(activity.distance / 1000).toFixed(2)}</b>
+                      <b style={{ color: activity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', fontSize: '1rem' }}>{(activity.distance / 1000).toFixed(2)}</b>
                       <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '4px' }}>KM</span>
                     </div>
                     {activity.elevation_gain > 0 && (
@@ -285,7 +337,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                        <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{formatPace(activity.distance, activity.moving_time, activity.type)}</span>
                        {activity.gap_pace && activity.gap_pace !== formatPace(activity.distance, activity.moving_time, activity.type) && (
-                         <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                         <span style={{ fontSize: '0.7rem', color: activity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', fontWeight: 600 }}>
                            GAP: {activity.gap_pace}
                          </span>
                        )}
@@ -300,11 +352,11 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                           <Heart size={12} fill={activity.average_heartrate > 160 ? "#ef4444" : "none"} /> {Math.round(activity.average_heartrate)}
                         </div>
                       )}
-                      {activity.average_cadence > 0 && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                          <Footprints size={12} /> {Math.round(activity.average_cadence < 120 && activity.type.toLowerCase().includes('run') ? activity.average_cadence * 2 : activity.average_cadence)}
-                        </div>
-                      )}
+                       {activity.average_cadence > 0 && (
+                         <div style={{ fontSize: '0.75rem', color: activity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                           <Footprints size={12} /> {Math.round(activity.average_cadence < 120 && activity.type.toLowerCase().includes('run') ? activity.average_cadence * 2 : activity.average_cadence)}
+                         </div>
+                       )}
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {activity.calories > 0 && (
@@ -378,12 +430,12 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                         zoomControl={false}
                       >
                         <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-                        <Polyline 
-                          positions={decodePolyline(selectedActivity.summary_polyline)} 
-                          color="var(--accent-cyan)" 
-                          weight={4} 
-                          opacity={0.8}
-                        />
+                         <Polyline 
+                           positions={decodePolyline(selectedActivity.summary_polyline)} 
+                           color={selectedActivity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} 
+                           weight={4} 
+                           opacity={0.8}
+                         />
                       </MapContainer>
                     ) : (
                       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>
@@ -403,11 +455,11 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear }) => {
                         <span className="label">PACE / SPEED</span>
                         <span className="value">
                             {formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type)}
-                            {selectedActivity.gap_pace && selectedActivity.gap_pace !== formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type) && (
-                                <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', marginTop: '4px' }}>
-                                    GAP: {selectedActivity.gap_pace}
-                                </div>
-                            )}
+                             {selectedActivity.gap_pace && selectedActivity.gap_pace !== formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type) && (
+                                 <div style={{ fontSize: '0.7rem', color: selectedActivity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', marginTop: '4px' }}>
+                                     GAP: {selectedActivity.gap_pace}
+                                 </div>
+                             )}
                         </span>
                     </div>
                     <div className="detail-stat-box">

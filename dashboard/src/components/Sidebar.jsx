@@ -37,28 +37,33 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
 
   const groups = [
     {
-      title: 'OVERVIEW',
+      title: 'REAL-TIME',
       items: [
         { id: 'Overview', icon: LayoutDashboard, label: 'DASHBOARD' },
         { id: 'Activities', icon: Activity, label: 'ACTIVITIES' },
+        { id: 'Heatmap', icon: MapIcon, label: 'HEATMAP' },
       ]
     },
     {
-      title: 'STATISTICS',
+      title: 'PERIODIC',
       items: [
         { id: 'Stats', icon: Calendar, label: 'MONTHLY STATS' },
         { id: 'Analytics', icon: TrendingUp, label: 'ANALYTICS' },
         { id: 'Rewind', icon: Star, label: 'REWIND' },
-        { id: 'Eddington', icon: Award, label: 'EDDINGTON' },
-        { id: 'Heatmap', icon: MapIcon, label: 'HEATMAP' },
-        { id: 'Segments', icon: RouteIcon, label: 'SEGMENTS' },
-        { id: 'Records', icon: History, label: 'BEST EFFORTS' },
       ]
     },
     {
-      title: 'SOCIAL & MORE',
+      title: 'HALL OF FAME',
       items: [
+        { id: 'Records', icon: History, label: 'BEST EFFORTS' },
+        { id: 'Eddington', icon: Award, label: 'EDDINGTON' },
+        { id: 'Segments', icon: RouteIcon, label: 'SEGMENTS' },
         { id: 'Challenges', icon: Medal, label: 'CHALLENGES' },
+      ]
+    },
+    {
+      title: 'RESOURCES',
+      items: [
         { id: 'Photos', icon: Image, label: 'PHOTOS' },
         { id: 'Gear', icon: Wrench, label: 'GEAR' },
       ]

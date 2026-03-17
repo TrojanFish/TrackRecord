@@ -204,6 +204,7 @@ class Segment(Base):
     effort_count = Column(Integer, default=0)
     best_time = Column(Interval)
     best_date = Column(String)
+    activity_type = Column(String, index=True)
 
     def to_dict(self):
         return {
@@ -406,6 +407,12 @@ def update_or_create_segment_effort(session, strava_effort, activity_id):
     
     # Extract segment info and update it first
     seg_obj = update_or_create_segment(session, strava_effort.segment)
+    
+    # Ensure activity_type is set for filtering
+    if not seg_obj.activity_type:
+        activity = session.query(Activity).filter_by(run_id=int(activity_id)).first()
+        if activity:
+            seg_obj.activity_type = activity.type
     
     if not effort:
         effort = SegmentEffort(

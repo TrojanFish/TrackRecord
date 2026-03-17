@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Camera, Maximize2, X, Filter, MapPin, Calendar, Loader2, Play, Pause, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
+import { Image as ImageIcon, Maximize2, X, Filter, MapPin, Calendar, Loader2, Play, Pause, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
-const Photos = () => {
+const Photos = ({ sportType }) => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,8 @@ const Photos = () => {
 
   const fetchPhotos = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/api/v1/photos`);
+      setLoading(true);
+      const res = await axios.get(`${API_BASE}/api/v1/photos?sport_type=${sportType}`);
       setPhotos(res.data);
     } catch (err) {
       console.error("Failed to fetch photos", err);
@@ -32,8 +33,11 @@ const Photos = () => {
   };
 
   useEffect(() => {
+    setFilterType('All');
+    setFilterCountry('All');
+    setPhotos([]); // Clear old photos immediately to prevent 'ghosting'
     fetchPhotos();
-  }, []);
+  }, [sportType]);
 
   useEffect(() => {
     if (selectedPhoto) {
@@ -127,7 +131,7 @@ const Photos = () => {
 
         {filteredPhotos.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '6rem 2rem', opacity: 0.3 }}>
-            <Camera size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
+            <ImageIcon size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
             <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>No photos matching filters</h3>
             <p style={{ fontSize: '0.9rem' }}>Try changing your filters or syncing more data.</p>
           </div>

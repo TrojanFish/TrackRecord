@@ -29,7 +29,7 @@ const MapController = ({ points }) => {
   return null;
 };
 
-const Rewind = ({ stats: appStats }) => {
+const Rewind = ({ stats: appStats, sportType }) => {
   const [rewindData, setRewindData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [targetYear, setTargetYear] = useState('ALL');
@@ -37,13 +37,23 @@ const Rewind = ({ stats: appStats }) => {
   const [showYearPicker, setShowYearPicker] = useState(false);
   const [showComparePicker, setShowComparePicker] = useState(false);
 
+  // Constants based on sportType
+  const isRun = sportType === 'Run';
+  const isRide = sportType === 'Ride';
+  const themeColor = isRun ? '#ef4444' : (isRide ? 'var(--accent-cyan)' : 'var(--accent-cyan)');
+  const themeGradient = isRun 
+    ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%)'
+    : 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%)';
+  const themeBorder = isRun ? 'rgba(239, 68, 68, 0.2)' : 'rgba(6, 182, 212, 0.2)';
+  const SportIcon = isRun ? Footprints : (isRide ? Bike : Activity);
+
   useEffect(() => {
     fetchData();
-  }, [targetYear, compareYear]);
+  }, [targetYear, compareYear, sportType]);
 
   const fetchData = () => {
     setLoading(true);
-    const url = `${API_BASE}/api/v1/stats/rewind?year=${targetYear}${compareYear ? `&compare_year=${compareYear}` : ''}`;
+    const url = `${API_BASE}/api/v1/stats/rewind?year=${targetYear}${compareYear ? `&compare_year=${compareYear}` : ''}${sportType ? `&sport_type=${sportType}` : ''}`;
     fetch(url)
       .then(res => res.json())
       .then(data => {
@@ -57,6 +67,17 @@ const Rewind = ({ stats: appStats }) => {
   };
 
   if (loading && !rewindData) return <div style={{ height: '60vh' }} />;
+  
+  if (rewindData?.error) {
+    return (
+      <div style={{ padding: '3rem', textAlign: 'center', opacity: 0.5 }}>
+        <SectionTitle icon={Shield} title="DATA ACCESS ERROR" />
+        <p>There was a problem preparing your rewind report.</p>
+        <p style={{ fontSize: '0.8rem', color: '#ef4444' }}>{rewindData.error}</p>
+        <button className="platform-btn" onClick={() => fetchData()} style={{ marginTop: '1rem' }}>RETRY</button>
+      </div>
+    );
+  }
 
   const container = {
     hidden: { opacity: 0 },
@@ -68,17 +89,19 @@ const Rewind = ({ stats: appStats }) => {
     show: { y: 0, opacity: 1 }
   };
 
-  const COLORS = ['var(--accent-cyan)', 'var(--accent-blue)', 'var(--accent-violet)', '#10b981', '#f59e0b', '#ef4444'];
+  const COLORS = isRun
+    ? ['#ef4444', '#f87171', '#fca5a5', '#fee2e2', '#7f1d1d', '#450a0a']
+    : ['var(--accent-cyan)', 'var(--accent-blue)', 'var(--accent-violet)', '#10b981', '#f59e0b', '#ef4444'];
 
   const restPieData = [
-    { name: 'Training Days', value: rewindData?.habit?.active_days || 0, color: 'var(--accent-cyan)' },
+    { name: 'Training Days', value: rewindData?.habit?.active_days || 0, color: themeColor },
     { name: 'Rest Days', value: rewindData?.habit?.rest_days || 0, color: 'rgba(255,255,255,0.05)' }
   ];
 
   const StatBox = ({ label, value, unit, diff, icon: Icon, color }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.65rem', fontWeight: 800, opacity: 0.4, letterSpacing: '1px' }}>
-        <Icon size={14} color={color || 'var(--accent-cyan)'} /> {label}
+        <Icon size={14} color={color || themeColor} /> {label}
       </div>
       <div style={{ fontSize: '1.8rem', fontWeight: 900, color: color || 'white', display: 'flex', alignItems: 'baseline', gap: '5px' }}>
         {typeof value === 'number' ? value.toLocaleString() : value}
@@ -95,7 +118,7 @@ const Rewind = ({ stats: appStats }) => {
   const SectionTitle = ({ icon: Icon, title, rightContent }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
       <h3 style={{ fontSize: '0.85rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px', margin: 0, letterSpacing: '0.5px' }}>
-        <Icon size={16} color="var(--accent-cyan)" /> {title.toUpperCase()}
+        <Icon size={16} color={themeColor} /> {title.toUpperCase()}
       </h3>
       {rightContent}
     </div>
@@ -147,7 +170,7 @@ const Rewind = ({ stats: appStats }) => {
                     onClick={() => { setTargetYear('ALL'); setShowYearPicker(false); }}
                     style={{ 
                       padding: '10px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '8px', 
-                      background: targetYear === 'ALL' ? 'var(--accent-cyan)' : 'transparent', 
+                      background: targetYear === 'ALL' ? themeColor : 'transparent', 
                       color: targetYear === 'ALL' ? '#000' : 'white', fontWeight: 600,
                       transition: 'all 0.2s'
                     }}
@@ -159,7 +182,7 @@ const Rewind = ({ stats: appStats }) => {
                       key={y} onClick={() => { setTargetYear(y); setShowYearPicker(false); }}
                       style={{ 
                         padding: '10px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '8px', 
-                        background: targetYear === y ? 'var(--accent-cyan)' : 'transparent', 
+                        background: targetYear === y ? themeColor : 'transparent', 
                         color: targetYear === y ? '#000' : 'white', fontWeight: 600,
                         transition: 'all 0.2s'
                       }}
@@ -239,28 +262,32 @@ const Rewind = ({ stats: appStats }) => {
       </div>
 
       {/* Hero Achievement Plate */}
-      <motion.div variants={item} className="platform-card" style={{ 
-        padding: '3rem', marginBottom: '2.5rem', 
-        background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(15, 23, 42, 0.4) 100%)',
-        border: '1px solid rgba(6, 182, 212, 0.2)', position: 'relative', overflow: 'hidden'
-      }}>
-        <div style={{ position: 'absolute', top: '-10%', right: '-5%', opacity: 0.05 }}><Star size={300} /></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
-          <div>
-            <h1 style={{ fontSize: '3rem', fontWeight: 900, letterSpacing: '-2px', margin: 0 }}>THE REWIND <span style={{ opacity: 0.3 }}>{targetYear}</span></h1>
-            <p style={{ fontSize: '1rem', opacity: 0.5, fontWeight: 600 }}>ANNUAL PERFORMANCE & HABIT INSIGHTS</p>
+      {rewindData?.overall ? (
+        <motion.div variants={item} className="platform-card" style={{ 
+          padding: '3rem', marginBottom: '2.5rem', 
+          background: themeGradient,
+          border: `1px solid ${themeBorder}`, position: 'relative', overflow: 'hidden'
+        }}>
+          <div style={{ position: 'absolute', top: '-10%', right: '-5%', opacity: 0.05 }}><Star size={300} /></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
+            <div>
+              <h1 style={{ fontSize: '3rem', fontWeight: 900, letterSpacing: '-2px', margin: 0 }}>THE {sportType ? sportType.toUpperCase() : ''} REWIND <span style={{ opacity: 0.3 }}>{targetYear}</span></h1>
+              <p style={{ fontSize: '1rem', opacity: 0.5, fontWeight: 600 }}>ANNUAL PERFORMANCE & HABIT INSIGHTS</p>
+            </div>
+            <SportIcon size={64} color={themeColor} style={{ opacity: 0.8 }} />
           </div>
-          <Award size={64} color="var(--accent-cyan)" style={{ opacity: 0.8 }} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem' }}>
-          <StatBox label="DISTANCE" value={rewindData?.overall?.distance} unit="KM" diff={rewindData?.comparison?.dist_diff} icon={MapPin} />
-          <StatBox label="TOTAL TIME" value={rewindData?.overall?.hours} unit="H" diff={rewindData?.comparison?.time_diff} icon={Clock} />
-          <StatBox label="ELEVATION" value={rewindData?.overall?.elevation} unit="M" diff={rewindData?.comparison?.elev_diff} icon={TrendingUp} />
-          <StatBox label="SESSIONS" value={rewindData?.overall?.count} unit="SESS" diff={rewindData?.comparison?.count_diff} icon={Activity} />
-          <StatBox label="CALORIES" value={rewindData?.overall?.calories} unit="KCAL" diff={rewindData?.comparison?.cal_diff} icon={Zap} />
-          <StatBox label="CARBON SAVED" value={rewindData?.carbon} unit="KG" diff={rewindData?.comparison?.carbon_diff} icon={Leaf} color="#10b981" />
-        </div>
-      </motion.div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2.5rem' }}>
+            <StatBox label="DISTANCE" value={rewindData?.overall?.distance} unit="KM" diff={rewindData?.comparison?.dist_diff} icon={MapPin} />
+            <StatBox label="TOTAL TIME" value={rewindData?.overall?.hours} unit="H" diff={rewindData?.comparison?.time_diff} icon={Clock} />
+            <StatBox label="ELEVATION" value={rewindData?.overall?.elevation} unit="M" diff={rewindData?.comparison?.elev_diff} icon={TrendingUp} />
+            <StatBox label="SESSIONS" value={rewindData?.overall?.count} unit="SESS" diff={rewindData?.comparison?.count_diff} icon={Activity} />
+            <StatBox label="CALORIES" value={rewindData?.overall?.calories} unit="KCAL" diff={rewindData?.comparison?.cal_diff} icon={Zap} />
+            <StatBox label="CARBON SAVED" value={rewindData?.carbon} unit="KG" diff={rewindData?.comparison?.carbon_diff} icon={Leaf} color="#10b981" />
+          </div>
+        </motion.div>
+      ) : (
+        <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.3 }}>No overall metrics found for this period.</div>
+      )}
 
       {/* 2-Column Responsive Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(600px, 1fr))', gap: '2rem' }}>
@@ -270,11 +297,14 @@ const Rewind = ({ stats: appStats }) => {
           <SectionTitle icon={Shield} title="GEAR UTILITY" />
           <div style={{ height: '280px', width: '100%' }}>
             <ResponsiveContainer>
-              <BarChart data={rewindData?.gear} layout="vertical">
+              <BarChart data={rewindData?.gear || []} layout="vertical">
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" stroke="rgba(255,255,255,0.5)" fontSize={11} width={120} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
-                <Bar dataKey="hours" fill="var(--accent-blue)" radius={[0, 4, 4, 0]} barSize={24} />
+                <Tooltip 
+                  cursor={{ fill: 'rgba(255,255,255,0.05)' }} 
+                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} 
+                />
+                <Bar dataKey="hours" fill={themeColor} radius={[0, 4, 4, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -290,11 +320,16 @@ const Rewind = ({ stats: appStats }) => {
                 <span>{rewindData?.longest?.date}</span>
              </div>
           </div>
-          <MapContainer center={[30.27, 120.15]} zoom={11} style={{ height: '100%', width: '100%', background: '#050b1a', zIndex: 1 }} zoomControl={false}>
+          <MapContainer 
+            center={rewindData?.longest?.summary_polyline ? (decodePolyline(rewindData.longest.summary_polyline)?.[0] || [30.27, 120.15]) : [30.27, 120.15]} 
+            zoom={11} 
+            style={{ height: '100%', width: '100%', background: '#050b1a', zIndex: 1 }} 
+            zoomControl={false}
+          >
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
             {rewindData?.longest?.summary_polyline && (
               <>
-                <Polyline positions={decodePolyline(rewindData.longest.summary_polyline)} pathOptions={{ color: 'var(--accent-cyan)', weight: 3, opacity: 0.8 }} />
+                <Polyline positions={decodePolyline(rewindData.longest.summary_polyline)} pathOptions={{ color: themeColor, weight: 3, opacity: 0.8 }} />
                 <MapController points={decodePolyline(rewindData.longest.summary_polyline)} />
               </>
             )}
@@ -306,12 +341,12 @@ const Rewind = ({ stats: appStats }) => {
           <SectionTitle icon={Award} title="MONTHLY PRs" />
           <div style={{ height: '240px', width: '100%' }}>
             <ResponsiveContainer>
-              <LineChart data={rewindData?.monthly}>
+              <LineChart data={rewindData?.monthly || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} axisLine={false} tickLine={false} />
                 <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
-                <Line type="monotone" dataKey="prs" stroke="var(--accent-cyan)" strokeWidth={3} dot={{ fill: 'var(--accent-cyan)', r: 4 }} />
+                <Line type="monotone" dataKey="prs" stroke={themeColor} strokeWidth={3} dot={{ fill: themeColor, r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -321,12 +356,12 @@ const Rewind = ({ stats: appStats }) => {
           <SectionTitle icon={Zap} title="CONSECUTIVE RECORDS" rightContent={<div style={{fontSize: '0.65rem', fontWeight: 800, opacity: 0.4, letterSpacing: '0.5px'}}>{targetYear === 'ALL' ? 'ALL-TIME BEST' : `${targetYear} PERSPECTIVE`}</div>} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', height: '100%', alignItems: 'center' }}>
             {[
-              { label: 'days', value: rewindData?.streaks?.day, sub: 'streak count' },
-              { label: 'weeks', value: rewindData?.streaks?.week, sub: 'streak count' },
-              { label: 'months', value: rewindData?.streaks?.month, sub: 'streak count' }
+              { label: 'days', value: rewindData?.streaks?.day || 0, sub: 'streak count', color: themeColor },
+              { label: 'weeks', value: rewindData?.streaks?.week || 0, sub: 'streak count', color: isRun ? '#fca5a5' : 'var(--accent-blue)' },
+              { label: 'months', value: rewindData?.streaks?.month || 0, sub: 'streak count', color: isRun ? '#f87171' : 'var(--accent-violet)' }
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ fontSize: '3rem', fontWeight: 900, color: i === 0 ? 'var(--accent-cyan)' : i === 1 ? 'var(--accent-blue)' : 'var(--accent-violet)' }}>{s.value}</div>
+                <div style={{ fontSize: '3rem', fontWeight: 900, color: s.color }}>{s.value}</div>
                 <div style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '5px' }}>{s.label.toUpperCase()}</div>
                 <div style={{ fontSize: '0.6rem', opacity: 0.3, marginTop: '8px', textTransform: 'uppercase' }}>{s.sub}</div>
               </div>
@@ -339,11 +374,11 @@ const Rewind = ({ stats: appStats }) => {
           <SectionTitle icon={MapPin} title="DISTANCE STATS (KM)" rightContent={<div style={{fontSize: '0.8rem', opacity: 0.5}}>{rewindData?.overall?.distance} km</div>} />
           <div style={{ height: '240px', width: '100%' }}>
             <ResponsiveContainer>
-              <BarChart data={rewindData?.monthly}>
+              <BarChart data={rewindData?.monthly || []}>
                 <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} axisLine={false} tickLine={false} />
                 <YAxis hide />
-                <Tooltip cursor={{fill: 'rgba(255,255,255,0.02)'}} contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
-                <Bar dataKey="dist" fill="var(--accent-cyan)" radius={[4, 4, 0, 0]} />
+                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
+                <Bar dataKey="dist" fill={themeColor} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -353,10 +388,10 @@ const Rewind = ({ stats: appStats }) => {
           <SectionTitle icon={TrendingUp} title="ELEVATION STATS (M)" rightContent={<div style={{fontSize: '0.8rem', opacity: 0.5}}>{rewindData?.overall?.elevation} m</div>} />
           <div style={{ height: '240px', width: '100%' }}>
             <ResponsiveContainer>
-              <BarChart data={rewindData?.monthly}>
+              <BarChart data={rewindData?.monthly || []}>
                 <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} axisLine={false} tickLine={false} />
                 <YAxis hide />
-                <Tooltip cursor={{fill: 'rgba(255,255,255,0.02)'}} contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
+                <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
                 <Bar dataKey="elev" fill="var(--accent-blue)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -369,8 +404,8 @@ const Rewind = ({ stats: appStats }) => {
           <div style={{ height: '240px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
              <ResponsiveContainer>
                 <RePieChart>
-                   <Pie data={rewindData?.monthly} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="time" labelLine={false}>
-                      {rewindData?.monthly.map((entry, index) => (
+                   <Pie data={rewindData?.monthly || []} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="time" labelLine={false}>
+                      {(rewindData?.monthly || []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                    </Pie>
@@ -387,11 +422,11 @@ const Rewind = ({ stats: appStats }) => {
              <div style={{ fontSize: '1.2rem', fontWeight: 700, opacity: 0.6, marginTop: '5px' }}>kg CO₂</div>
              <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '2rem' }}>
                 <div>
-                   <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>0</div>
+                   <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{rewindData?.passed_cars || 0}</div>
                    <div style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase' }}>PASSED CARS</div>
                 </div>
                 <div>
-                   <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>0</div>
+                   <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{rewindData?.google_searches?.toLocaleString() || 0}</div>
                    <div style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase' }}>GOOGLE SEARCHES</div>
                 </div>
              </div>
@@ -400,13 +435,13 @@ const Rewind = ({ stats: appStats }) => {
 
         {/* Row 5: Rest Days (Pie) | Start Time (Area) */}
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
-          <SectionTitle icon={PieChart} title="REST DAYS BALANCE" rightContent={<div style={{fontSize: '0.8rem', opacity: 0.5}}>{Math.round(rewindData?.habit?.rest_days / rewindData?.habit?.total_days * 100)}%</div>} />
+          <SectionTitle icon={PieChart} title="REST DAYS BALANCE" rightContent={<div style={{fontSize: '0.8rem', opacity: 0.5}}>{Math.round((rewindData?.habit?.rest_days || 0) / (rewindData?.habit?.total_days || 1) * 100)}%</div>} />
           <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', height: '240px' }}>
             <div style={{ height: '100%', width: '200px' }}>
               <ResponsiveContainer>
                 <RePieChart>
-                  <Pie data={restPieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {restPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                  <Pie data={restPieData || []} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    {(restPieData || []).map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
                 </RePieChart>
               </ResponsiveContainer>
@@ -428,16 +463,16 @@ const Rewind = ({ stats: appStats }) => {
           <SectionTitle icon={Clock} title="START TIME PREFERENCE" />
           <div style={{ height: '240px', width: '100%' }}>
             <ResponsiveContainer>
-              <AreaChart data={rewindData?.time_of_day}>
+              <AreaChart data={rewindData?.time_of_day || []}>
                 <defs>
                   <linearGradient id="pTime" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-cyan)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--accent-cyan)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={themeColor} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={themeColor} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="hour" stroke="rgba(255,255,255,0.2)" fontSize={10} interval={3} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
-                <Area type="monotone" dataKey="count" stroke="var(--accent-cyan)" fill="url(#pTime)" />
+                <Area type="monotone" dataKey="count" stroke={themeColor} fill="url(#pTime)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -448,10 +483,10 @@ const Rewind = ({ stats: appStats }) => {
            <SectionTitle icon={History} title="ACTIVITY VOLUME" rightContent={<div style={{fontSize: '0.8rem', opacity: 0.5}}>{rewindData?.overall?.count} activities</div>} />
            <div style={{ height: '240px', width: '100%' }}>
              <ResponsiveContainer>
-               <BarChart data={rewindData?.monthly}>
+               <BarChart data={rewindData?.monthly || []}>
                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={11} axisLine={false} tickLine={false} />
                  <YAxis hide />
-                 <Tooltip cursor={{fill: 'rgba(255,255,255,0.02)'}} contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
+                 <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} />
                  <Bar dataKey="count" fill="var(--accent-violet)" radius={[4, 4, 0, 0]} />
                </BarChart>
              </ResponsiveContainer>
@@ -464,11 +499,11 @@ const Rewind = ({ stats: appStats }) => {
               <div style={{ height: '240px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                  <div style={{ textAlign: 'center' }}>
                     <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(6, 182, 212, 0.4) 0%, transparent 70%)', margin: '0 auto' }}></div>
-                    <div style={{ marginTop: '10px', fontSize: '0.9rem', fontWeight: 800 }}>{rewindData?.locations[0]?.location_city || 'UNKNOWN'}</div>
+                    <div style={{ marginTop: '10px', fontSize: '0.9rem', fontWeight: 800 }}>{rewindData?.locations?.[0]?.location_city || 'UNKNOWN'}</div>
                  </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                 {rewindData?.locations?.slice(0, 5).map((l, i) => (
+                 {(rewindData?.locations || []).slice(0, 5).map((l, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                        <span style={{ opacity: 0.5 }}>{l.location_city}</span>
                        <span style={{ fontWeight: 700 }}>{l.count} sess</span>
@@ -483,7 +518,7 @@ const Rewind = ({ stats: appStats }) => {
            <SectionTitle icon={ImageIcon} title="PHOTOS" />
            {rewindData?.photos?.length > 0 ? (
              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.5rem' }}>
-                {rewindData.photos.map((photo) => (
+                {(rewindData?.photos || []).map((photo) => (
                   <div key={photo.id} style={{ height: '220px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', position: 'relative' }}>
                      <img 
                        src={photo.url.startsWith('http') ? photo.url : `${API_BASE}${photo.url}`} 
