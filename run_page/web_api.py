@@ -1656,17 +1656,26 @@ def sync_strava_photos(limit: int = 1000):
     """Background task to download photos from Strava."""
     import datetime as dt_mod
     print(f"[{dt_mod.datetime.now()}] Starting photo sync (limit={limit})...")
-    creds = load_creds()
-    if "strava_client_id" not in creds: return
+    
+    # Use get_credential to support both credentials.json and environment variables
+    client_id = get_credential("strava_client_id")
+    client_secret = get_credential("strava_client_secret")
+    refresh_token = get_credential("strava_refresh_token")
+    
+    if not all([client_id, client_secret, refresh_token]):
+        print(f"[{dt_mod.datetime.now()}] Missing Strava credentials (ID, Secret, or Refresh Token). Skipping photo sync.")
+        return
 
     client = Client()
     try:
+        print(f"[{dt_mod.datetime.now()}] Refreshing access token...")
         response = client.refresh_access_token(
-            client_id=creds["strava_client_id"],
-            client_secret=creds["strava_client_secret"],
-            refresh_token=creds["strava_refresh_token"]
+            client_id=client_id,
+            client_secret=client_secret,
+            refresh_token=refresh_token
         )
         client.access_token = response["access_token"]
+
         
         conn = get_db_conn()
         cur = conn.cursor()
