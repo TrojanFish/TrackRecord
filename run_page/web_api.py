@@ -271,10 +271,13 @@ def parse_and_save_trophies(html_content):
                 month_match = re.search(r'([A-Za-z]+ \d{4})', date_str)
                 month_key = month_match.group(1) if month_match else "HISTORICAL"
                 
-                tid = f"strava-trophy-{abs(hash(name))}"
+                # Use stable MD5 for ID to prevent duplicates across process restarts
+                import hashlib
+                stable_hash = hashlib.md5(name.encode()).hexdigest()[:12]
+                tid = f"strava-trophy-{stable_hash}"
                 
-                # Check duplication by name
-                cur.execute("SELECT id FROM trophies WHERE name = ?", (name,))
+                # Check duplication by name or stable ID
+                cur.execute("SELECT id FROM trophies WHERE name = ? OR id = ?", (name, tid))
                 if cur.fetchone():
                     continue
                     
@@ -308,9 +311,14 @@ def get_imported_challenges_from_db():
     finally:
         conn.close()
 
-# Create static directory for photos
-os.makedirs("run_page/static/photos", exist_ok=True)
-app.mount("/static", StaticFiles(directory="run_page/static"), name="static")
+# Create static directories and mount static files
+# Use absolute paths for robust Docker mounting
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+os.makedirs(os.path.join(STATIC_DIR, "photos"), exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "trophy_icons"), exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Mount production dashboard assets from the root if they exist
 dashboard_root = os.path.join("run_page", "static", "dashboard")
@@ -2005,31 +2013,46 @@ def get_challenges_derived():
                     "progress": "21.1km"
                 })
 
-        # Format into monthly sections for UI
-        months_ordered = sorted(month_map.keys(), reverse=True)
-        
-        # Add any remaining imported trophies (that didn't match an activity month)
-        for month_key, items in imported_trophies.items():
-            # Try to push them to the right chronological spot
-            found = False
-            for m_str in months_ordered:
-                if format_month(m_str).startswith(month_key.split(' ')[0]): # Monthly match
-                    month_map[m_str].extend(items)
-                    found = True
-                    break
-            if not found:
-                # Add to a new entry if not found
-                month_map[month_key] = items
-        
-        # Final assembly in reverse chronological order
-        final_months = sorted(month_map.keys(), reverse=True)
-        for m_str in final_months:
-            challenges.append({
-                "month": format_month(m_str),
-                "items": month_map[m_str]
-            })
+        # 4. Integrate imported trophies and deduplicate
+        all_month_keys = set(month_map.keys())
+        for mk in imported_trophies.keys():
+            try:
+                d_val = dt.datetime.strptime(mk, "%b %Y")
+                all_month_keys.add(d_val.strftime("%Y-%m"))
+            except:
+                all_month_keys.add(mk)
+
+        for mk, items in imported_trophies.items():
+            try:
+                d_val = dt.datetime.strptime(mk, "%b %Y")
+                m_slug = d_val.strftime("%Y-%m")
+            except:
+                m_slug = mk
+            if m_slug not in month_map:
+                month_map[m_slug] = []
+            month_map[m_slug].extend(items)
+
+        final_challenges = []
+        months_sorted = sorted(month_map.keys(), reverse=True)
+        for m_key in months_sorted:
+            seen_names = set()
+            dedup_items = []
+            for it in month_map[m_key]:
+                name = it.get("name", "Unknown")
+                if name in seen_names: continue
+                seen_names.add(name)
+                
+                img = it.get("image", "")
+                if img and not img.startswith("http"):
+                    it["image"] = f"/static/trophy_icons/{os.path.basename(img)}"
+                dedup_items.append(it)
             
-        return challenges
+            if dedup_items:
+                final_challenges.append({
+                    "month": format_month(m_key).upper(),
+                    "items": dedup_items
+                })
+        return final_challenges
     finally:
         conn.close()
 
