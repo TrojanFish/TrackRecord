@@ -172,6 +172,8 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       className={`page-content heatmap-page ${isFullScreen ? 'fullscreen' : ''}`}
       style={{ 
           height: isFullScreen ? '100vh' : 'calc(100vh - 9rem)', 
@@ -197,7 +199,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
       ></div>
 
       {/* Left Control Column (Title, Modes, Cities) */}
-      <div style={{ 
+      <div className="heatmap-sidebar" style={{ 
         position: 'absolute', 
         top: '30px', 
         left: '30px', 
@@ -211,7 +213,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
          {/* Title & Stats Bubble */}
          <div style={{ background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
             <h2 style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', color: themeColor, margin: 0 }}>{sportType ? sportType.toUpperCase() : ''} ROUTE EXPLORER</h2>
-            <div style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '2px' }}>{activities.length} TRACKS LOADED IN DB</div>
+            <div style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '2px' }}>{activities.length} TRACKS LOADED IN DB</div>
          </div>
 
          {/* Coloring Modes */}
@@ -244,7 +246,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
          </div>
 
          {/* City Sidebar (Now inside the column) */}
-         <div style={{
+         <div className="city-sidebar" style={{
             background: 'rgba(10, 22, 40, 0.7)',
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.1)',
@@ -257,7 +259,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
             flex: 1,
             scrollbarWidth: 'none'
          }}>
-            <h3 style={{ fontSize: '0.7rem', fontWeight: 900, opacity: 0.5, letterSpacing: '1px', margin: 0 }}>EXPLORE CITIES</h3>
+            <h3 style={{ fontSize: '0.7rem', fontWeight: 900, opacity: 0.8, letterSpacing: '1px', margin: 0 }}>EXPLORE CITIES</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                {cityList.slice(0, 15).map(([name, count]) => (
                  <button 
@@ -280,7 +282,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                  >
                    <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>{name}</span>
-                   <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>{count}</span>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{count}</span>
                  </button>
                ))}
             </div>
@@ -295,7 +297,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
             border: '1px solid rgba(255,255,255,0.1)',
             flexShrink: 0 
          }}>
-            <div style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.4, letterSpacing: '1px', marginBottom: '10px' }}>MAP LEGEND</div>
+            <div style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.8, letterSpacing: '1px', marginBottom: '10px' }}>MAP LEGEND</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                {colorMode === 'Type' ? (
                  <>

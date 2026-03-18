@@ -24,7 +24,7 @@ const Header = ({ title, icon: Icon, profile, sportType, setSportType, setIsMobi
           borderRadius: '12px', 
           display: 'flex', 
           gap: '4px',
-          marginRight: '15px',
+          marginRight: '8px',
           border: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           <motion.button
@@ -32,42 +32,42 @@ const Header = ({ title, icon: Icon, profile, sportType, setSportType, setIsMobi
             whileTap={{ scale: 0.95 }}
             onClick={() => setSportType('Ride')}
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: '8px',
               border: 'none',
               background: sportType === 'Ride' ? 'var(--accent-cyan)' : 'transparent',
               color: sportType === 'Ride' ? '#000' : 'rgba(255, 255, 255, 0.6)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.7rem',
+              gap: '6px',
+              fontSize: '0.65rem',
               fontWeight: 800,
               cursor: 'pointer',
               transition: 'all 0.3s ease'
             }}
           >
-            <Bike size={14} /> RIDE
+            <Bike size={12} /> RIDE
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setSportType('Run')}
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: '8px',
               border: 'none',
               background: sportType === 'Run' ? '#ff3366' : 'transparent',
               color: sportType === 'Run' ? '#fff' : 'rgba(255, 255, 255, 0.6)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.7rem',
+              gap: '6px',
+              fontSize: '0.65rem',
               fontWeight: 800,
               cursor: 'pointer',
               transition: 'all 0.3s ease'
             }}
           >
-            <Footprints size={14} /> RUN
+            <Footprints size={12} /> RUN
           </motion.button>
         </div>
 
@@ -91,9 +91,9 @@ const Header = ({ title, icon: Icon, profile, sportType, setSportType, setIsMobi
         <button className="icon-btn desktop-only" title="Settings" style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none' }}>
             <Settings size={18} />
         </button>
-        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.08)', margin: '0 4px' }} />
+        <div className="desktop-only" style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.08)', margin: '0 4px' }} />
         <div className="user-profile">
-            <div className="avatar" title={profile?.username || 'User'} style={{ width: '32px', height: '32px', borderRadius: '10px', fontSize: '0.7rem' }}>
+            <div className="avatar" title={profile?.username || 'User'} style={{ width: '32px', height: '32px', borderRadius: '10px', fontSize: '0.65rem' }}>
               {profile?.profile ? (
                 <img src={profile.profile} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }} />
               ) : (

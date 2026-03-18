@@ -77,6 +77,8 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       className="page-content"
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
@@ -106,13 +108,13 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
                     </button>
                 ))}
               </div>
-              <div style={{ fontSize: '0.8rem', opacity: 0.5 }}>Last 365 Days</div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Last 365 Days</div>
           </div>
         </div>
         
         {renderHeatmap(heatMetric)}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '1.5rem', opacity: 0.4 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '1.5rem', opacity: 0.7 }}>
             <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>LESS</span>
             <div style={{ display: 'flex', gap: '3px' }}>
                 {[0, 1, 2, 3, 4].map(l => {
@@ -141,7 +143,7 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
             </div>
             
             <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 800 }}>MONTHLY DISTANCE</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 800, opacity: 0.8 }}>MONTHLY DISTANCE</div>
                 <div style={{ fontSize: '2.5rem', fontWeight: 900, color: themeColor }}>
                     {(monthData.totalDist / 1000).toFixed(1)} <small style={{ fontSize: '0.8rem' }}>KM</small>
                 </div>
@@ -184,7 +186,7 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
           </div>
 
           <div className="platform-card" style={{ padding: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.8rem', marginBottom: '1.5rem', opacity: 0.6 }}>SPORT DISTRIBUTION</h4>
+            <h4 style={{ fontSize: '0.8rem', marginBottom: '1.5rem', opacity: 0.8 }}>SPORT DISTRIBUTION</h4>
             <div style={{ height: '180px' }}>
                 <ResponsiveContainer>
                     <PieChart>
@@ -242,7 +244,7 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
               </ResponsiveContainer>
             </div>
           )}
-          <p style={{ marginTop: '1.5rem', opacity: 0.4, fontSize: '0.75rem', textAlign: 'center' }}>
+          <p style={{ marginTop: '1.5rem', opacity: 0.7, fontSize: '0.75rem', textAlign: 'center' }}>
             Showing {sportType} activity intensity across {selectedMonth}. Bars represent cumulative distance in kilometers per day.
           </p>
         </div>

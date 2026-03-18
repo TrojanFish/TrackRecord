@@ -14,7 +14,11 @@ import {
   Medal,
   Image,
   Wrench,
-  Milestone as RouteIcon
+  Milestone as RouteIcon,
+  Github,
+  Search,
+  Bell,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -98,8 +102,15 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       >
         {!isMobile && (
-          <button className="edge-handle-toggle" onClick={() => setIsExpanded(!isExpanded)}>
-            {isExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+          <button 
+            className="edge-handle-toggle" 
+            onClick={() => setIsExpanded(!isExpanded)}
+            title="Toggle Sidebar [K]"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              {isExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+              <span style={{ fontSize: '0.5rem', fontWeight: 900, opacity: 0.5 }}>K</span>
+            </div>
           </button>
         )}
 
@@ -108,6 +119,11 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
             <div className="logo-icon">TR</div>
             {(isExpanded || isMobile) && <span className="logo-text">TRACKRECORD</span>}
           </div>
+          {isMobile && (
+            <button className="mobile-close-btn" onClick={() => setIsMobileOpen(false)}>
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <nav className="sidebar-nav">
@@ -121,7 +137,10 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
                   <button
                     key={item.id}
                     className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      if (isMobile) setIsMobileOpen(false);
+                    }}
                   >
                     <item.icon size={18} />
                     {(isExpanded || isMobile) && (
@@ -141,6 +160,15 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
             </div>
           ))}
         </nav>
+
+        {isMobile && (
+          <div className="mobile-sidebar-footer" style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+            <a href="https://github.com/TrojanFish/TrackRecord" target="_blank" rel="noreferrer" className="icon-btn-circle" style={{ width: '40px', height: '40px' }}><Github size={18} /></a>
+            <button className="icon-btn-circle" style={{ width: '40px', height: '40px' }}><Search size={18} /></button>
+            <button className="icon-btn-circle" style={{ width: '40px', height: '40px' }}><Bell size={18} /></button>
+            <button className="icon-btn-circle" style={{ width: '40px', height: '40px' }}><Settings size={18} /></button>
+          </div>
+        )}
       </motion.div>
     </>
   );

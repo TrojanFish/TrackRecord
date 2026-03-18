@@ -176,12 +176,20 @@ const Segments = ({ sportType }) => {
   const isRun = sportType === 'Run';
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="page-content" style={{ paddingBottom: '5rem' }}>
+    <motion.div 
+      variants={container} 
+      initial="hidden" 
+      animate="show" 
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
+      className="page-content" 
+      style={{ paddingBottom: '5rem' }}
+    >
       
       {/* Top Search & Filter Bar */}
       <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+          <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }} />
           <input 
             type="text" 
             placeholder="Search segments by name or location..." 
@@ -233,7 +241,7 @@ const Segments = ({ sportType }) => {
         </div>
       </div>
 
-      <div style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.4, marginBottom: '1rem', letterSpacing: '1px' }}>
+      <div style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7, marginBottom: '1rem', letterSpacing: '1px' }}>
         {filteredSegments.length} SEGMENTS FOUND
       </div>
 
@@ -268,7 +276,7 @@ const Segments = ({ sportType }) => {
                 >
                   <td style={{ paddingLeft: '2rem' }}>
                     <div style={{ color: 'white', fontWeight: 700 }}>{segment.name}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '2px' }}>{formatCity(segment.city)}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '2px' }}>{formatCity(segment.city)}</div>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
@@ -282,9 +290,9 @@ const Segments = ({ sportType }) => {
                   </td>
                   <td>
                     {isRun ? (
-                      <div style={{ fontWeight: 600 }}>{formatPace(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>/km</span></div>
+                      <div style={{ fontWeight: 600 }}>{formatPace(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>/km</span></div>
                     ) : (
-                      <div style={{ fontWeight: 600 }}>{getSpeed(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>km/h</span></div>
+                      <div style={{ fontWeight: 600 }}>{getSpeed(segment.distance, segment.best_time)} <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>km/h</span></div>
                     )}
                   </td>
                   <td>{(segment.distance / 1000).toFixed(2)} km</td>
@@ -349,7 +357,7 @@ const Segments = ({ sportType }) => {
                     onClick={() => setModalMode(mode)}
                     style={{ 
                       padding: '1.2rem 1.5rem', background: 'none', border: 'none', color: mode === modalMode ? 'var(--accent-cyan)' : 'white',
-                      fontWeight: 800, fontSize: '0.75rem', letterSpacing: '1px', opacity: mode === modalMode ? 1 : 0.4, cursor: 'pointer',
+                      fontWeight: 800, fontSize: '0.75rem', letterSpacing: '1px', opacity: mode === modalMode ? 1 : 0.6, cursor: 'pointer',
                       position: 'relative', transition: 'all 0.3s'
                     }}
                   >
@@ -377,15 +385,15 @@ const Segments = ({ sportType }) => {
                     <tbody>
                       {segmentEfforts.map((effort, idx) => (
                         <tr key={effort.id}>
-                          <td style={{ opacity: 0.4, fontWeight: 900 }}>{idx + 1}</td>
+                          <td style={{ opacity: 0.7, fontWeight: 900 }}>{idx + 1}</td>
                           <td>{effort.start_date_local.split(' ')[0]}</td>
                           <td style={{ fontWeight: 700 }}>{effort.name}</td>
                           <td style={{ color: 'var(--accent-cyan)', fontWeight: 800 }}>{formatDuration(effort.moving_time)}</td>
                           <td>
                             {isRun ? (
-                               <>{formatPace(selectedSegment.distance, effort.moving_time)} <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>/km</span></>
+                               <>{formatPace(selectedSegment.distance, effort.moving_time)} <span style={{ opacity: 0.7, fontSize: '0.7rem' }}>/km</span></>
                             ) : (
-                               <>{getSpeed(selectedSegment.distance, effort.moving_time)} <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>km/h</span></>
+                               <>{getSpeed(selectedSegment.distance, effort.moving_time)} <span style={{ opacity: 0.7, fontSize: '0.7rem' }}>km/h</span></>
                             )}
                           </td>
                           <td>{effort.average_heartrate ? `❤️ ${Math.round(effort.average_heartrate)}` : '--'}</td>
@@ -397,7 +405,7 @@ const Segments = ({ sportType }) => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <div className="platform-card" style={{ padding: '1.5rem', height: '300px' }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.5 }}>TIME PERFORMANCE HISTORY</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.7 }}>TIME PERFORMANCE HISTORY</div>
                         <ResponsiveContainer width="100%" height="80%">
                             <LineChart data={segmentEfforts.map(e => ({
                                 date: e.start_date_local.split(' ')[0],
@@ -416,7 +424,7 @@ const Segments = ({ sportType }) => {
                     </div>
 
                     <div className="platform-card" style={{ padding: '1.5rem', height: '300px' }}>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.5 }}>EFFORT VS HEART RATE</div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.7 }}>EFFORT VS HEART RATE</div>
                         <ResponsiveContainer width="100%" height="80%">
                             <ScatterChart>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />

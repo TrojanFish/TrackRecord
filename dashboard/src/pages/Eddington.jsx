@@ -22,6 +22,8 @@ const Eddington = ({ stats, sportType }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       className="page-content"
     >
       {/* Type Toggle - Only show if no global filter is active */}
@@ -82,7 +84,7 @@ const Eddington = ({ stats, sportType }) => {
                 </div>
                 <div>
                    <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>NEXT LEVEL: E{currentData.value + 1}</div>
-                   <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+                   <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>
                       Need <b>{currentData.next_gap}</b> more days of {currentData.value + 1}+ km
                    </div>
                 </div>
@@ -93,7 +95,7 @@ const Eddington = ({ stats, sportType }) => {
              <h4 style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
                 <Info size={16} opacity={0.5} /> WHAT IS E-NUMBER?
              </h4>
-             <p style={{ fontSize: '0.8rem', opacity: 0.6, lineHeight: '1.6' }}>
+             <p style={{ fontSize: '0.8rem', opacity: 0.8, lineHeight: '1.6' }}>
                 The Eddington number (E) is the maximum integer such that an athlete has cycled/run at least E kilometers on at least E separate days. 
                 It measures both <b>consistency</b> and <b>intensity</b> over your entire history.
              </p>

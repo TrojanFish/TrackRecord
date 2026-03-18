@@ -54,6 +54,19 @@ function App() {
     fetchStats(); 
   }, [sportType]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Toggle sidebar with 'k' or 'K' key (avoid if in input)
+      if ((e.key === 'k' || e.key === 'K') && 
+          !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        setIsSidebarExpanded(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const fetchStats = async () => {
     try {
       setLoading(true);
@@ -193,9 +206,14 @@ function App() {
   if (loading) {
     return (
       <div className="loader-screen">
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
-          <Activity color="var(--accent-cyan)" size={48} />
-        </motion.div>
+        <div style={{ position: 'relative' }}>
+          <div className="loader-pulse"></div>
+          <div className="loader-ring"></div>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+            <Activity color="var(--accent-cyan)" size={32} />
+          </div>
+        </div>
+        <div className="loader-text">INITIALIZING TRACKRECORD...</div>
       </div>
     );
   }

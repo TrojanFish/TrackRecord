@@ -71,6 +71,8 @@ const Photos = ({ sportType }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       className="page-content"
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
@@ -123,7 +125,7 @@ const Photos = ({ sportType }) => {
                  </select>
               </div>
               
-              <div style={{ paddingBottom: '8px', fontSize: '0.8rem', fontWeight: 700, opacity: 0.5 }}>
+              <div style={{ paddingBottom: '8px', fontSize: '0.8rem', fontWeight: 700, opacity: 0.8 }}>
                  {filteredPhotos.length} PHOTOS FOUND
               </div>
            </div>
@@ -181,7 +183,7 @@ const Photos = ({ sportType }) => {
                     transition: 'opacity 0.3s'
                   }} className="photo-info-overlay">
                      <div style={{ fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{photo.title}</div>
-                     <div style={{ fontSize: '0.65rem', opacity: 0.7, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                      <div style={{ fontSize: '0.65rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
                        <MapPin size={10} /> {photo.location}
                      </div>
                   </div>

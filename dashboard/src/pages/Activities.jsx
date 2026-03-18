@@ -166,8 +166,10 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 10 }} 
+      initial={{ opacity: 0, y: 15 }} 
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       className="page-content activity-center"
     >
       {/* Search & Filter Header */}
@@ -175,7 +177,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center' }}>
             {/* Search Input */}
             <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
-               <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} />
+               <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }} />
                <input 
                  type="text" 
                  placeholder="Search activity name..." 
@@ -262,7 +264,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                </select>
             </div>
 
-            <div style={{ marginLeft: 'auto', fontSize: '0.8rem', fontWeight: 700, opacity: 0.5 }}>
+            <div style={{ marginLeft: 'auto', fontSize: '0.8rem', fontWeight: 700, opacity: 0.8 }}>
                FOUND {filteredActivities.length} ACTIVITIES
             </div>
          </div>
@@ -304,13 +306,13 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                 <td>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontWeight: 800 }}>{activity.start_date_local.split(' ')[0]}</span>
-                    <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{activity.start_date_local.split(' ')[1]}</span>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{activity.start_date_local.split(' ')[1]}</span>
                   </div>
                 </td>
                 <td style={{ fontWeight: 600 }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ fontWeight: 700 }}>{activity.name}</div>
-                        <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ fontSize: '0.7rem', opacity: 0.7, fontWeight: 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <MapPin size={10} /> {formatLocationShort(activity.location_country) || activity.location_city || 'Main Route'}
                         </div>
                     </div>
@@ -324,10 +326,10 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <div>
                       <b style={{ color: activity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', fontSize: '1rem' }}>{(activity.distance / 1000).toFixed(2)}</b>
-                      <span style={{ fontSize: '0.7rem', opacity: 0.5, marginLeft: '4px' }}>KM</span>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.8, marginLeft: '4px' }}>KM</span>
                     </div>
                     {activity.elevation_gain > 0 && (
-                      <span style={{ fontSize: '0.65rem', opacity: 0.6, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.65rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <TrendingUp size={10} /> {activity.elevation_gain.toFixed(0)}m
                       </span>
                     )}
@@ -341,7 +343,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                            GAP: {activity.gap_pace}
                          </span>
                        )}
-                       <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{activity.moving_time.includes(' ') ? activity.moving_time.split(' ')[1].split('.')[0] : activity.moving_time.split('.')[0]}</span>
+                       <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{activity.moving_time.includes(' ') ? activity.moving_time.split(' ')[1].split('.')[0] : activity.moving_time.split('.')[0]}</span>
                   </div>
                 </td>
                 <td>
@@ -391,7 +393,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
         </table>
       </div>
       
-      <div style={{ marginTop: '2rem', textAlign: 'center', opacity: 0.3, fontSize: '0.75rem' }}>
+      <div style={{ marginTop: '2rem', textAlign: 'center', opacity: 0.6, fontSize: '0.75rem' }}>
          Showing {filteredActivities.length} results. Use filters to narrow down your search.
       </div>
 
@@ -480,7 +482,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                       <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <ActivityIcon size={16} color="var(--accent-cyan)" /> ACTIVITY INSIGHTS
                       </h4>
-                      <p style={{ fontSize: '0.85rem', opacity: 0.6, lineHeight: '1.6' }}>
+                      <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: '1.6' }}>
                         This {selectedActivity.type} session covered {(selectedActivity.distance / 1000).toFixed(1)}km in {selectedActivity.location_city || 'unknown location'}. 
                         Your intensity factor suggests a solid training stress of {Math.round(selectedActivity.distance / 100)} points.
                       </p>

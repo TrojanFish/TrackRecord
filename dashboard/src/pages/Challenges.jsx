@@ -121,11 +121,7 @@ const Challenges = () => {
                 )}
              </div>
              
-             <div style={{ 
-               display: 'grid', 
-               gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', 
-               gap: '2rem' 
-             }}>
+             <div className="challenge-grid">
                 {section.items.map(item => (
                   <motion.div 
                     key={item.id}

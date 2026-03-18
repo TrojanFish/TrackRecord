@@ -27,17 +27,18 @@ const Gear = ({ stats, sportType }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       className="page-content"
     >
       {/* Platform Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem' }}>
+      <div className="gear-tabs-container">
         {['Equipment', 'Maintenance', 'Recording Devices'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`platform-card ${activeTab === tab ? 'active' : ''}`}
+            className={`gear-tab-btn platform-card ${activeTab === tab ? 'active' : ''}`}
             style={{ 
-              padding: '1rem 2rem', 
               cursor: 'pointer',
               color: 'white',
               fontWeight: 800,
@@ -47,7 +48,8 @@ const Gear = ({ stats, sportType }) => {
               background: activeTab === tab ? `${themeColor}33` : 'var(--bg-card)'
             }}
           >
-            {tab.toUpperCase()}
+            <span className="desktop-only">{tab.toUpperCase()}</span>
+            <span className="mobile-only">{tab === 'Recording Devices' ? 'DEVICES' : tab.toUpperCase()}</span>
           </button>
         ))}
       </div>
@@ -59,50 +61,52 @@ const Gear = ({ stats, sportType }) => {
              <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 800 }}>
                 <Shield size={22} color={themeColor} /> {isRun ? 'SHOE SENSORY' : 'VELO STABLE'} STATISTICS
              </h3>
-             <table className="activities-table">
-               <thead>
-                 <tr>
-                   <th># {isRun ? 'MODEL' : 'BIKE'}</th>
-                   <th><Ruler size={14} /> DISTANCE</th>
-                   <th><Zap size={14} /> ELEVATION</th>
-                   <th><Clock size={14} /> TIME</th>
-                   <th><Flame size={14} /> CALORIES</th>
-                   <th>STATUS</th>
-                 </tr>
-               </thead>
-                <tbody>
-                  {stats.gear_stats.map((gear, idx) => {
-                    const Icon = IconMap[gear.icon] || Grid;
-                    const gearIsRun = gear.type === 'Run';
-                    const gearColor = gearIsRun ? '#ff3366' : 'var(--accent-cyan)';
-                    return (
-                      <tr key={gear.name} 
-                          onClick={() => setSelectedGearIndex(idx)} 
-                          style={{ cursor: 'pointer', background: selectedGearIndex === idx ? `${gearColor}11` : 'transparent' }}>
-                        <td style={{ fontWeight: 700, color: gearColor, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <Icon size={16} /> {gear.name}
-                        </td>
-                        <td>{gear.distance} km</td>
-                        <td>{gear.elevation || Math.round(gear.distance * (gear.type === 'Run' ? 8 : 15))} m</td>
-                        <td>{gear.time || `${gear.count} sessions`}</td>
-                        <td>{Math.round(gear.distance * (gear.type === 'Run' ? 62 : 28))} kcal</td>
-                        <td>
-                           <span style={{ 
-                             padding: '4px 12px', 
-                             borderRadius: '12px', 
-                             fontSize: '0.7rem', 
-                             fontWeight: 800,
-                             background: (gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                             color: (gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? '#ef4444' : '#10b981'
-                           }}>
-                             {(gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? 'REPLACE' : 'READY'}
-                           </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+             <div style={{ overflowX: 'auto', width: '100%' }}>
+               <table className="activities-table">
+                 <thead>
+                   <tr>
+                     <th># {isRun ? 'MODEL' : 'BIKE'}</th>
+                     <th><Ruler size={14} /> DISTANCE</th>
+                     <th><Zap size={14} /> ELEVATION</th>
+                     <th><Clock size={14} /> TIME</th>
+                     <th><Flame size={14} /> CALORIES</th>
+                     <th>STATUS</th>
+                   </tr>
+                 </thead>
+                  <tbody>
+                    {stats.gear_stats.map((gear, idx) => {
+                      const Icon = IconMap[gear.icon] || Grid;
+                      const gearIsRun = gear.type === 'Run';
+                      const gearColor = gearIsRun ? '#ff3366' : 'var(--accent-cyan)';
+                      return (
+                        <tr key={gear.name} 
+                            onClick={() => setSelectedGearIndex(idx)} 
+                            style={{ cursor: 'pointer', background: selectedGearIndex === idx ? `${gearColor}11` : 'transparent' }}>
+                          <td style={{ fontWeight: 700, color: gearColor, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Icon size={16} /> {gear.name}
+                          </td>
+                          <td>{gear.distance} km</td>
+                          <td>{gear.elevation || Math.round(gear.distance * (gear.type === 'Run' ? 8 : 15))} m</td>
+                          <td>{gear.time || `${gear.count} sessions`}</td>
+                          <td>{Math.round(gear.distance * (gear.type === 'Run' ? 62 : 28))} kcal</td>
+                          <td>
+                             <span style={{ 
+                               padding: '4px 12px', 
+                               borderRadius: '12px', 
+                               fontSize: '0.7rem', 
+                               fontWeight: 800,
+                               background: (gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                               color: (gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? '#ef4444' : '#10b981'
+                             }}>
+                               {(gear.distance / gear.limit) > (stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) ? 'REPLACE' : 'READY'}
+                             </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
            </div>
   
            {/* Monthly Distance Chart per Gear */}
@@ -143,7 +147,7 @@ const Gear = ({ stats, sportType }) => {
                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }}
                      itemStyle={{ color: 'white' }}
-                     labelStyle={{ color: 'rgba(255,255,255,0.5)', marginBottom: '4px', display: 'block' }}
+                     labelStyle={{ color: 'rgba(255,255,255,0.7)', marginBottom: '4px', display: 'block' }}
                    />
                    <Bar dataKey="dist" radius={[4, 4, 0, 0]}>
                      {
@@ -178,7 +182,7 @@ const Gear = ({ stats, sportType }) => {
                       </div>
                       <div>
                           <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{gear.name}</h4>
-                          <span style={{ fontSize: '0.8rem', opacity: 0.5 }}>{gear.count} ACTIVITIES</span>
+                           <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{gear.count} ACTIVITIES</span>
                       </div>
                    </div>
                 </div>
@@ -198,9 +202,9 @@ const Gear = ({ stats, sportType }) => {
                 </div>
 
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px' }}>
-                   <h5 style={{ fontSize: '0.8rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.7 }}>
+                     <div style={{ fontSize: '0.55rem', opacity: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <Wrench size={16} /> {gear.type === 'Run' ? 'SHOE' : 'COMPONENT'} HEALTH
-                   </h5>
+                   </div>
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                       {gear.components?.map(comp => (
                         <div key={comp.name}>
@@ -224,28 +228,30 @@ const Gear = ({ stats, sportType }) => {
       {activeTab === 'Recording Devices' && (
         <div className="platform-card" style={{ padding: '2rem' }}>
            <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', fontWeight: 800 }}>{sportType.toUpperCase()} CAPTURE DEVICES</h3>
-           <table className="activities-table">
-             <thead>
-               <tr>
-                 <th>DEVICE</th>
-                 <th>ACTIVITIES</th>
-                 <th>DISTANCE</th>
-                 <th>ELEVATION</th>
-                 <th>TOTAL TIME</th>
-               </tr>
-             </thead>
-             <tbody>
-               {recordingDevices.map(device => (
-                 <tr key={device.name}>
-                   <td style={{ fontWeight: 700, color: themeColor }}>{device.name}</td>
-                   <td>{device.count}</td>
-                   <td>{device.distance} km</td>
-                   <td>{device.elevation} m</td>
-                   <td>{device.time}</td>
+           <div style={{ overflowX: 'auto', width: '100%' }}>
+             <table className="activities-table">
+               <thead>
+                 <tr>
+                   <th>DEVICE</th>
+                   <th>ACTIVITIES</th>
+                   <th>DISTANCE</th>
+                   <th>ELEVATION</th>
+                   <th>TOTAL TIME</th>
                  </tr>
-               ))}
-             </tbody>
-           </table>
+               </thead>
+               <tbody>
+                 {recordingDevices.map(device => (
+                   <tr key={device.name}>
+                     <td style={{ fontWeight: 700, color: themeColor }}>{device.name}</td>
+                     <td>{device.count}</td>
+                     <td>{device.distance} km</td>
+                     <td>{device.elevation} m</td>
+                     <td>{device.time}</td>
+                   </tr>
+                 ))}
+               </tbody>
+             </table>
+           </div>
         </div>
       )}
     </motion.div>

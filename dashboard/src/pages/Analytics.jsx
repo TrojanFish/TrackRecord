@@ -36,6 +36,8 @@ const Analytics = ({ stats, sportType }) => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       className="page-content"
     >
       {/* YoY Progress Chart */}
@@ -188,11 +190,11 @@ const Analytics = ({ stats, sportType }) => {
                 {isRun ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div>
-                            <div style={{ fontSize: '0.7rem', opacity: 0.5, letterSpacing: '1px' }}>ESTIMATED STEPS</div>
+                             <div style={{ fontSize: '0.7rem', opacity: 0.7, letterSpacing: '1px' }}>ESTIMATED STEPS</div>
                             <div style={{ fontSize: '2rem', fontWeight: 900, color: themeColor }}>{stats.bio_stats?.estimated_steps?.toLocaleString()}</div>
                         </div>
                         <div>
-                            <div style={{ fontSize: '0.7rem', opacity: 0.5, letterSpacing: '1px' }}>AVG CADENCE ({isRun ? 'SPM' : 'RPM'})</div>
+                             <div style={{ fontSize: '0.7rem', opacity: 0.7, letterSpacing: '1px' }}>AVG CADENCE ({isRun ? 'SPM' : 'RPM'})</div>
                             <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.bio_stats?.avg_cadence || '--'}</div>
                             <div style={{ fontSize: '0.7rem', color: (stats.bio_stats?.cadence_trend || 0) >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                                 {stats.bio_stats?.cadence_trend >= 0 ? '+' : ''}{stats.bio_stats?.cadence_trend || 0}% vs prev. month
@@ -205,11 +207,11 @@ const Analytics = ({ stats, sportType }) => {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div>
-                            <div style={{ fontSize: '0.7rem', opacity: 0.5, letterSpacing: '1px' }}>CLIMBING EFFICIENCY</div>
+                             <div style={{ fontSize: '0.7rem', opacity: 0.7, letterSpacing: '1px' }}>CLIMBING EFFICIENCY</div>
                             <div style={{ fontSize: '2rem', fontWeight: 900, color: themeColor }}>{Math.round((stats.total_distance > 0 ? (stats.recent_activities?.reduce((acc, a) => acc + (a.elevation_gain || 0), 0) / stats.total_distance) : 0) * 10)} <small style={{fontSize: '1rem'}}>VAM</small></div>
                         </div>
                         <div>
-                            <div style={{ fontSize: '0.7rem', opacity: 0.5, letterSpacing: '1px' }}>POWER OUTPUT DATA</div>
+                             <div style={{ fontSize: '0.7rem', opacity: 0.7, letterSpacing: '1px' }}>POWER OUTPUT DATA</div>
                             <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>Demos Avail</div>
                             <div style={{ fontSize: '0.7rem', color: '#60a5fa', fontWeight: 700 }}>Integration via Strava Power API</div>
                         </div>
@@ -245,7 +247,7 @@ const Analytics = ({ stats, sportType }) => {
                               <tr key={m.month}>
                                   <td style={{ fontWeight: 800 }}>{m.month.toUpperCase()}</td>
                                   <td><b style={{ color: themeColor }}>{m.this_year}</b></td>
-                                  <td style={{ opacity: 0.6 }}>{m.last_year}</td>
+                                   <td style={{ opacity: 0.8 }}>{m.last_year}</td>
                                   <td style={{ color: diff >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                           {diff >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
@@ -272,7 +274,7 @@ const Analytics = ({ stats, sportType }) => {
               <div key={gear.name} style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                   <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{gear.name}</span>
-                  <span style={{ opacity: 0.6, fontSize: '0.8rem' }}>{gear.distance} / {gear.limit} KM</span>
+                   <span style={{ opacity: 0.8, fontSize: '0.8rem' }}>{gear.distance} / {gear.limit} KM</span>
                 </div>
                 <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                   <motion.div 
@@ -286,7 +288,7 @@ const Analytics = ({ stats, sportType }) => {
                     }} 
                   />
                 </div>
-                <div style={{ marginTop: '0.8rem', fontSize: '0.7rem', opacity: 0.5, textAlign: 'right' }}>
+                 <div style={{ marginTop: '0.8rem', fontSize: '0.7rem', opacity: 0.7, textAlign: 'right' }}>
                   {percent.toFixed(1)}% {isRun ? 'SOLE WEAR' : 'MAINTENANCE CYCLE'}
                 </div>
               </div>

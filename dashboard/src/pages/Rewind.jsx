@@ -12,21 +12,78 @@ import {
   CartesianGrid, AreaChart, Area, PieChart as RePieChart, Pie, Cell,
   LineChart, Line, Legend
 } from 'recharts';
-import { MapContainer, TileLayer, Polyline, ZoomControl, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
-const MapController = ({ points }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (points && points.length > 0) {
-      const bounds = L.latLngBounds(points);
-      map.fitBounds(bounds, { padding: [30, 30], animate: true });
+const LongestActivityMap = ({ polyline, themeColor }) => {
+  const mapRef = React.useRef(null);
+  const mapInstance = React.useRef(null);
+  const polylineLayer = React.useRef(null);
+
+  // Helper to decode polyline
+  const decodePolyline = (str, precision = 5) => {
+    if (!str) return [];
+    let index = 0, lat = 0, lng = 0, points = [], shift = 0, result = 0, byte = null, latitude_change, longitude_change, factor = Math.pow(10, precision);
+    while (index < str.length) {
+      byte = null; shift = 0; result = 0;
+      do { byte = str.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+      latitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      shift = 0; result = 0;
+      do { byte = str.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+      longitude_change = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += latitude_change; lng += longitude_change;
+      points.push([lat / factor, lng / factor]);
     }
-  }, [points, map]);
-  return null;
+    return points;
+  };
+
+  useEffect(() => {
+    if (!window.L || !mapRef.current) return;
+
+    if (!mapInstance.current) {
+      mapInstance.current = window.L.map(mapRef.current, {
+        zoomControl: false,
+        attributionControl: false,
+        zoomSnap: 0.1
+      }).setView([0, 0], 2);
+
+      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      }).addTo(mapInstance.current);
+    }
+
+    if (polyline) {
+      if (polylineLayer.current) {
+        mapInstance.current.removeLayer(polylineLayer.current);
+      }
+      
+      const coords = decodePolyline(polyline);
+      if (coords.length > 0) {
+        polylineLayer.current = window.L.polyline(coords, {
+          color: themeColor,
+          weight: 4,
+          opacity: 0.9,
+          lineJoin: 'round'
+        }).addTo(mapInstance.current);
+
+        mapInstance.current.fitBounds(polylineLayer.current.getBounds(), { padding: [40, 40] });
+      }
+    }
+
+    // Handle initial sizing issues
+    setTimeout(() => {
+       if (mapInstance.current) mapInstance.current.invalidateSize();
+    }, 300);
+
+  }, [polyline, themeColor]);
+
+  return (
+    <div 
+      ref={mapRef} 
+      style={{ width: '100%', height: '100%', background: '#050b1a' }} 
+    />
+  );
 };
 
 const Rewind = ({ stats: appStats, sportType }) => {
@@ -70,7 +127,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
   
   if (rewindData?.error) {
     return (
-      <div style={{ padding: '3rem', textAlign: 'center', opacity: 0.5 }}>
+      <div style={{ padding: '3rem', textAlign: 'center', opacity: 0.7 }}>
         <SectionTitle icon={Shield} title="DATA ACCESS ERROR" />
         <p>There was a problem preparing your rewind report.</p>
         <p style={{ fontSize: '0.8rem', color: '#ef4444' }}>{rewindData.error}</p>
@@ -100,12 +157,12 @@ const Rewind = ({ stats: appStats, sportType }) => {
 
   const StatBox = ({ label, value, unit, diff, icon: Icon, color }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.65rem', fontWeight: 800, opacity: 0.4, letterSpacing: '1px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.65rem', fontWeight: 800, opacity: 0.7, letterSpacing: '1px' }}>
         <Icon size={14} color={color || themeColor} /> {label}
       </div>
       <div style={{ fontSize: '1.8rem', fontWeight: 900, color: color || 'white', display: 'flex', alignItems: 'baseline', gap: '5px' }}>
         {typeof value === 'number' ? value.toLocaleString() : value}
-        <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{unit}</span>
+         <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>{unit}</span>
       </div>
       {diff !== undefined && (
         <div style={{ fontSize: '0.7rem', fontWeight: 700, color: diff >= 0 ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -125,7 +182,15 @@ const Rewind = ({ stats: appStats, sportType }) => {
   );
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="page-content" style={{ paddingBottom: '5rem' }}>
+    <motion.div 
+      variants={container} 
+      initial="hidden" 
+      animate="show" 
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
+      className="page-content" 
+      style={{ paddingBottom: '5rem' }}
+    >
       
       {/* Filters Toolbar */}
       <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2.5rem', position: 'relative', zIndex: 10 }}>
@@ -272,7 +337,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
             <div>
               <h1 style={{ fontSize: '3rem', fontWeight: 900, letterSpacing: '-2px', margin: 0 }}>THE {sportType ? sportType.toUpperCase() : ''} REWIND <span style={{ opacity: 0.3 }}>{targetYear}</span></h1>
-              <p style={{ fontSize: '1rem', opacity: 0.5, fontWeight: 600 }}>ANNUAL PERFORMANCE & HABIT INSIGHTS</p>
+               <p style={{ fontSize: '1rem', opacity: 0.7, fontWeight: 600 }}>ANNUAL PERFORMANCE & HABIT INSIGHTS</p>
             </div>
             <SportIcon size={64} color={themeColor} style={{ opacity: 0.8 }} />
           </div>
@@ -312,7 +377,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
 
         <motion.div variants={item} className="platform-card" style={{ padding: '0', overflow: 'hidden', position: 'relative', minHeight: '350px' }}>
           <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', zIndex: 500, background: 'rgba(10, 22, 40, 0.8)', padding: '12px 20px', borderRadius: '16px', backdropFilter: 'blur(8px)', border: '1px solid var(--glass-border)' }}>
-             <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5, marginBottom: '4px' }}>🏆 LONGEST ACTIVITY (H)</div>
+             <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.7, marginBottom: '4px' }}>🏆 LONGEST ACTIVITY (H)</div>
              <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{rewindData?.longest?.name}</div>
              <div style={{ display: 'flex', gap: '15px', marginTop: '8px', fontSize: '0.8rem', opacity: 0.8 }}>
                 <span>{rewindData?.longest?.dist_km} km</span>
@@ -320,20 +385,12 @@ const Rewind = ({ stats: appStats, sportType }) => {
                 <span>{rewindData?.longest?.date}</span>
              </div>
           </div>
-          <MapContainer 
-            center={rewindData?.longest?.summary_polyline ? (decodePolyline(rewindData.longest.summary_polyline)?.[0] || [30.27, 120.15]) : [30.27, 120.15]} 
-            zoom={11} 
-            style={{ height: '100%', width: '100%', background: '#050b1a', zIndex: 1 }} 
-            zoomControl={false}
-          >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-            {rewindData?.longest?.summary_polyline && (
-              <>
-                <Polyline positions={decodePolyline(rewindData.longest.summary_polyline)} pathOptions={{ color: themeColor, weight: 3, opacity: 0.8 }} />
-                <MapController points={decodePolyline(rewindData.longest.summary_polyline)} />
-              </>
-            )}
-          </MapContainer>
+          <div style={{ height: '350px', width: '100%', minHeight: '350px' }}>
+            <LongestActivityMap 
+              polyline={rewindData?.longest?.summary_polyline} 
+              themeColor={themeColor} 
+            />
+          </div>
         </motion.div>
 
         {/* Row 2: Monthly PRs (Line) | Streaks (3 Boxes) */}
@@ -353,7 +410,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
         </motion.div>
 
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
-          <SectionTitle icon={Zap} title="CONSECUTIVE RECORDS" rightContent={<div style={{fontSize: '0.65rem', fontWeight: 800, opacity: 0.4, letterSpacing: '0.5px'}}>{targetYear === 'ALL' ? 'ALL-TIME BEST' : `${targetYear} PERSPECTIVE`}</div>} />
+          <SectionTitle icon={Zap} title="CONSECUTIVE RECORDS" rightContent={<div style={{fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '0.5px'}}>{targetYear === 'ALL' ? 'ALL-TIME BEST' : `${targetYear} PERSPECTIVE`}</div>} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', height: '100%', alignItems: 'center' }}>
             {[
               { label: 'days', value: rewindData?.streaks?.day || 0, sub: 'streak count', color: themeColor },
@@ -435,7 +492,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
 
         {/* Row 5: Rest Days (Pie) | Start Time (Area) */}
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
-          <SectionTitle icon={PieChart} title="REST DAYS BALANCE" rightContent={<div style={{fontSize: '0.8rem', opacity: 0.5}}>{Math.round((rewindData?.habit?.rest_days || 0) / (rewindData?.habit?.total_days || 1) * 100)}%</div>} />
+           <SectionTitle icon={PieChart} title="REST DAYS BALANCE" rightContent={<div style={{fontSize: '0.8rem', opacity: 0.7}}>{Math.round((rewindData?.habit?.rest_days || 0) / (rewindData?.habit?.total_days || 1) * 100)}%</div>} />
           <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', height: '240px' }}>
             <div style={{ height: '100%', width: '200px' }}>
               <ResponsiveContainer>
@@ -448,11 +505,11 @@ const Rewind = ({ stats: appStats, sportType }) => {
             </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{opacity: 0.5, fontSize: '0.8rem'}}>Training Days</span>
+                   <span style={{opacity: 0.8, fontSize: '0.8rem'}}>Training Days</span>
                   <span style={{fontWeight: 800}}>{rewindData?.habit?.active_days} d</span>
                </div>
                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{opacity: 0.5, fontSize: '0.8rem'}}>Rest Days</span>
+                   <span style={{opacity: 0.8, fontSize: '0.8rem'}}>Rest Days</span>
                   <span style={{fontWeight: 800}}>{rewindData?.habit?.rest_days} d</span>
                </div>
             </div>
@@ -505,7 +562,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                  {(rewindData?.locations || []).slice(0, 5).map((l, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                       <span style={{ opacity: 0.5 }}>{l.location_city}</span>
+                        <span style={{ opacity: 0.7 }}>{l.location_city}</span>
                        <span style={{ fontWeight: 700 }}>{l.count} sess</span>
                     </div>
                  ))}

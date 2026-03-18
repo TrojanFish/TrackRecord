@@ -133,6 +133,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       variants={container}
       initial="hidden"
       animate="show"
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
       className="page-content"
     >
       {/* 1. Hero Summary Row */}
@@ -202,7 +203,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       {stats.smart_coach && (
         <motion.div
           variants={item}
-          className="platform-card"
+          className={`platform-card ${stats.smart_coach.advice.includes('ATTENTION') ? 'coach-alert-pulse' : ''}`}
           style={{
             padding: '1.25rem',
             marginBottom: '2.5rem',
@@ -231,7 +232,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <h4 style={{ margin: 0, fontSize: '0.75rem', opacity: 0.6, letterSpacing: '1px' }}>SMART COACH ADVICE</h4>
+                <h4 style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, letterSpacing: '1px' }}>SMART COACH ADVICE</h4>
                 <span className={`badge ${stats.smart_coach.status.toLowerCase()}`} style={{ fontSize: '0.55rem' }}>
                   {stats.smart_coach.status.toUpperCase()}
                 </span>
@@ -241,7 +242,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>EFFICIENCY</div>
+              <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>EFFICIENCY</div>
               <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
                 {stats.smart_coach.efficiency}
               </div>
@@ -260,7 +261,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           <motion.div variants={item} className="platform-card interactive-card" style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>WEEKLY DISTANCE</span>
+                <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>WEEKLY DISTANCE</span>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '4px' }}>
                   {stats.recent_form.this_week.distance} <small style={{ fontSize: '0.8rem', opacity: 0.4 }}>KM</small>
                 </div>
@@ -288,7 +289,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           <motion.div variants={item} className="platform-card interactive-card" style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>TRAINING STRESS (TRIMP)</span>
+                <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>TRAINING STRESS (TRIMP)</span>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '4px' }}>
                   {stats.recent_form.this_week.stress}
                 </div>
@@ -315,7 +316,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           <motion.div variants={item} className="platform-card interactive-card" style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>RECENT CONSISTENCY</span>
+                <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>RECENT CONSISTENCY</span>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '4px' }}>
                   {stats.recent_form.this_week.count} <small style={{ fontSize: '0.8rem', opacity: 0.4 }}>SESSIONS</small>
                 </div>
@@ -354,7 +355,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               <Activity size={20} color="var(--accent-cyan)" /> TRAINING LOAD (90 DAYS)
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <button 
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
                 className="action-btn-sm"
                 onClick={(e) => { e.stopPropagation(); setDetailType('training'); setShowDetail(true); }}
                 style={{
@@ -369,7 +371,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                 }}
               >
                 DEEP ANALYSIS
-              </button>
+              </motion.button>
               <div style={{ display: 'flex', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', opacity: 0.6 }}>
                   <div style={{ width: '10px', height: '2px', background: 'var(--accent-cyan)' }}></div> FITNESS
@@ -429,7 +431,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             {stats.goals?.map(goal => (
               <div key={goal.title}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{goal.title.toUpperCase()}</span>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>{goal.title.toUpperCase()}</span>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>{Math.round((goal.current / goal.target) * 100)}%</span>
                 </div>
                 <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
