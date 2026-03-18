@@ -118,6 +118,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           ))}
         </div>
       </div>
+    </div>
     );
   };
 
