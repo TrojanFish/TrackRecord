@@ -137,48 +137,50 @@ function App() {
     }
 
     return (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', paddingBottom: '10px' }}>
-            {/* Week Labels Column */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateRows: '20px repeat(7, 12px)', 
-                gap: '3px',
-                fontSize: '0.6rem', 
-                opacity: 0.3,
-                fontWeight: 800,
-                marginTop: '1px',
-                textAlign: 'right',
-                width: '24px',
-                flexShrink: 0
-            }}>
-                <div style={{ height: '20px' }}></div>
-                <div>Sun</div>
-                <div>Mon</div>
-                <div>Tue</div>
-                <div>Wed</div>
-                <div>Thu</div>
-                <div>Fri</div>
-                <div>Sat</div>
-            </div>
-
-            <div style={{ flex: 1 }}>
-                {/* Month Labels Row */}
+        <div className="heatmap-scroll-island glass-scroll">
+            <div className="heatmap-wrapper" style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', minWidth: '850px' }}>
+                {/* Week Labels Column (Fixed relative to grid) */}
                 <div style={{ 
                     display: 'grid', 
-                    gridTemplateColumns: 'repeat(53, 1fr)', 
-                    gap: '3px',
-                    height: '20px',
-                    marginBottom: '4px'
+                    gridTemplateRows: '22px repeat(7, 12px)', 
+                    gap: '2px',
+                    fontSize: '0.6rem', 
+                    opacity: 0.3,
+                    fontWeight: 800,
+                    marginTop: '2px',
+                    textAlign: 'right',
+                    width: '32px',
+                    flexShrink: 0
                 }}>
-                    {monthLabels}
+                    <div style={{ height: '22px' }}></div>
+                    <div>SUN</div>
+                    <div>MON</div>
+                    <div>TUE</div>
+                    <div>WED</div>
+                    <div>THU</div>
+                    <div>FRI</div>
+                    <div>SAT</div>
                 </div>
-                {/* Heatmap Grid */}
-                <div className="heatmap-container" style={{ 
-                    gridTemplateColumns: 'repeat(53, 1fr)',
-                    gridTemplateRows: 'repeat(7, 12px)',
-                    gap: '3px'
-                }}>
-                    {days}
+
+                <div style={{ flex: 1 }}>
+                    {/* Month Labels Row */}
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(53, 1fr)', 
+                        gap: '2px',
+                        height: '22px',
+                        marginBottom: '4px'
+                    }}>
+                        {monthLabels}
+                    </div>
+                    {/* Heatmap Grid */}
+                    <div className="heatmap-container" style={{ 
+                        gridTemplateColumns: 'repeat(53, 1fr)',
+                        gridTemplateRows: 'repeat(7, 12px)',
+                        gap: '2px'
+                    }}>
+                        {days}
+                    </div>
                 </div>
             </div>
         </div>

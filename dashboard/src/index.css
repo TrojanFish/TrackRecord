@@ -13,6 +13,26 @@
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Custom Glass Scrollbar */
+.glass-scroll::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+
+.glass-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .mobile-only {
   display: none !important;
 }
@@ -593,13 +613,25 @@ body {
   .pattern-container {
     width: 100% !important;
     overflow-x: auto !important;
-    padding-bottom: 10px !important;
+    padding-bottom: 5px !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
   .pattern-grid {
-    min-width: 320px !important; /* Prevent squashing columns too thin */
+    min-width: 480px !important; /* Ensure enough width for labels + columns */
     display: grid !important;
+  }
+
+  .heatmap-scroll-island {
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding-bottom: 10px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .heatmap-wrapper {
+    min-width: 850px !important;
+    display: flex !important;
   }
 
   /* Correct charts that might be too tall on mobile */
@@ -1223,30 +1255,27 @@ body {
 }
 
 .heatmap-day:hover {
-  transform: scale(1.5);
+  transform: scale(1.4);
   z-index: 10;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
 }
 
-/* Heatmap Colors */
-.level-1,
-.heatmap-level-1 {
-  background: #0e4429 !important;
+/* Theme-aware Heatmap Colors */
+.level-1, .heatmap-level-1 { background: rgba(6, 182, 212, 0.15) !important; }
+.level-2, .heatmap-level-2 { background: rgba(6, 182, 212, 0.35) !important; }
+.level-3, .heatmap-level-3 { 
+  background: rgba(6, 182, 212, 0.6) !important; 
+  box-shadow: 0 0 5px rgba(6, 182, 212, 0.2);
+}
+.level-4, .heatmap-level-4 { 
+  background: var(--accent-cyan) !important; 
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
 }
 
-.level-2,
-.heatmap-level-2 {
-  background: #006d32 !important;
-}
-
-.level-3,
-.heatmap-level-3 {
-  background: #26a641 !important;
-}
-
-.level-4,
-.heatmap-level-4 {
-  background: #39d353 !important;
-}
+.sport-run .level-1 { background: rgba(255, 51, 102, 0.15) !important; }
+.sport-run .level-2 { background: rgba(255, 51, 102, 0.35) !important; }
+.sport-run .level-3 { background: rgba(255, 51, 102, 0.6) !important; box-shadow: 0 0 5px rgba(255, 51, 102, 0.2); }
+.sport-run .level-4 { background: #ff3366 !important; box-shadow: 0 0 10px rgba(255, 51, 102, 0.4); }
 
 /* Activities Table */
 .activities-table {

@@ -81,16 +81,16 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
     if (!stats.activity_pattern || stats.activity_pattern.length === 0) return null;
 
     const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    const hours = Array.from({ length: 12 }, (_, i) => i * 2);
+    const hours = Array.from({ length: 24 }, (_, i) => i); // Use full 24h for smoother granularity
 
     // Find max value for color scaling
     const maxVal = Math.max(...stats.activity_pattern.map(p => p.value), 1);
 
     return (
-      <div className="pattern-container">
-        <div className="pattern-grid" style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '10px', marginTop: '10px' }}>
-        <div style={{ display: 'grid', gridTemplateRows: 'repeat(12, 1fr)', gap: '4px', fontSize: '0.6rem', opacity: 0.3, textAlign: 'right', paddingRight: '4px' }}>
-          {hours.map(h => <div key={h}>{h}:00</div>)}
+      <div className="pattern-container glass-scroll">
+        <div className="pattern-grid" style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '14px', marginTop: '15px' }}>
+        <div style={{ display: 'grid', gridTemplateRows: 'repeat(24, 1fr)', gap: '2px', fontSize: '0.55rem', opacity: 0.3, textAlign: 'right', paddingRight: '6px' }}>
+          {hours.map(h => <div key={h} style={{ height: '8px' }}>{h % 4 === 0 ? `${h}:00` : ''}</div>)}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
           {days.map((day, dIdx) => (
@@ -102,13 +102,15 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                 return (
                   <div
                     key={h}
+                    className="pattern-cell"
                     title={`${day} ${h}:00 - ${val} activities`}
                     style={{
-                      background: val > 0 ? accent : 'white',
-                      height: '14px',
-                      borderRadius: '2px',
+                      background: val > 0 ? accent : 'rgba(255,255,255,0.03)',
+                      height: '8px',
+                      borderRadius: '1px',
                       opacity: opacity,
-                      transition: 'all 0.3s ease'
+                      transition: 'all 0.3s ease',
+                      border: val > 0 ? `1px solid ${accent}44` : 'none'
                     }}
                   />
                 );
