@@ -588,6 +588,32 @@ body {
   [style*="grid-template-columns: 1fr 1fr"] {
     grid-template-columns: 1fr !important;
   }
+
+  /* Fix Habit Consistency (Activity Pattern) stretching on mobile */
+  .pattern-container {
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding-bottom: 10px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .pattern-grid {
+    min-width: 320px !important; /* Prevent squashing columns too thin */
+    display: grid !important;
+  }
+
+  /* Correct charts that might be too tall on mobile */
+  .platform-card > div[style*="height: 300px"],
+  .platform-card > div[style*="height: 400px"],
+  .platform-card > div[style*="height: 500px"] {
+    height: 250px !important; /* Compact charts for mobile */
+  }
+
+  /* Radar and Pie chart specifically */
+  .platform-card > div[style*="height: 230px"],
+  .platform-card > div[style*="height: 220px"] {
+    height: 200px !important;
+  }
 }
 
 .menu-toggle-btn {

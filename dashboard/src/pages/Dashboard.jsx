@@ -87,7 +87,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
     const maxVal = Math.max(...stats.activity_pattern.map(p => p.value), 1);
 
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '10px', marginTop: '10px' }}>
+      <div className="pattern-container">
+        <div className="pattern-grid" style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '10px', marginTop: '10px' }}>
         <div style={{ display: 'grid', gridTemplateRows: 'repeat(12, 1fr)', gap: '4px', fontSize: '0.6rem', opacity: 0.3, textAlign: 'right', paddingRight: '4px' }}>
           {hours.map(h => <div key={h}>{h}:00</div>)}
         </div>
