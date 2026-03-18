@@ -456,11 +456,11 @@ body {
   }
   .sidebar {
     left: 0 !important;
-    top: 0 !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
-    width: 250px !important; /* Slightly more compact drawer */
-    border-radius: 0 1.25rem 1.25rem 0 !important;
+    top: 85px !important; /* Offset to start below header islands */
+    height: calc(100vh - 85px) !important;
+    max-height: calc(100vh - 85px) !important;
+    width: 250px !important;
+    border-radius: 0 1.25rem 0 0 !important; /* Only top-right curve */
     box-shadow: 20px 0 60px rgba(0, 0, 0, 0.7) !important;
     z-index: 2300 !important;
     background: #0a1628 !important;
@@ -470,20 +470,12 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  .sidebar.collapsed {
-    width: 250px !important;
-  }
-
   .sidebar-header {
-    height: 72px !important; /* More compact header */
-    padding: 0 1rem !important;
-    justify-content: flex-start !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(0,0,0,0.15);
+    display: none !important; /* Remove redundant logo header on mobile */
   }
 
   .sidebar-nav {
-    padding: 0.75rem 0.5rem !important; /* Reduced padding */
+    padding: 1.25rem 0.5rem !important;
   }
 
   .nav-group-title {
