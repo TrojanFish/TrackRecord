@@ -46,6 +46,7 @@ function App() {
   const [sportType, setSportType] = useState('Ride'); 
   const [initialSearch, setInitialSearch] = useState('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Sync with sportType change
@@ -239,9 +240,14 @@ function App() {
       
       <Sidebar 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          setIsMobileMenuOpen(false); // Close menu on tab selection
+        }} 
         isExpanded={isSidebarExpanded} 
         setIsExpanded={setIsSidebarExpanded}
+        isMobileOpen={isMobileMenuOpen}
+        setIsMobileOpen={setIsMobileMenuOpen}
         stats={stats}
       />
 
@@ -252,6 +258,7 @@ function App() {
           profile={stats.athlete_profile} 
           sportType={sportType}
           setSportType={setSportType}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
         <AnimatePresence mode="wait">
           {renderTabContent()}

@@ -1,10 +1,13 @@
-import { Settings, Bell, Search, Github, Bike, Footprints } from 'lucide-react';
+import { Settings, Bell, Search, Github, Bike, Footprints, Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const Header = ({ title, icon: Icon, profile, sportType, setSportType }) => {
+const Header = ({ title, icon: Icon, profile, sportType, setSportType, setIsMobileMenuOpen }) => {
   return (
     <header className="main-header">
-      <div className="page-title-hub">
+      <div className="menu-toggle-btn mobile-only" onClick={() => setIsMobileMenuOpen(true)}>
+        <Menu size={20} />
+      </div>
+      <div className="page-title-hub desktop-only">
         {Icon && <Icon size={20} color="var(--accent-cyan)" />}
         <h1>{title}</h1>
       </div>
@@ -68,20 +71,20 @@ const Header = ({ title, icon: Icon, profile, sportType, setSportType }) => {
           href="https://github.com/TrojanFish/TrackRecord" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="icon-btn" 
+          className="icon-btn desktop-only" 
           title="GitHub Repository" 
           style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit', textDecoration: 'none' }}
         >
             <Github size={18} />
         </a>
-        <button className="icon-btn" title="Search" style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none' }}>
+        <button className="icon-btn desktop-only" title="Search" style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none' }}>
             <Search size={18} />
         </button>
-        <button className="icon-btn" title="Notifications" style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none' }}>
+        <button className="icon-btn desktop-only" title="Notifications" style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none' }}>
             <Bell size={18} />
             <span className="notification-dot" style={{ top: '8px', right: '8px', width: '6px', height: '6px' }} />
         </button>
-        <button className="icon-btn" title="Settings" style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none' }}>
+        <button className="icon-btn desktop-only" title="Settings" style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'transparent', border: 'none' }}>
             <Settings size={18} />
         </button>
         <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.08)', margin: '0 4px' }} />

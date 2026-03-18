@@ -1,16 +1,14 @@
 import React from 'react';
 import { 
+  X,
   LayoutDashboard, 
   Activity, 
   Map as MapIcon, 
   Calendar, 
-  Layers, 
-  Trophy, 
   ChevronLeft, 
   ChevronRight,
   TrendingUp,
   History,
-  Settings,
   Star,
   Award,
   Medal,
@@ -18,9 +16,9 @@ import {
   Wrench,
   Milestone as RouteIcon
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) => {
+const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileOpen, setIsMobileOpen, stats }) => {
   const getBadgeValue = (id) => {
     if (!stats) return null;
     if (id === 'Activities') return stats.total_count;
@@ -70,55 +68,80 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, stats }) 
     }
   ];
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
-    <motion.div 
-      className={`sidebar ${isExpanded ? 'expanded sidebar-expanded' : 'collapsed'}`}
-      animate={{ width: isExpanded ? 240 : 72 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-    >
-      <button className="edge-handle-toggle" onClick={() => setIsExpanded(!isExpanded)}>
-        {isExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-      </button>
+    <>
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileOpen(false)}
+            className="sidebar-overlay"
+          />
+        )}
+      </AnimatePresence>
 
-      <div className="sidebar-header" style={{ borderBottom: 'none' }}>
-        <div className="logo-container">
-          <div className="logo-icon" style={{ width: '32px', height: '32px', fontSize: '0.9rem', fontWeight: 900 }}>TR</div>
-          {isExpanded && <span className="logo-text" style={{ fontSize: '0.8rem', fontWeight: 900 }}>TRACKRECORD</span>}
-        </div>
-      </div>
+      <motion.div 
+        className={`sidebar ${isExpanded ? 'sidebar-expanded' : 'collapsed'} ${isMobileOpen ? 'mobile-open' : ''}`}
+        animate={isMobile 
+          ? { x: isMobileOpen ? 0 : '-100%' } 
+          : { width: isExpanded ? 240 : 72, x: 0 }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+      >
+        {!isMobile && (
+          <button className="edge-handle-toggle" onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+          </button>
+        )}
 
-      <nav className="sidebar-nav">
-        {groups.map((group, idx) => (
-          <div key={idx} className="nav-group">
-            {isExpanded && <div className="nav-group-title" style={{ opacity: 0.15, fontSize: '0.55rem' }}>{group.title}</div>}
-            <div className="nav-group-items">
-              {group.items.map((item) => (
-                <button
-                  key={item.id}
-                  className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-                  onClick={() => setActiveTab(item.id)}
-                  title={!isExpanded ? item.label : ''}
-                  style={{ borderRadius: '14px', margin: '4px 8px' }}
-                >
-                  <item.icon size={18} />
-                  {isExpanded && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, alignItems: 'center', marginLeft: '10px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.3px' }}>{item.label}</span>
-                      {getBadgeValue(item.id) !== null && getBadgeValue(item.id) > 0 && (
-                        <span className="nav-badge" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>{getBadgeValue(item.id)}</span>
-                      )}
-                    </div>
-                  )}
-                  {activeTab === item.id && (
-                    <motion.div layoutId="nav-active" className="nav-active-indicator" />
-                  )}
-                </button>
-              ))}
-            </div>
+        <div className="sidebar-header">
+          <div className="logo-container">
+            <div className="logo-icon">TR</div>
+            {(isExpanded || isMobile) && <span className="logo-text">TRACKRECORD</span>}
           </div>
-        ))}
-      </nav>
-    </motion.div>
+          {isMobile && (
+            <button className="mobile-close-btn" onClick={() => setIsMobileOpen(false)}>
+              <X size={20} />
+            </button>
+          )}
+        </div>
+
+        <nav className="sidebar-nav">
+          {groups.map((group, idx) => (
+            <div key={idx} className="nav-group">
+              {(isExpanded || isMobile) && (
+                <div className="nav-group-title">{group.title}</div>
+              )}
+              <div className="nav-group-items">
+                {group.items.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                    onClick={() => setActiveTab(item.id)}
+                  >
+                    <item.icon size={18} />
+                    {(isExpanded || isMobile) && (
+                      <div className="nav-item-label-container">
+                        <span className="nav-item-label">{item.label}</span>
+                        {getBadgeValue(item.id) !== null && getBadgeValue(item.id) > 0 && (
+                          <span className="nav-badge">{getBadgeValue(item.id)}</span>
+                        )}
+                      </div>
+                    )}
+                    {activeTab === item.id && (
+                      <motion.div layoutId="nav-active" className="nav-active-indicator" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </motion.div>
+    </>
   );
 };
 

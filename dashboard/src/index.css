@@ -13,6 +13,20 @@
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.mobile-only {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    z-index: 2201;
+    display: flex !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -168,7 +182,7 @@ body {
   z-index: 1000;
   border-radius: 2rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255,255,255,0.05);
-  transition: width 0.4s var(--transition-smooth);
+  transition: width 0.4s var(--transition-smooth), transform 0.4s var(--transition-smooth);
 }
 
 .sidebar.expanded {
@@ -428,8 +442,69 @@ body {
   justify-content: space-between;
   align-items: center;
   z-index: 1100;
-  transition: left 0.4s var(--transition-smooth);
+  transition: left 0.4s var(--transition-smooth), padding 0.4s var(--transition-smooth);
   pointer-events: none; /* Allows scrolling content underneath */
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 6.5rem 1rem 2.5rem 1rem !important;
+  }
+  .main-header {
+    left: 1rem !important;
+    right: 1rem !important;
+    top: 1rem !important;
+  }
+  .sidebar {
+    left: 0 !important;
+    top: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 2rem 2rem 0 !important;
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5) !important;
+    z-index: 2200 !important;
+  }
+  .action-hub {
+    gap: 4px !important;
+  }
+  .sport-switcher-island {
+    margin-right: 5px !important;
+  }
+}
+
+.menu-toggle-btn {
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 2199;
+}
+
+.mobile-close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: white;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
 .sidebar-expanded ~ .main-content .main-header {
@@ -740,7 +815,7 @@ body {
 .glow-polyline:hover {
   filter: drop-shadow(0 0 8px currentColor);
   cursor: pointer;
-  z-index: 1000;
+  z-index: 2300;
 }
 
 .map-controls-floating {
