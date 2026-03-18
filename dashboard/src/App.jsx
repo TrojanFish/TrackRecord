@@ -258,6 +258,7 @@ function App() {
           profile={stats.athlete_profile} 
           sportType={sportType}
           setSportType={setSportType}
+          isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
         <AnimatePresence mode="wait">

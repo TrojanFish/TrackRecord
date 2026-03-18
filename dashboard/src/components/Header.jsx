@@ -1,11 +1,15 @@
-import { Settings, Bell, Search, Github, Bike, Footprints, Menu } from 'lucide-react';
+import { Settings, Bell, Search, Github, Bike, Footprints, Menu, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const Header = ({ title, icon: Icon, profile, sportType, setSportType, setIsMobileMenuOpen }) => {
+const Header = ({ title, icon: Icon, profile, sportType, setSportType, setIsMobileMenuOpen, isMobileMenuOpen }) => {
   return (
     <header className="main-header">
-      <div className="menu-toggle-btn mobile-only" onClick={() => setIsMobileMenuOpen(true)}>
-        <Menu size={20} />
+      <div 
+        className={`menu-toggle-btn mobile-only ${isMobileMenuOpen ? 'active' : ''}`} 
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        style={{ zIndex: 2500, position: 'relative' }}
+      >
+        {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
       </div>
       <div className="page-title-hub desktop-only">
         {Icon && <Icon size={20} color="var(--accent-cyan)" />}

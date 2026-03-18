@@ -452,17 +452,18 @@ body {
     left: 1rem !important;
     right: 1rem !important;
     top: 1rem !important;
+    z-index: 2400 !important; /* Above sidebar drawer */
   }
   .sidebar {
     left: 0 !important;
     top: 0 !important;
     height: 100vh !important;
     max-height: 100vh !important;
-    width: 280px !important;
-    border-radius: 0 1.5rem 1.5rem 0 !important;
+    width: 250px !important; /* Slightly more compact drawer */
+    border-radius: 0 1.25rem 1.25rem 0 !important;
     box-shadow: 20px 0 60px rgba(0, 0, 0, 0.7) !important;
     z-index: 2300 !important;
-    background: #0a1628 !important; /* Deeper, more opaque for readability */
+    background: #0a1628 !important;
     backdrop-filter: blur(40px) saturate(200%) !important;
     -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
     padding-bottom: constant(safe-area-inset-bottom);
@@ -470,34 +471,55 @@ body {
   }
 
   .sidebar.collapsed {
-    width: 280px !important; /* Force width on mobile even if code says collapsed */
+    width: 250px !important;
   }
 
   .sidebar-header {
-    height: 80px !important;
-    padding: 0 1.25rem !important;
-    justify-content: space-between !important;
+    height: 72px !important; /* More compact header */
+    padding: 0 1rem !important;
+    justify-content: flex-start !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(0,0,0,0.1); /* Subtle header background */
+    background: rgba(0,0,0,0.15);
   }
 
   .sidebar-nav {
-    padding: 1.25rem 0.75rem !important;
+    padding: 0.75rem 0.5rem !important; /* Reduced padding */
+  }
+
+  .nav-group-title {
+    margin-top: 1rem !important;
+    margin-bottom: 0.4rem !important;
+    font-size: 0.6rem !important;
   }
 
   .nav-item {
-    margin: 4px 8px !important;
-    padding: 10px 14px !important;
-    border-radius: 12px !important;
+    margin: 2px 6px !important; /* Tighter margins */
+    padding: 8px 12px !important; /* Tighter padding */
+    border-radius: 10px !important;
     width: auto !important;
     display: flex !important;
     justify-content: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .nav-item svg {
+      min-width: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
   }
 
   .nav-label {
     opacity: 1 !important;
     pointer-events: auto !important;
     display: inline-block !important;
+    font-size: 0.75rem !important;
+  }
+
+  .nav-badge {
+      font-size: 0.6rem !important;
+      padding: 0 6px !important;
+      height: 16px !important;
+      line-height: 16px !important;
   }
   .action-hub {
     gap: 8px !important;

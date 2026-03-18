@@ -108,11 +108,6 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
             <div className="logo-icon">TR</div>
             {(isExpanded || isMobile) && <span className="logo-text">TRACKRECORD</span>}
           </div>
-          {isMobile && (
-            <button className="mobile-close-btn" onClick={(e) => { e.stopPropagation(); setIsMobileOpen(false); }} title="Close Menu">
-              <X size={20} />
-            </button>
-          )}
         </div>
 
         <nav className="sidebar-nav">
