@@ -806,6 +806,58 @@ body {
   .platform-card > div[style*="height: 220px"] {
     height: 200px !important;
   }
+
+  /* Global Typography Scale-down for Mobile Consistency */
+  h2.page-title {
+    font-size: 1.4rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .stat-sub {
+    font-size: 0.6rem !important;
+    font-weight: 700 !important;
+    opacity: 0.7 !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .stat-graph-mini span {
+    font-size: 0.55rem !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .activity-table th, 
+  .activities-table th,
+  .analytics-table th {
+    font-size: 0.6rem !important;
+    padding: 10px 8px !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .activity-table td,
+  .activities-table td,
+  .analytics-table td {
+    font-size: 0.7rem !important;
+    padding: 10px 8px !important;
+  }
+
+  .badge {
+    font-size: 0.55rem !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Record Matrix specific scaling */
+  .record-value {
+    font-size: 1.2rem !important;
+  }
+
+  .record-label {
+    font-size: 0.55rem !important;
+  }
+
+  .record-meta {
+    font-size: 0.6rem !important;
+    gap: 0.5rem !important;
+  }
 }
 
 .menu-toggle-btn {
