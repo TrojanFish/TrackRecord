@@ -74,7 +74,19 @@ const Analytics = ({ stats, sportType }) => {
           <ResponsiveContainer>
             <LineChart data={stats.yoy_cumulative}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="day" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
+              <XAxis 
+                dataKey="day" 
+                stroke="rgba(255,255,255,0.3)" 
+                fontSize={11} 
+                tickLine={false} 
+                axisLine={false}
+                ticks={[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]}
+                tickFormatter={(val) => {
+                  const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+                  const idx = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335].indexOf(val);
+                  return idx !== -1 ? months[idx] : "";
+                }}
+              />
               <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
               <Tooltip 
                 contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
