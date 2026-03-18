@@ -362,7 +362,7 @@ body {
   position: relative;
   background: transparent;
   border: none;
-  width: auto;
+  width: calc(100% - 16px);
   text-align: left;
 }
 
@@ -402,6 +402,13 @@ body {
   font-size: 0.9rem;
   letter-spacing: 0.5px;
   white-space: nowrap;
+}
+
+.nav-item-label-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
 }
 
 .nav-item svg {
@@ -485,10 +492,10 @@ body {
   }
 
   .nav-item {
-    margin: 2px 6px !important; /* Tighter margins */
-    padding: 8px 12px !important; /* Tighter padding */
-    border-radius: 10px !important;
-    width: auto !important;
+    margin: 4px 8px !important; /* Tighter margins */
+    padding: 10px 14px !important; /* Tighter padding */
+    border-radius: 12px !important;
+    width: calc(100% - 16px) !important;
     display: flex !important;
     justify-content: flex-start !important;
     gap: 10px !important;
