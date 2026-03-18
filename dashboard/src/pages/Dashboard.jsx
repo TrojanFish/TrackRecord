@@ -350,9 +350,9 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           style={{ padding: '2rem', cursor: 'pointer' }}
           onClick={() => { setDetailType('training'); setShowDetail(true); }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Activity size={20} color="var(--accent-cyan)" /> TRAINING LOAD (90 DAYS)
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '1.1rem' }}>
+              <Activity size={20} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> TRAINING LOAD (90 DAYS)
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <motion.button 
@@ -424,8 +424,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
         {/* Goals Summary (Moved here for tighter correlation) */}
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Target size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#f59e0b'} /> PERFORMANCE GOALS
+          <h3 className="card-title" style={{ fontSize: '1rem', marginBottom: '2rem' }}>
+            <Target size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#f59e0b'} style={{ flexShrink: 0 }} /> PERFORMANCE GOALS
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {stats.goals?.map(goal => (
@@ -454,9 +454,9 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
       {/* 2.1 Most Recent Activities (New P0 Widget) */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Activity size={22} color="var(--accent-cyan)" /> MOST RECENT ACTIVITIES
+        <div className="card-header">
+          <h3 className="card-title" style={{ fontSize: '1.2rem' }}>
+            <Activity size={22} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> MOST RECENT ACTIVITIES
           </h3>
           <button
             onClick={() => setActiveTab && setActiveTab('Activities')}
@@ -561,8 +561,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
         {/* Athlete Profile Radar */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <User size={18} color="#ec4899" /> PERFORMANCE RADAR
+          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
+            <User size={18} color="#ec4899" style={{ flexShrink: 0 }} /> PERFORMANCE RADAR
           </h3>
           <div style={{ height: '230px', margin: '0 -10px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -579,8 +579,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         {/* Activity Pattern (Heatmap) */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Zap size={16} color="var(--accent-cyan)" /> HABIT CONSISTENCY
+            <h3 className="card-title" style={{ fontSize: '0.9rem' }}>
+              <Zap size={16} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> HABIT CONSISTENCY
             </h3>
             <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>HOUR vs WEEKDAY</span>
           </div>
@@ -589,8 +589,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
         {/* Sport Distribution Pie */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PieIcon size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#bd00ff'} /> ACTIVITY BREAKDOWN
+          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            <PieIcon size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#bd00ff'} style={{ flexShrink: 0 }} /> ACTIVITY BREAKDOWN
           </h3>
           <div style={{ height: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: '100%', height: '140px' }}>
@@ -631,9 +631,9 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
         {/* YOY Trends */}
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <TrendingUp size={18} color="var(--accent-cyan)" /> CUMULATIVE DISTANCE TRENDS (YOY)
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '1rem' }}>
+              <TrendingUp size={18} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> CUMULATIVE DISTANCE TRENDS (YOY)
             </h3>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '70%' }}>
               {stats.available_years?.map((yr, i) => (
@@ -684,8 +684,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
         {/* PR Summary Table */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Trophy size={16} color="#f59e0b" /> PERSONAL RECORDS
+          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            <Trophy size={16} color="#f59e0b" style={{ flexShrink: 0 }} /> PERSONAL RECORDS
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {stats.dashboard_records?.map((rec, idx) => (
@@ -718,8 +718,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
         {/* Gear Monitoring */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Wrench size={16} color="#10b981" /> GEAR LIFE MONITOR
+          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+            <Wrench size={16} color="#10b981" style={{ flexShrink: 0 }} /> GEAR LIFE MONITOR
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {stats.gear_stats?.slice(0, 2).map((gear, idx) => (
@@ -742,8 +742,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
         {/* HR Intensity Bands */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Heart size={16} color="#ef4444" /> INTENSITY (HR ZONES)
+          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+            <Heart size={16} color="#ef4444" style={{ flexShrink: 0 }} /> INTENSITY (HR ZONES)
           </h3>
           <div style={{ height: '120px' }}>
             <ResponsiveContainer>
@@ -767,8 +767,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
         {/* Distance Structure Breakdown */}
         <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={16} color="#bd00ff" /> DISTANCE STRUCTURE
+          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+            <Activity size={16} color="#bd00ff" style={{ flexShrink: 0 }} /> DISTANCE STRUCTURE
           </h3>
           <div style={{ height: '120px' }}>
             <ResponsiveContainer>
@@ -859,13 +859,13 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
       {/* 6. Activity Contribution Grid Widget */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
-            <Map size={18} color={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} /> YEARLY ACTIVITY CONTRIBUTION
+        <div className="card-header">
+          <h3 className="card-title" style={{ fontSize: '1rem', margin: 0 }}>
+            <Map size={18} color={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} style={{ flexShrink: 0 }} /> YEARLY ACTIVITY CONTRIBUTION
           </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div className="heatmap-controls" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%' }}>
             {/* Metric Toggle */}
-            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+            <div className="metric-toggle" style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
               {['count', 'dist', 'time', 'elev', 'cal'].map(m => (
                 <button
                   key={m}
@@ -888,7 +888,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             </div>
 
             {/* Legend */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.4 }}>
+            <div className="heatmap-legend" style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.4 }}>
               <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>LESS</span>
               <div style={{ display: 'flex', gap: '3px' }}>
                 {[0, 1, 2, 3, 4].map(l => (

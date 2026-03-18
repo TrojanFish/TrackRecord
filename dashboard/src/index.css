@@ -592,13 +592,30 @@ body {
   /* Force single column for other grids */
   .platform-grid, 
   .main-chart-card,
-  [style*="grid-template-columns"]:not(.heatmap-container):not(.pattern-grid):not(.pattern-grid-inner):not(.hero-grid):not(.challenge-grid),
-  [style*="gridTemplateColumns"]:not(.heatmap-container):not(.pattern-grid):not(.pattern-grid-inner):not(.hero-grid):not(.challenge-grid) {
+  [style*="grid-template-columns"]:not(.heatmap-container):not(.pattern-grid):not(.pattern-grid-inner):not(.hero-grid):not(.challenge-grid):not(.stats-2x2):not(.platform-grid-main),
+  [style*="gridTemplateColumns"]:not(.heatmap-container):not(.pattern-grid):not(.pattern-grid-inner):not(.hero-grid):not(.challenge-grid):not(.stats-2x2):not(.platform-grid-main) {
     grid-template-columns: 1fr !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 1.5rem !important;
+    gap: 1rem !important; /* Slightly tighter gap */
     width: 100% !important;
+  }
+
+  .hero-grid, .stats-2x2, .platform-grid-2col {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+
+  .card-title {
+    font-size: 0.85rem !important; /* Slightly smaller to prevent excessive wrapping */
+    align-items: flex-start !important; /* Top align icon if title wraps to 3 lines */
+    gap: 10px !important;
+    line-height: 1.4 !important;
+  }
+
+  .card-title svg {
+    margin-top: 2px !important; /* Align with first line of text */
   }
 
   .platform-card {
@@ -609,6 +626,7 @@ body {
     box-sizing: border-box !important;
     flex: none !important;
     max-width: 100% !important;
+    border-radius: 1.25rem !important;
   }
 
   /* Reset any specific side-by-side flex containers */
@@ -620,6 +638,42 @@ body {
     gap: 1.25rem !important;
     width: 100% !important;
     align-items: stretch !important;
+  }
+
+  .card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  
+  /* Reset special containers for card-header content */
+  .card-header > div {
+    width: 100% !important;
+  }
+
+  .heatmap-controls {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+
+  .heatmap-legend {
+    width: 100% !important;
+    justify-content: flex-end !important;
+    margin-top: 0.5rem !important;
+    opacity: 0.6 !important;
+  }
+  
+  .metric-toggle {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  
+  .metric-toggle button {
+    flex: 1 !important;
+    padding: 6px 2px !important;
+    font-size: 0.6rem !important;
   }
 
   .gear-tabs-container {
@@ -643,9 +697,28 @@ body {
     text-align: center !important;
   }
   
-  .gear-tab-btn .mobile-only {
-    display: block !important;
-    font-size: 0.55rem !important;
+  /* Modal and Detail Panel optimizations */
+  .activity-detail-panel {
+    width: 90% !important;
+    max-width: 90% !important;
+    border-radius: 2rem 0 0 2rem !important;
+  }
+
+  .panel-content {
+    padding: 1.5rem !important;
+  }
+  
+  .stat-label {
+    font-size: 0.5rem !important;
+    letter-spacing: 1px !important;
+  }
+  
+  .stat-value {
+    font-size: 1.1rem !important;
+  }
+
+  .legend-item {
+    font-size: 0.6rem !important;
   }
 
   /* Table responsiveness - extremely important for mobile */
@@ -1030,6 +1103,18 @@ body {
   transition: all 0.4s var(--transition-smooth);
 }
 
+.card-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+}
+
+.card-title svg {
+  flex-shrink: 0 !important;
+}
+
 .platform-card:hover {
   border-color: rgba(6, 182, 212, 0.4);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 
@@ -1044,16 +1129,21 @@ body {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
-.gear-tabs-container {
-  display: flex;
+.platform-grid-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
   gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  margin-bottom: 3rem;
 }
 
-.gear-tab-btn {
-  padding: 1.25rem 2.5rem;
-  border-radius: 1.25rem;
-  min-width: 160px;
+@media (max-width: 1200px) {
+  .platform-grid-main {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .platform-grid-2col {
+     grid-template-columns: 1fr !important;
+  }
 }
 
 .platform-card::before {

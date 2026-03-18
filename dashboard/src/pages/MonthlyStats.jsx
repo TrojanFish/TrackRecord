@@ -82,12 +82,12 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
       className="page-content"
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
-            <Calendar size={20} color={themeColor} /> ANNUAL {sportType.toUpperCase()} HEATMAP
+        <div className="card-header">
+          <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+            <Calendar size={20} color={themeColor} style={{ flexShrink: 0 }} /> ANNUAL {sportType.toUpperCase()} HEATMAP
           </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+          <div className="heatmap-controls" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <div className="metric-toggle" style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
                 {['count', 'dist', 'time', 'elev', 'cal'].map(m => (
                     <button
                         key={m}
@@ -114,7 +114,7 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
         
         {renderHeatmap(heatMetric)}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '1.5rem', opacity: 0.7 }}>
+        <div className="heatmap-legend" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '1.5rem', opacity: 0.7 }}>
             <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>LESS</span>
             <div style={{ display: 'flex', gap: '3px' }}>
                 {[0, 1, 2, 3, 4].map(l => {
@@ -218,9 +218,9 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
 
         {/* Right: Daily Activity Chart */}
         <div className="platform-card" style={{ padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Activity size={18} color={themeColor} /> DAILY DISTANCE BREAKDOWN
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '1.1rem' }}>
+              <Activity size={18} color={themeColor} style={{ flexShrink: 0 }} /> DAILY DISTANCE BREAKDOWN
             </h3>
           </div>
           {monthData.totalCount === 0 ? (

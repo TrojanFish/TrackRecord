@@ -79,9 +79,9 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
       transition={{ duration: 0.3 }}
       className="page-content"
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '1.5rem', marginBottom: '3rem', alignItems: 'stretch' }}>
+      <div className="platform-grid-main">
           {/* LEFT: COMBINED PB + PEAK */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '1.5rem' }}>
+          <div className="platform-grid-2col" style={{ gap: '1.5rem' }}>
               {/* COLUMN 1: ALL-TIME RECORDS (THE MEDAL WALL) */}
               <div className="platform-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                 <h2 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.8, letterSpacing: '1px' }}>PERSONAL BEST MILESTONES</h2>

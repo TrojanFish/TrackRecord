@@ -271,7 +271,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
       </div>
 
       {/* Main Table Container */}
-      <div className="platform-card" style={{ padding: '0', overflowX: 'auto' }}>
+      <div className="platform-card table-scroll-container" style={{ padding: '0' }}>
         <table className="activities-table">
           <thead>
             <tr>
