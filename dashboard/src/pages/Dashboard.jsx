@@ -88,39 +88,44 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
     return (
       <div className="pattern-container glass-scroll">
-        <div className="pattern-grid" style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '14px', marginTop: '15px' }}>
-        <div style={{ display: 'grid', gridTemplateRows: 'repeat(24, 1fr)', gap: '2px', fontSize: '0.55rem', opacity: 0.3, textAlign: 'right', paddingRight: '6px' }}>
-          {hours.map(h => <div key={h} style={{ height: '8px' }}>{h % 4 === 0 ? `${h}:00` : ''}</div>)}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-          {days.map((day, dIdx) => (
-            <div key={day} style={{ display: 'grid', gridTemplateRows: 'repeat(12, 1fr)', gap: '4px' }}>
-              {hours.map((h, hIdx) => {
-                const cell = stats.activity_pattern.find(p => p.day === dIdx && p.hour === h);
-                const val = cell ? cell.value : 0;
-                const opacity = val === 0 ? 0.03 : 0.1 + (val / maxVal) * 0.9;
-                return (
-                  <div
-                    key={h}
-                    className="pattern-cell"
-                    title={`${day} ${h}:00 - ${val} activities`}
-                    style={{
-                      background: val > 0 ? accent : 'rgba(255,255,255,0.03)',
-                      height: '8px',
-                      borderRadius: '1px',
-                      opacity: opacity,
-                      transition: 'all 0.3s ease',
-                      border: val > 0 ? `1px solid ${accent}44` : 'none'
-                    }}
-                  />
-                );
-              })}
-              <div style={{ fontSize: '0.6rem', opacity: 0.4, textAlign: 'center', marginTop: '8px' }}>{day}</div>
-            </div>
-          ))}
+        <div className="pattern-grid" style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '12px', marginTop: '10px' }}>
+          {/* Vertical axis: Hours */}
+          <div style={{ display: 'grid', gridTemplateRows: '24px repeat(24, 10px)', gap: '2px', fontSize: '0.55rem', opacity: 0.3, textAlign: 'right', paddingRight: '8px' }}>
+            <div style={{ height: '24px' }}></div> {/* Spacer for day label row */}
+            {hours.map(h => <div key={h} style={{ height: '10px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>{h % 4 === 0 ? `${h}:00` : ''}</div>)}
+          </div>
+          
+          {/* Main Grid: Days */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+            {days.map((day, dIdx) => (
+              <div key={day} style={{ display: 'grid', gridTemplateRows: '24px repeat(24, 10px)', gap: '2px' }}>
+                {/* Day Labels at TOP */}
+                <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.4, textAlign: 'center', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{day}</div>
+                {hours.map((h, hIdx) => {
+                  const cell = stats.activity_pattern.find(p => p.day === dIdx && p.hour === h);
+                  const val = cell ? cell.value : 0;
+                  const opacity = val === 0 ? 0.03 : 0.1 + (val / maxVal) * 0.9;
+                  return (
+                    <div
+                      key={h}
+                      className="pattern-cell"
+                      title={`${day} ${h}:00 - ${val} activities`}
+                      style={{
+                        background: val > 0 ? accent : 'rgba(255,255,255,0.03)',
+                        height: '10px',
+                        borderRadius: '1.5px',
+                        opacity: opacity,
+                        transition: 'all 0.3s ease',
+                        border: val > 0 ? `1px solid ${accent}44` : 'none'
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
     );
   };
 
@@ -826,16 +831,26 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#10b981'} /> {stats.bio_stats?.cadence_type || 'CADENCE PROFILE'}
           </h3>
-          <div style={{ flex: 1, minHeight: '200px' }}>
-            <ResponsiveContainer>
-              <BarChart data={stats.bio_stats?.cadence_distribution}>
+          <div style={{ flex: 1, height: '220px', minHeight: '220px', width: '100%', position: 'relative' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.bio_stats?.cadence_distribution || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                <XAxis dataKey="label" stroke="rgba(255,255,255,0.2)" fontSize={9} />
+                <XAxis dataKey="label" stroke="rgba(255,255,255,0.2)" fontSize={9} tickLine={false} axisLine={false} tick={{dy: 5}} />
+                <YAxis hide />
                 <Tooltip 
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px' }} 
+                  contentStyle={{ background: 'rgba(10, 22, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', backdropFilter: 'blur(10px)' }} 
                 />
-                <Bar dataKey="count" fill={stats.sport_type === 'Run' ? '#ff3366' : '#10b981'} radius={[3, 3, 0, 0]} barSize={30} />
+                <Bar 
+                  dataKey="count" 
+                  fill={accent}
+                  radius={[4, 4, 0, 0]} 
+                  barSize={isRun ? 24 : 36}
+                >
+                  {stats.bio_stats?.cadence_distribution?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fillOpacity={0.8 + (index / stats.bio_stats.cadence_distribution.length) * 0.2} fill={accent} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
