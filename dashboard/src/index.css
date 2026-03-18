@@ -549,12 +549,12 @@ body {
     margin-right: 8px !important;
   }
   
-  /* Force single column for all dashboard/analytics grids */
+  /* Force single column for all dashboard/analytics grids, but exclude density grids */
   .platform-grid, 
   .hero-grid,
   .main-chart-card,
-  [style*="grid-template-columns"]:not(.heatmap-container),
-  [style*="gridTemplateColumns"]:not(.heatmap-container) {
+  [style*="grid-template-columns"]:not(.heatmap-container):not(.pattern-grid),
+  [style*="gridTemplateColumns"]:not(.heatmap-container):not(.pattern-grid) {
     grid-template-columns: 1fr !important;
     display: flex !important;
     flex-direction: column !important;
@@ -619,7 +619,7 @@ body {
   }
 
   .pattern-grid {
-    min-width: 520px !important; /* Tune width for 7 days + hour labels */
+    min-width: 580px !important; /* Ensure 7 days + hour labels are readable */
     display: grid !important;
   }
 
