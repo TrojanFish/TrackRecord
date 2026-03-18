@@ -863,7 +863,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           <h3 className="card-title" style={{ fontSize: '1rem', margin: 0 }}>
             <Map size={18} color={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} style={{ flexShrink: 0 }} /> YEARLY ACTIVITY CONTRIBUTION
           </h3>
-          <div className="heatmap-controls" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%' }}>
+          <div className="heatmap-controls" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             {/* Metric Toggle */}
             <div className="metric-toggle" style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
               {['count', 'dist', 'time', 'elev', 'cal'].map(m => (
@@ -886,21 +886,22 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                 </button>
               ))}
             </div>
-
-            {/* Legend */}
-            <div className="heatmap-legend" style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.4 }}>
-              <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>LESS</span>
-              <div style={{ display: 'flex', gap: '3px' }}>
-                {[0, 1, 2, 3, 4].map(l => (
-                  <div key={l} className={`heatmap-day level-${l}`} style={{ width: '8px', height: '8px' }}></div>
-                ))}
-              </div>
-              <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>MORE</span>
-            </div>
           </div>
         </div>
         <div style={{ padding: '0.5rem 0' }}>
           {renderHeatmap(heatMetric)}
+        </div>
+        {/* Legend - Desktop: Bottom Right, Mobile: Part of Header (already handled by CSS) */}
+        <div className="heatmap-legend-footer" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <div className="heatmap-legend" style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.4 }}>
+            <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>LESS</span>
+            <div style={{ display: 'flex', gap: '3px' }}>
+              {[0, 1, 2, 3, 4].map(l => (
+                <div key={l} className={`heatmap-day level-${l}`} style={{ width: '8px', height: '8px' }}></div>
+              ))}
+            </div>
+            <span style={{ fontSize: '0.6rem', fontWeight: 800 }}>MORE</span>
+          </div>
         </div>
       </motion.div>
 
