@@ -115,9 +115,11 @@ const Analytics = ({ stats, sportType }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
         {/* Weekday Analysis */}
         <div className="platform-card" style={{ padding: '2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Calendar size={20} color={themeColor} /> {sportType.toUpperCase()} WEEKDAY ANALYSIS
-          </h3>
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+              <Calendar size={20} color={themeColor} style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} WEEKDAY ANALYSIS
+            </h3>
+          </div>
           <div style={{ height: '250px', width: '100%' }}>
             <ResponsiveContainer>
               <BarChart data={stats.weekday_preference?.map(d => ({ 
@@ -138,9 +140,11 @@ const Analytics = ({ stats, sportType }) => {
 
         {/* Time Preference */}
         <div className="platform-card" style={{ padding: '2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Activity size={20} color={secondaryColor} /> PRIME TIME PREFERENCE
-          </h3>
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+              <Activity size={20} color={secondaryColor} style={{ flexShrink: 0 }} /> PRIME TIME PREFERENCE
+            </h3>
+          </div>
           <div style={{ height: '250px', width: '100%' }}>
             <ResponsiveContainer>
               <AreaChart data={stats.time_preference?.map(t => ({ 
