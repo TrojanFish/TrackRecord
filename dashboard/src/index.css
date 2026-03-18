@@ -749,6 +749,13 @@ body {
     display: table !important;
   }
 
+  .table-scroll-container {
+    width: 100% !important;
+    overflow-x: auto !important;
+    display: block !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
   /* Adjust detail grids in modals */
   [style*="gridTemplateColumns: '1fr 1fr'"],
   [style*="grid-template-columns: 1fr 1fr"] {
@@ -857,6 +864,30 @@ body {
   .record-meta {
     font-size: 0.6rem !important;
     gap: 0.5rem !important;
+  }
+
+  .heatmap-sidebar {
+    top: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+    max-width: none !important;
+    max-height: calc(100% - 80px) !important;
+    width: auto !important;
+  }
+
+  /* PWA safe area considerations */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    .heatmap-sidebar {
+      top: calc(10px + env(safe-area-inset-top)) !important;
+    }
+  }
+
+  .heatmap-sidebar h2 {
+    font-size: 0.7rem !important;
+  }
+
+  .city-sidebar {
+     padding: 0.8rem !important;
   }
 }
 

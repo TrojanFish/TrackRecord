@@ -474,10 +474,10 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               gap: '8px'
             }}
           >
-            VIEW ALL <ArrowRight size={14} />
+            More <ArrowRight size={14} />
           </button>
         </div>
-        <div style={{ overflowX: 'auto', marginTop: '-1rem' }}>
+        <div className="table-scroll-container" style={{ marginTop: '-1rem' }}>
           <table className="activity-table">
             <thead>
               <tr>

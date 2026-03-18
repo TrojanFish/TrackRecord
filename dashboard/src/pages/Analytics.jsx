@@ -42,9 +42,9 @@ const Analytics = ({ stats, sportType }) => {
     >
       {/* YoY Progress Chart */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <TrendingUp size={20} color={themeColor} /> YEAR-OVER-YEAR CUMULATIVE {metricLabel[activeMetric]}
+        <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+                <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> YEAR-OVER-YEAR CUMULATIVE {metricLabel[activeMetric]}
             </h3>
             <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
                 {['dist', 'time', 'elev'].map(m => (
@@ -158,9 +158,11 @@ const Analytics = ({ stats, sportType }) => {
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
         {/* Bio-Efficiency & Distribution */}
         <div className="platform-card" style={{ padding: '2rem' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Zap size={20} color={themeColor} /> {sportType === 'Run' ? 'DISTANCE STRUCTURE' : 'INTENSITY (HR ZONES)'}
-            </h3>
+            <div className="card-header">
+              <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+                  <Zap size={20} color={themeColor} style={{ flexShrink: 0 }} /> {sportType === 'Run' ? 'DISTANCE STRUCTURE' : 'INTENSITY (HR ZONES)'}
+              </h3>
+            </div>
             <div style={{ height: '300px', width: '100%' }}>
                 <ResponsiveContainer>
                     <BarChart data={isRun ? stats.distance_breakdown : stats.hr_zones}>
@@ -226,9 +228,11 @@ const Analytics = ({ stats, sportType }) => {
 
       {/* Monthly Performance Table */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Layers size={20} color="#f59e0b" /> {sportType.toUpperCase()} MONTHLY PROGRESSION
-          </h3>
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+              <Layers size={20} color="#f59e0b" style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} MONTHLY PROGRESSION
+            </h3>
+          </div>
           <div style={{ overflowX: 'auto' }}>
               <table className="analytics-table">
                   <thead>
@@ -264,9 +268,11 @@ const Analytics = ({ stats, sportType }) => {
 
       {/* Gear Statistics */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Zap size={20} color={themeColor} /> {isRun ? 'SHOE LIFE TRACKING' : 'BIKE MAINTENANCE'}
-        </h3>
+        <div className="card-header">
+          <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+            <Zap size={20} color={themeColor} style={{ flexShrink: 0 }} /> {isRun ? 'SHOE LIFE TRACKING' : 'BIKE MAINTENANCE'}
+          </h3>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
           {stats.gear_stats?.map(gear => {
             const percent = Math.min(100, (gear.distance / gear.limit) * 100);
