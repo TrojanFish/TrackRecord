@@ -2375,7 +2375,7 @@ def get_segments(sport_type: Optional[str] = Query(None)):
             cur.execute(f"{base_query} ORDER BY effort_count DESC")
         rows = cur.fetchall()
         
-        # Only provide mock data if the entire table is empty to avoid confusion when filtering
+        # Only provide mock data if the segments table is actually empty
         cur.execute("SELECT COUNT(*) FROM segments")
         total_in_db = cur.fetchone()[0]
         
@@ -2383,13 +2383,19 @@ def get_segments(sport_type: Optional[str] = Query(None)):
             return [
                 {
                     "id": 123, "name": "Sprint Finish Line", "distance": 1100, "city": "Hangzhou",
-                    "effort_count": 42, "best_time": "0:01:42", "best_date": "2024-03-12", "average_grade": 2.5
+                    "effort_count": 42, "best_time": "0:01:42", "best_date": "2024-03-12", "average_grade": 2.5,
+                    "activity_type": "Ride", "country": "China"
                 },
                 {
                     "id": 124, "name": "Central Park Loop", "distance": 6200, "city": "Shanghai",
-                    "effort_count": 15, "best_time": "0:24:15", "best_date": "2023-11-05", "average_grade": 0.5
+                    "effort_count": 15, "best_time": "0:24:15", "best_date": "2023-11-05", "average_grade": 0.5,
+                    "activity_type": "Run", "country": "China"
                 }
             ]
+        
+        # Return empty list if filtered, but ensure it's a list
+        if not rows:
+            return []
             
         return [dict(r) for r in rows]
     except Exception as e:
@@ -2534,6 +2540,29 @@ def perform_sync_logic():
         gen.close()
     except Exception as e:
         print(f"[{dt_mod.datetime.now()}] Sync failed: {e}")
+
+@app.get("/{full_path:path}")
+async def catch_all(full_path: str):
+    """
+    Catch-all route for PWA support and SPA routing.
+    Serves files from the dashboard build if they exist, otherwise serves index.html.
+    """
+    if full_path.startswith("api/v1"):
+        raise HTTPException(status_code=404, detail="API route not found")
+        
+    dashboard_root = os.path.join("run_page", "static", "dashboard")
+    file_path = os.path.join(dashboard_root, full_path)
+    
+    # Support for manifest.json, sw.js, etc. at the root
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+        
+    # SPA routing: fallback to index.html for any other frontend routes
+    index_path = os.path.join(dashboard_root, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+        
+    return {"message": f"Path /{full_path} not found"}
 
 # (startup scheduler moved to lifespan)
 
