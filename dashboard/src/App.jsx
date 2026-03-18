@@ -93,12 +93,35 @@ function App() {
 
     const unitMap = { count: 'activities', dist: 'KM', time: 'h', elev: 'm', cal: 'kcal' };
 
-    const monthLabels = [];
+    const gridItems = [];
+    const monthLabels = []; // We will fill this differently now
     let lastMonth = -1;
 
     // Start from Sunday 52 weeks ago to align the grid perfectly
     const daysToShow = 364 + today.getDay(); 
+    
+    // Column 0: Week Labels Row
+    gridItems.push(<div key="label-empty" style={{ height: '22px' }} />); // Month row space
+    ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].forEach(day => (
+      gridItems.push(
+        <div key={`label-${day}`} style={{ 
+          fontSize: '0.6rem', 
+          opacity: 0.3, 
+          fontWeight: 800, 
+          textAlign: 'right', 
+          width: '32px',
+          height: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingRight: '6px'
+        }}>
+          {['SUN', 'WED', 'FRI'].includes(day) ? day : ''}
+        </div>
+      )
+    ));
 
+    // Columns 1-53: Data Weeks
     for (let i = daysToShow; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
@@ -106,31 +129,33 @@ function App() {
       const data = stats.heatmap[dateStr] || { count: 0, dist: 0, time: 0, elev: 0, cal: 0 };
       const val = data[activeMetric] || 0;
       
-      // Calculate month labels for top row
-      if (date.getDay() === 0) { // Start of a week (column)
+      // If it's a Sunday, start a new column by pushing a month label first
+      if (date.getDay() === 0) {
         const currentMonth = date.getMonth();
+        let label = '';
         if (currentMonth !== lastMonth) {
-          monthLabels.push(
-            <div key={dateStr} style={{ 
-              gridColumn: `span 1`, 
-              fontSize: '0.65rem', 
-              opacity: 0.4, 
-              fontWeight: 800,
-              textAlign: 'left'
-            }}>
-              {date.toLocaleString('en-US', { month: 'short' })}
-            </div>
-          );
+          label = date.toLocaleString('en-US', { month: 'short' });
           lastMonth = currentMonth;
-        } else {
-          monthLabels.push(<div key={`empty-${dateStr}`} />);
         }
+        gridItems.push(
+          <div key={`month-${dateStr}`} style={{ 
+            fontSize: '0.65rem', 
+            opacity: 0.4, 
+            fontWeight: 800,
+            height: '22px', 
+            marginBottom: '4px',
+            whiteSpace: 'nowrap'
+          }}>
+            {label}
+          </div>
+        );
       }
 
-      days.push(
+      gridItems.push(
         <div 
             key={dateStr} 
             className={`heatmap-day ${getMetricLevel(val)}`} 
+            style={{ width: '12px', height: '12px', borderRadius: '2px' }}
             title={`${dateStr}: ${val}${unitMap[activeMetric]} (${data.count} activities)`} 
         />
       );
@@ -138,50 +163,16 @@ function App() {
 
     return (
         <div className="heatmap-scroll-island glass-scroll">
-            <div className="heatmap-wrapper" style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', minWidth: '850px' }}>
-                {/* Week Labels Column (Fixed relative to grid) */}
-                <div style={{ 
-                    display: 'grid', 
-                    gridTemplateRows: '22px repeat(7, 12px)', 
-                    gap: '2px',
-                    fontSize: '0.6rem', 
-                    opacity: 0.3,
-                    fontWeight: 800,
-                    marginTop: '2px',
-                    textAlign: 'right',
-                    width: '32px',
-                    flexShrink: 0
-                }}>
-                    <div style={{ height: '22px' }}></div>
-                    <div>SUN</div>
-                    <div>MON</div>
-                    <div>TUE</div>
-                    <div>WED</div>
-                    <div>THU</div>
-                    <div>FRI</div>
-                    <div>SAT</div>
-                </div>
-
-                <div style={{ flex: 1 }}>
-                    {/* Month Labels Row */}
-                    <div style={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: 'repeat(53, 1fr)', 
-                        gap: '2px',
-                        height: '22px',
-                        marginBottom: '4px'
-                    }}>
-                        {monthLabels}
-                    </div>
-                    {/* Heatmap Grid */}
-                    <div className="heatmap-container" style={{ 
-                        gridTemplateColumns: 'repeat(53, 1fr)',
-                        gridTemplateRows: 'repeat(7, 12px)',
-                        gap: '2px'
-                    }}>
-                        {days}
-                    </div>
-                </div>
+            <div className="heatmap-unified-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '32px repeat(53, 1fr)',
+                gridTemplateRows: '22px repeat(7, 12px)',
+                gridAutoFlow: 'column',
+                gap: '2px',
+                minWidth: '850px',
+                paddingBottom: '10px'
+            }}>
+                {gridItems}
             </div>
         </div>
     );
