@@ -38,7 +38,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
   const [detailType, setDetailType] = React.useState(null);
   const [heatMetric, setHeatMetric] = React.useState('count');
   const [panelTab, setPanelTab] = React.useState('history');
-  
+
   const accent = stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
   const isRun = stats.sport_type === 'Run';
 
@@ -94,7 +94,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             <div style={{ height: '20px' }}></div>
             {hours.map(h => <div key={h} style={{ height: '7px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>{h % 4 === 0 ? `${h}:00` : ''}</div>)}
           </div>
-          
+
           {/* Main Grid: Days */}
           <div className="pattern-grid-inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
             {days.map((day, dIdx) => (
@@ -153,11 +153,11 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         <motion.div variants={item} className="platform-card stat-card interactive-card">
           <span className="stat-label">{stats.sport_type === 'Ride' ? 'TOTAL ELEVATION' : 'ACTIVE SESSIONS'}</span>
           <span className="stat-value">
-            {stats.sport_type === 'Ride' 
+            {stats.sport_type === 'Ride'
               ? `${Math.round(stats.recent_activities?.reduce((acc, a) => acc + (a.elevation_gain || 0), 0) || 0)}`
               : stats.total_count
             }
-            {stats.sport_type === 'Ride' && <small style={{fontSize: '0.8rem', opacity: 0.4, marginLeft: '5px'}}>M</small>}
+            {stats.sport_type === 'Ride' && <small style={{ fontSize: '0.8rem', opacity: 0.4, marginLeft: '5px' }}>M</small>}
           </span>
           <div style={{ marginTop: '10px' }}>
             {stats.sport_type === 'All' ? (
@@ -355,7 +355,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               <Activity size={20} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> TRAINING LOAD (90 DAYS)
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.05 }}
                 className="action-btn-sm"
                 onClick={(e) => { e.stopPropagation(); setDetailType('training'); setShowDetail(true); }}
@@ -474,7 +474,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               gap: '8px'
             }}
           >
-            More <ArrowRight size={14} />
+            More
           </button>
         </div>
         <div className="table-scroll-container" style={{ marginTop: '-1rem' }}>
@@ -491,8 +491,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             </thead>
             <tbody>
               {stats.recent_activities?.slice(0, 5).map((act, idx) => (
-                <tr 
-                  key={act.run_id || idx} 
+                <tr
+                  key={act.run_id || idx}
                   onClick={() => {
                     if (setActiveTab) {
                       if (setInitialSearch) setInitialSearch(act.name);
@@ -604,8 +604,8 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                     dataKey="value"
                   >
                     {sportData.map((entry, index) => {
-                      const sportColors = stats.sport_type === 'Run' 
-                        ? ['#ff3366', '#ff85a1', '#ffb3c1', '#ffd9e0'] 
+                      const sportColors = stats.sport_type === 'Run'
+                        ? ['#ff3366', '#ff85a1', '#ffb3c1', '#ffd9e0']
                         : ['#06b6d4', '#8b5cf6', '#ec4899', '#f59e0b'];
                       return <Cell key={`cell-${index}`} fill={sportColors[index % sportColors.length]} />;
                     })}
@@ -749,7 +749,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             <ResponsiveContainer>
               <BarChart data={stats.hr_zones}>
                 <XAxis dataKey="zone" hide />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px', fontSize: '10px' }}
                   itemStyle={{ color: 'white' }}
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
@@ -774,9 +774,9 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             <ResponsiveContainer>
               <BarChart data={stats.distance_breakdown}>
                 <Bar dataKey="count" fill="#bd00ff" radius={[2, 2, 0, 0]} />
-                <Tooltip 
+                <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px', fontSize: '10px' }} 
+                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px', fontSize: '10px' }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -837,19 +837,19 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               <BarChart data={stats.bio_stats?.cadence_distribution || []} margin={{ bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                 <XAxis dataKey="label" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} dy={10} />
-                <Tooltip 
+                <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ background: 'rgba(10, 22, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', backdropFilter: 'blur(10px)' }} 
+                  contentStyle={{ background: 'rgba(10, 22, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', backdropFilter: 'blur(10px)' }}
                 />
-                <Bar 
-                  dataKey="count" 
-                  fill={accent} 
-                  radius={[4, 4, 0, 0]} 
-                  barSize={isRun ? 24 : 32} 
+                <Bar
+                  dataKey="count"
+                  fill={accent}
+                  radius={[4, 4, 0, 0]}
+                  barSize={isRun ? 24 : 32}
                 >
-                    {stats.bio_stats?.cadence_distribution?.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={accent} fillOpacity={0.7 + (index / 5) * 0.3} />
-                    ))}
+                  {stats.bio_stats?.cadence_distribution?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={accent} fillOpacity={0.7 + (index / 5) * 0.3} />
+                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -946,7 +946,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                             background: 'none',
                             border: 'none',
                             padding: '10px 0',
-                             color: panelTab === t ? accent : 'var(--text-secondary)',
+                            color: panelTab === t ? accent : 'var(--text-secondary)',
                             fontSize: '0.85rem',
                             fontWeight: 700,
                             cursor: 'pointer',
@@ -1003,7 +1003,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                               <XAxis dataKey="date" hide />
                               <YAxis hide />
                               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                              <Tooltip 
+                              <Tooltip
                                 contentStyle={{ background: '#111', border: '1px solid #333', fontSize: '12px' }}
                                 itemStyle={{ padding: '2px 0' }}
                               />
@@ -1038,7 +1038,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                           <Zap size={14} style={{ marginRight: '6px' }} />
                           Shows how your <b>TSB (Form)</b> and <b>A:C Ratio</b> will recover over time if you take complete rest days.
                         </div>
-                        
+
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
@@ -1059,11 +1059,11 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                                 </td>
                                 <td style={{ textAlign: 'center' }}>{day.ac_ratio}</td>
                                 <td style={{ textAlign: 'right' }}>
-                                  <span style={{ 
-                                    fontSize: '0.7rem', 
-                                    padding: '2px 8px', 
-                                    borderRadius: '4px', 
-                                    background: `${getTSBStatus(day.tsb).color}20`, 
+                                  <span style={{
+                                    fontSize: '0.7rem',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    background: `${getTSBStatus(day.tsb).color}20`,
                                     color: getTSBStatus(day.tsb).color,
                                     fontWeight: 800
                                   }}>

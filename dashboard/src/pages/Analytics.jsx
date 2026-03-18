@@ -46,26 +46,28 @@ const Analytics = ({ stats, sportType }) => {
             <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
                 <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> YEAR-OVER-YEAR CUMULATIVE {metricLabel[activeMetric]}
             </h3>
-            <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
-                {['dist', 'time', 'elev'].map(m => (
-                    <button
-                        key={m}
-                        onClick={() => setActiveMetric(m)}
-                        style={{
-                            padding: '6px 12px',
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            borderRadius: '6px',
-                            border: 'none',
-                            cursor: 'pointer',
-                            background: activeMetric === m ? themeColor : 'transparent',
-                            color: activeMetric === m ? (isRun ? '#fff' : '#000') : 'var(--text-secondary)',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        {m.toUpperCase()}
-                    </button>
-                ))}
+            <div className="heatmap-controls" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1.5rem' }}>
+                <div className="metric-toggle" style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+                    {['dist', 'time', 'elev'].map(m => (
+                        <button
+                            key={m}
+                            onClick={() => setActiveMetric(m)}
+                            style={{
+                                padding: '6px 12px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: activeMetric === m ? themeColor : 'transparent',
+                                color: activeMetric === m ? (isRun ? '#fff' : '#000') : 'var(--text-secondary)',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {m.toUpperCase()}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
         <div style={{ height: '400px', width: '100%' }}>
