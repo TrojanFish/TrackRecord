@@ -91,11 +91,11 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
       </AnimatePresence>
 
       <motion.div 
-        className={`sidebar ${isExpanded ? 'sidebar-expanded' : 'collapsed'} ${isMobileOpen ? 'mobile-open' : ''}`}
+        className={`sidebar ${((isExpanded || isMobile) ? 'expanded' : 'collapsed')} ${isMobileOpen ? 'mobile-open' : ''} ${isMobile ? 'is-mobile' : ''}`}
         animate={isMobile 
-          ? { x: isMobileOpen ? 0 : '-100%' } 
+          ? { x: isMobileOpen ? 0 : '-110%' } 
           : { width: isExpanded ? 240 : 72, x: 0 }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
       >
         {!isMobile && (
           <button className="edge-handle-toggle" onClick={() => setIsExpanded(!isExpanded)}>
@@ -109,7 +109,7 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
             {(isExpanded || isMobile) && <span className="logo-text">TRACKRECORD</span>}
           </div>
           {isMobile && (
-            <button className="mobile-close-btn" onClick={() => setIsMobileOpen(false)}>
+            <button className="mobile-close-btn" onClick={(e) => { e.stopPropagation(); setIsMobileOpen(false); }} title="Close Menu">
               <X size={20} />
             </button>
           )}
@@ -131,7 +131,7 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
                     <item.icon size={18} />
                     {(isExpanded || isMobile) && (
                       <div className="nav-item-label-container">
-                        <span className="nav-item-label">{item.label}</span>
+                        <span className="nav-label">{item.label}</span>
                         {getBadgeValue(item.id) !== null && getBadgeValue(item.id) > 0 && (
                           <span className="nav-badge">{getBadgeValue(item.id)}</span>
                         )}

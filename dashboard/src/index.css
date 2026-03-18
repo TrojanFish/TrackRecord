@@ -19,7 +19,7 @@
 
 @media (max-width: 768px) {
   .mobile-only {
-    z-index: 2201;
+    z-index: 1200; /* Above regular header but below sidebar */
     display: flex !important;
   }
   .desktop-only {
@@ -160,7 +160,7 @@ body {
   );
 }
 
-.sidebar-expanded ~ .main-content {
+.sidebar.expanded ~ .main-content {
   padding-left: calc(var(--sidebar-floating-w) + 4rem);
 }
 
@@ -425,7 +425,7 @@ body {
   scrollbar-gutter: stable;
 }
 
-.sidebar-expanded ~ .main-content {
+.sidebar.expanded ~ .main-content {
   padding-left: calc(var(--sidebar-floating-w) + 4rem);
 }
 
@@ -438,7 +438,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 1100;
+  z-index: 1200; /* Stacks below drawer (2300) but above content */
   transition: all 0.4s var(--transition-smooth);
   pointer-events: none;
 }
@@ -458,15 +458,53 @@ body {
     top: 0 !important;
     height: 100vh !important;
     max-height: 100vh !important;
-    border-radius: 0 2rem 2rem 0 !important;
-    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5) !important;
-    z-index: 2200 !important;
+    width: 280px !important;
+    border-radius: 0 1.5rem 1.5rem 0 !important;
+    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.7) !important;
+    z-index: 2300 !important;
+    background: #0a1628 !important; /* Deeper, more opaque for readability */
+    backdrop-filter: blur(40px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .sidebar.collapsed {
+    width: 280px !important; /* Force width on mobile even if code says collapsed */
+  }
+
+  .sidebar-header {
+    height: 80px !important;
+    padding: 0 1.25rem !important;
+    justify-content: space-between !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0,0,0,0.1); /* Subtle header background */
+  }
+
+  .sidebar-nav {
+    padding: 1.25rem 0.75rem !important;
+  }
+
+  .nav-item {
+    margin: 4px 8px !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    width: auto !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+  }
+
+  .nav-label {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: inline-block !important;
   }
   .action-hub {
-    gap: 4px !important;
+    gap: 8px !important;
+    padding: 0.5rem 0.8rem !important;
   }
   .sport-switcher-island {
-    margin-right: 5px !important;
+    margin-right: 8px !important;
   }
   
   /* Force single column for all dashboard/analytics grids */
@@ -544,6 +582,7 @@ body {
   cursor: pointer;
   pointer-events: auto;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1101; /* Ensure it stays above other header islands on mobile */
 }
 
 .sidebar-overlay {
@@ -558,15 +597,25 @@ body {
 }
 
 .mobile-close-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
-  padding: 8px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.sidebar-expanded ~ .main-content .main-header {
+.mobile-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.sidebar.expanded ~ .main-content .main-header {
   left: calc(var(--sidebar-floating-w) + 4rem);
 }
 
