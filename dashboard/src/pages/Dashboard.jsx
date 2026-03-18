@@ -96,7 +96,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           </div>
           
           {/* Main Grid: Days */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+          <div className="pattern-grid-inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
             {days.map((day, dIdx) => (
               <div key={day} style={{ display: 'grid', gridTemplateRows: '20px repeat(24, 7px)', gap: '1px' }}>
                 <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.4, textAlign: 'center', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{day}</div>

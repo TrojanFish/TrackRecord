@@ -553,8 +553,8 @@ body {
   .platform-grid, 
   .hero-grid,
   .main-chart-card,
-  [style*="grid-template-columns"]:not(.heatmap-container):not(.pattern-grid),
-  [style*="gridTemplateColumns"]:not(.heatmap-container):not(.pattern-grid) {
+  [style*="grid-template-columns"]:not(.heatmap-container):not(.pattern-grid):not(.pattern-grid-inner),
+  [style*="gridTemplateColumns"]:not(.heatmap-container):not(.pattern-grid):not(.pattern-grid-inner) {
     grid-template-columns: 1fr !important;
     display: flex !important;
     flex-direction: column !important;
