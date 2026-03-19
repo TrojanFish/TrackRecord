@@ -22,7 +22,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY run_page/ ./run_page/
 COPY run_web.py .
-COPY config-example.yaml ./config.yaml
 
 # Copy frontend build
 COPY --from=build-stage /app/dist ./run_page/static/dashboard
