@@ -597,14 +597,24 @@ def _compute_gear_stats(conn, active_types: list, athlete_metrics: dict) -> list
         ph = ",".join(["?"] * len(types))
         cur = conn.cursor()
         cur.execute(
-            f"SELECT COALESCE(SUM(distance), 0) / 1000.0 AS dk, COUNT(*) AS cnt "
+            f"SELECT COALESCE(SUM(distance), 0) / 1000.0 AS dk, COUNT(*) AS cnt, "
+            f"COALESCE(SUM(elevation_gain), 0) AS elev, SUM(moving_time) AS time "
             f"FROM activities WHERE type IN ({ph}) AND date(start_date_local) BETWEEN ? AND ?",
             (*types, g_from, g_to),
         )
         r = cur.fetchone()
         distance = round(r["dk"], 1) if r else 0
         count = r["cnt"] if r else 0
+        elevation = round(r["elev"] or 0)
+        
+        # Format time
+        total_sec = row_to_seconds(r["time"]) if r else 0
+        days = total_sec // 86400
+        hours = (total_sec % 86400) // 3600
+        mins = (total_sec % 3600) // 60
+        time_str = f"{days}d {hours}h {mins}m" if days > 0 else f"{hours}h {mins}m"
 
+        # Monthly distance for this gear (last 6 months)
         monthly = []
         for mo in range(5, -1, -1):
             d = today - dt.timedelta(days=mo * 30)
@@ -618,11 +628,85 @@ def _compute_gear_stats(conn, active_types: list, athlete_metrics: dict) -> list
             mr = cur.fetchone()
             monthly.append({"month": d.strftime("%b"), "dist": round(mr["dk"], 1) if mr else 0})
 
+        # Components logic
+        g_components = []
+        for comp in gear.get("components", []):
+            c_limit = comp.get("limit", 1000)
+            # Simplistic estimate: current distance % limit if smaller than gear limit
+            c_dist = distance % c_limit if c_limit < limit else distance
+            g_components.append({
+                "name": comp.get("name"),
+                "distance": round(c_dist, 1),
+                "limit": c_limit
+            })
+
         result.append({
-            "name": name, "type": g_type,
-            "icon": gear.get("icon", "👟" if g_type == "Run" else "🚴"),
-            "distance": distance, "limit": limit, "count": count,
+            "name": name, 
+            "type": g_type,
+            "icon": gear.get("icon", "Footprints" if g_type == "Run" else "Bike"),
+            "distance": distance, 
+            "limit": limit, 
+            "count": count,
+            "elevation": elevation,
+            "time": time_str,
+            "purchase_date": gear.get("purchase_date"),
             "monthly_mileage": monthly,
+            "components": g_components
+        })
+    return result
+
+
+def _compute_recording_stats(conn, active_types: list, athlete_metrics: dict) -> list:
+    device_mapping = athlete_metrics["analysis"].get("device_mapping", {})
+    
+    # Build CASE statement for SQL based on device_mapping
+    case_parts = []
+    for pattern, label in device_mapping.items():
+        case_parts.append(f"WHEN name LIKE '%{pattern}%' THEN '{label}'")
+    
+    if not case_parts:
+        case_stmt = """
+            CASE 
+                WHEN name LIKE 'Zwift%' THEN 'Zwift'
+                WHEN type = 'VirtualRide' THEN 'Virtual Platform'
+                WHEN type IN ('Ride', 'VirtualRide', 'Velomobile', 'E-BikeRide') THEN 'Cycling Computer'
+                WHEN type IN ('Run', 'TrailRun', 'VirtualRun') THEN 'Running Watch'
+                ELSE 'Other App/Device'
+            END
+        """
+    else:
+        case_stmt = f"CASE {' '.join(case_parts)} ELSE 'Other Device' END"
+
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(f"""
+        SELECT 
+            ({case_stmt}) as device,
+            COUNT(*) as count,
+            COALESCE(SUM(distance), 0) / 1000.0 as dist,
+            COALESCE(SUM(elevation_gain), 0) as elev,
+            SUM(moving_time) as time
+        FROM activities
+        WHERE type IN ({ph})
+        GROUP BY device
+        ORDER BY count DESC
+    """, (*active_types,))
+    
+    rows = cur.fetchall()
+    result = []
+    for r in rows:
+        total_sec = row_to_seconds(r["time"])
+        days = total_sec // 86400
+        hours = (total_sec % 86400) // 3600
+        mins = (total_sec % 3600) // 60
+        time_str = f"{days}d {hours}h {mins}m" if days > 0 else f"{hours}h {mins}m"
+        
+        result.append({
+            "name": r["device"],
+            "count": r["count"],
+            "distance": round(r["dist"]),
+            "elevation": round(r["elev"]),
+            "time": time_str
         })
     return result
 
@@ -1064,6 +1148,7 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
         activity_pattern = _compute_activity_pattern(conn, active_types)
         athlete_radar = _compute_athlete_radar(conn, active_types, athlete_metrics, recent)
         gear_stats = _compute_gear_stats(conn, active_types, athlete_metrics)
+        recording_stats = _compute_recording_stats(conn, active_types, athlete_metrics)
         records, dashboard_records = _compute_records(conn, active_types)
         records_trends = _compute_records_trends(conn, active_types)
         goals = _compute_goals(conn, active_types, athlete_metrics)
@@ -1196,6 +1281,7 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
             "activity_pattern": activity_pattern,
             "athlete_radar": athlete_radar,
             "gear_stats": gear_stats,
+            "recording_stats": recording_stats,
             "records": records,
             "records_trends": records_trends,
             "dashboard_records": dashboard_records,
