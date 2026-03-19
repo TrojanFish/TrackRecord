@@ -1,62 +1,104 @@
-# TrackRecord - Personal Sports Data Sync & Export Toolkit
-
-> [!NOTE]
-> This project is a branched and enhanced version of [yihong0618/running_page](https://github.com/yihong0618/running_page), focused on data synchronization and export capabilities. It has been streamlined into a pure terminal-based tool.
+# 🚀 TrackRecord - Next Gen Sports Data Dashboard
 
 <p align="center">
-  <img width="150" src="https://raw.githubusercontent.com/shaonianche/gallery/master/running_page/running_page_logo.png" />
+  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
+  <img src="https://img.shields.io/badge/Deployment-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
 </p>
 
-## 🍱✨ Key Features
+**TrackRecord** is a high-performance personal sports data middleware and visualization platform. It helps endurance athletes (cycling, running) sync activities from Strava/Garmin, manage gear maintenance, and explore deep insights through a stunning web dashboard and annual rewind reports.
 
-TrackRecord provides a robust set of tools to sync and export your sports data from various platforms:
+---
 
-*   **Interactive Sync Menu**: No more wrestling with complicated CLI arguments! Simply run `python running_page_menu.py` to access a visual menu for one-click synchronization.
-*   **Credential Management**: Automatically saves your tokens and passwords locally for one-click future syncs.
-*   **A -> B Account Mirroring**: Directly sync activities between accounts (e.g., Nike to Strava, Keep to Strava, Strava to Garmin, etc.).
-*   **Modernized Sync Scripts**: Supports Xingzhe (Auto-Login), Keep, Joyrun, Nike, Garmin (Global/CN), Strava, Coros, and more.
-*   **Local Data Hub**: All data is stored in a local SQLite database with detailed terminal-based statistics.
-*   **Universal Export**: Automatically generates GPX/TCX/FIT files during synchronization.
+## ✨ Key Features
+
+- **Dynamic Web Dashboard**: A modern, interactive UI built with React & Vite, providing real-time stats and training load monitoring.
+- **Annual Rewind**: Beautifully generated year-in-review reports with carbon offset calculations and activity location insights.
+- **Physiological Monitoring**: Real-time tracking of **TSB (Training Stress Balance)**, **CTL**, and **ATL** based on heart rate data.
+- **Gear Lifecycle Management**: Track wear and tear of bike components with automatic maintenance alerts.
+- **Multi-Platform Sync**: Native support for mirroring activities between Strava, Garmin, Nike, Keep, and more.
+
+---
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+### 1. Prerequisites
+- **Docker** & **Docker Compose**
+- **Git**
 
-```bash
-pip install -r requirements.txt
+### 2. Configuration
+Copy `config-example.yaml` to `run_page/settings.yaml` and edit your metrics:
+```yaml
+athlete:
+  name: "Athlete Name"
+  weight: 70
+  max_hr: 190
+  gears:
+    - name: "Tarmac SL8"
+      type: "Ride"
+      limit: 3000 # km until maintenance
 ```
 
-### 2. Enter the Hub (Recommended)
+### 3. Deploy
+```bash
+git clone https://github.com/YourUsername/TrackRecord.git
+cd TrackRecord
+docker-compose up -d --build
+```
+Access the dashboard at `http://localhost:5173`.
 
-Experience the easiest way to sync your activities. Run the interactive menu from the project root:
+---
 
+## 🛠️ Modules & Usage
+
+### 📊 Training Load API
+Provides deep analytics via `/api/v1/stats`.
+```json
+// Example Output
+{
+  "ctl": 45.2,
+  "atl": 38.5,
+  "tsb": 6.7,
+  "advice": "Productive Fatigue - Keep Pushing"
+}
+```
+
+### 🏃 Sync Menu
+Interactive CLI for manual data synchronization:
 ```bash
 python running_page_menu.py
 ```
 
-Follow the prompts. The tool will guide you through connecting your platforms and mirroring data between services.
+---
 
-## 📁 Project Structure
+## 💻 Tech Stack & Implementation
 
-The project has been reorganized for better maintainability:
+- **Core**: FastAPI (Python 3.10+)
+- **UI**: React 18 / Vite / Framer Motion / Tailwind CSS
+- **Data Persistence**: SQLite 3 with SQLAlchemy
+- **Containerization**: Multi-stage Docker build
 
-- `run_page/`: Core logic and data.
-    - `platforms/`: Individual sync scripts for various platforms.
-    - `tools/`: Maintenance utilities (Garmin secret tools, DB updaters, etc.).
-    - `data.db`: SQLite database containing all your activities.
-- `GPX_OUT/`, `TCX_OUT/`, `FIT_OUT/`: Directories for exported sports files.
-- `activities/`: Stored raw activity contents.
+### 🔗 Attributions & References
+This project stands on the shoulders of giants:
 
-## 🙏 Special Thanks
+*   **Activity Sync & Export Logic**: Core data export functions (GPX/TCX/FIT, excluding Xingzhe) are derived from the excellent [running_page](https://github.com/yihong0618/running_page) by **yihong0618**.
+*   **Design & Dashboard Aesthetics**: Visualization ideas and data modeling concepts inspired by [statistics-for-strava](https://github.com/robiningelbrecht/statistics-for-strava) by **robiningelbrecht**.
 
-This project would not be possible without the incredible work of **[yihong0618](https://github.com/yihong0618)** and the original **[running_page](https://github.com/yihong0618/running_page)** repository.
+---
+
+## 🤝 Contribution
+
+1. Fork the Project.
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the Branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
 
 ---
 
 ## 📜 License
 
-Follows the original project's license. Please continue to respect and maintain the copyright notice for the original author [yihong0618](https://github.com/yihong0618).
+Distributed under the **MIT License**. See [LICENSE](cci:7://file:///c:/Users/KeiyeeYu/Desktop/running_page/LICENSE:0:0-0:0) for more information. 
 
----
-
-> "Journey is at your feet. Starting is always more meaningful than just dreaming."
+*Special Note: Please respect the original licenses of the referenced projects above when modifying core sync components.*
