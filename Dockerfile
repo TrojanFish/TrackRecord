@@ -29,4 +29,4 @@ COPY --from=build-stage /app/dist ./run_page/static/dashboard
 
 # Expose port and start
 EXPOSE 8000
-CMD ["python", "run_page/web_api.py"]
+CMD ["python", "-m", "run_page.web_api"]
