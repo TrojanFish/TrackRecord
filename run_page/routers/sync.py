@@ -27,6 +27,14 @@ def _run_full_sync(force: bool = False):
         if cid and secret and refresh:
             gen.set_strava_config(cid, secret, refresh)
             gen.sync(force=force)
+            # ARCH-1: 还需同步 segments 和 photos 以保持数据完整性
+            gen.sync_segments(limit=20)
+            
+            try:
+                from run_page.routers.photos import sync_strava_photos
+                sync_strava_photos(limit=500)
+            except Exception as pe:
+                print(f"[sync] Photo sync failed: {pe}")
     finally:
         gen.close()
         # 同步完成后清除 stats 缓存，让下次请求拿到最新数据
