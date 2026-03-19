@@ -6,23 +6,25 @@ import shutil
 from run_page.core.config import API_PORT, FRONTEND_PORT
 
 def main():
-    print("\n" + "="*50)
-    print("🚀  TRACKRECORD WEB ENGINE SUITE")
-    print("="*50 + "\n")
-    
-    # 1. Start Backend API
-    print("📡  [1/2] Launching Backend API (FastAPI)...")
-    backend = subprocess.Popen(
-        [sys.executable, "run_page/web_api.py"]
-    )
-    
-    # Give backend time to bind to port
-    time.sleep(2)
-    
-    # 2. Start Frontend Dashboard
-    print("💻  [2/2] Launching Frontend Dashboard (Vite)...")
+    backend = None
     frontend = None
     try:
+        print("\n" + "="*50)
+        print("🚀  TRACKRECORD WEB ENGINE SUITE")
+        print("="*50 + "\n")
+        
+        # 1. Start Backend API
+        print("📡  [1/2] Launching Backend API (FastAPI)...")
+        backend = subprocess.Popen(
+            [sys.executable, "run_page/web_api.py"]
+        )
+        
+        # Give backend time to bind to port
+        time.sleep(2)
+        
+        # 2. Start Frontend Dashboard
+        print("💻  [2/2] Launching Frontend Dashboard (Vite)...")
+        
         if not os.path.exists("dashboard"):
             print("❌  Error: 'dashboard' directory not found.")
             backend.terminate()
