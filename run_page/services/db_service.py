@@ -79,32 +79,35 @@ def row_to_seconds(val) -> int:
 
 def format_location(city: str | None, country: str | None) -> str:
     """
-    格式化位置信息为用户要求的简洁格式：
-    - 中国 上海 (针对国内)
-    - NYC US (针对海外)
-    支持清洗 Strava 可能返回的冗长详细地址字符串。
+    格式化位置信息为全英文简洁格式：
+    - Hangzhou CN
+    - NYC US
+    - Paris FR
     """
     if not city and not country:
         return ""
 
-    # 1. 清洗国家：如果 country 包含逗号，取最后一段（通常是真正的国家名）
+    # 1. 清洗国家：取最末端，映射为 ISO 代码
     clean_country = country or ""
     if "," in clean_country:
-        c_parts = [p.strip() for p in clean_country.split(",")]
-        clean_country = c_parts[-1]
+        clean_country = clean_country.split(",")[-1].strip()
     
-    # 标准化国家名
-    clean_country = clean_country.replace("China", "CN").replace("United States", "US").strip()
+    country_map = {
+        "China": "CN", "中国": "CN",
+        "United States": "US", "USA": "US",
+        "United Kingdom": "UK",
+        "France": "FR", "Japan": "JP",
+    }
+    clean_country = country_map.get(clean_country, clean_country).strip()
 
-    # 2. 清洗城市：如果 city 包含逗号，取第一段（通常是城市名或路名）
-    # 但如果 city 本身就是合规的城市名（如 "Hangzhou"），则保留
+    # 2. 清洗城市：处理详细地址，提取核心地名
     clean_city = city or ""
     if "," in clean_city:
         city_parts = [p.strip() for p in clean_city.split(",")]
-        # 如果最后一段是国家，说明 city 这个字段存的是全地址，尝试找中间的城市
-        if city_parts[-1] in ["中国", "China", "CN"]:
+        # 如果是详细地址字符串，且末尾包含已知的国家标识，尝试回溯寻找城市名
+        if any(c in city_parts[-1] for c in ["CN", "China", "中国"]):
              for p in reversed(city_parts):
-                 if p.endswith("市") or p.endswith("City"):
+                 if any(s in p for s in ["市", "City", "Town", "District", "区"]):
                      clean_city = p
                      break
              else:
@@ -112,15 +115,15 @@ def format_location(city: str | None, country: str | None) -> str:
         else:
             clean_city = city_parts[0]
     
-    # 去除后缀 (市/City/Town)
+    # 统一剥除后缀（城市/区/县等）
+    suffixes = ["市", "City", "Town", "District", "区", "县", "Province", "省"]
     if clean_city:
-        clean_city = clean_city.replace("市", "").replace("City", "").replace("Town", "").strip()
+        for s in suffixes:
+            clean_city = clean_city.replace(s, "")
+        clean_city = clean_city.strip()
 
-    if not clean_country: return clean_city
+    if not clean_country: return clean_city or ""
     if not clean_city: return clean_country
 
-    # 3. 组合逻辑
-    if clean_country in ["CN", "中国"]:
-        return f"中国 {clean_city}"
-    
+    # 3. 统一返回 City CountryCode 格式
     return f"{clean_city} {clean_country}"

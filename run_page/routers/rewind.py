@@ -236,19 +236,36 @@ def get_rewind_report(
         raw_locs = cur.fetchall()
         
         # 聚合相同名称的地点（格式化后可能重合）
-        loc_map = {}
+        # 逻辑：有些活动有国家有些没有。如果核心名称（城市）相同，则合并。
+        # 结果优先显示带国家代码的完整形式。
+        city_counts = {} # city_name -> count
+        city_to_full = {} # city_name -> best_full_name
+        
         for r in raw_locs:
-            name = format_location(r["location_city"], r["location_country"])
-            if not name or name.upper() == "UNKNOWN":
+            city_raw = r["location_city"]
+            country_raw = r["location_country"]
+            full_name = format_location(city_raw, country_raw)
+            if not full_name or full_name.upper() == "UNKNOWN":
                 continue
-            loc_map[name] = loc_map.get(name, 0) + r["count"]
+            
+            # 提取核心城市名 (full_name 格式通常是 "City Code" 或 "City")
+            # 针对 "Hangzhou CN" 提取 "Hangzhou"
+            core_city = full_name.split(" ")[0] if " " in full_name else full_name
+            
+            city_counts[core_city] = city_counts.get(core_city, 0) + r["count"]
+            
+            # 如果当前 full_name 更长（带国家代码），则优先保存作为显示名称
+            current_len = len(city_to_full.get(core_city, ""))
+            if len(full_name) > current_len:
+                city_to_full[core_city] = full_name
 
         # 转换为列表并排序
-        locations = sorted(
-            [{"location_city": k, "count": v} for k, v in loc_map.items()],
-            key=lambda x: x["count"],
-            reverse=True
-        )[:10]
+        locations = []
+        for city, count in city_counts.items():
+            display_name = city_to_full.get(city, city)
+            locations.append({"location_city": display_name, "count": count})
+        
+        locations = sorted(locations, key=lambda x: x["count"], reverse=True)[:10]
 
         # 如果彻底没有带位置的数据，尝试取一个最基础的
         if not locations:
