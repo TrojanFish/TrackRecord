@@ -10,7 +10,7 @@ import datetime as dt
 from typing import Optional
 
 from fastapi import APIRouter, Query
-from run_page.services.db_service import get_db_conn, row_to_seconds, resolve_active_types
+from run_page.services.db_service import get_db_conn, row_to_seconds, resolve_active_types, format_location
 from run_page.routers.stats import get_athlete_metrics
 
 router = APIRouter(prefix="/api/v1/stats", tags=["rewind"])
@@ -214,10 +214,7 @@ def get_rewind_report(
         streaks_data = calculate_streaks_detailed(streak_dates)
 
         # 8. 活动时段分布（按小时）
-        tod_sql = f"""
-            SELECT CAST(strftime('%H', start_date_local) AS INTEGER) AS hour, COUNT(*) AS count
-            FROM activities WHERE {type_filter}
-        """
+        tod_sql = f"SELECT CAST(strftime('%H', start_date_local) AS INTEGER) AS hour, COUNT(*) AS count FROM activities WHERE {type_filter}"
         tod_params = [*active_types]
         if target_year != "ALL":
             tod_sql += " AND strftime('%Y', start_date_local) = ?"
@@ -227,35 +224,39 @@ def get_rewind_report(
         tod_map = {r["hour"]: r["count"] for r in cur.fetchall()}
         time_of_day = [{"hour": h, "count": tod_map.get(h, 0)} for h in range(24)]
 
-        # 9. 活动地点 Top 10 (城市统计)
-        # 使用 COALESCE 增加国家作为兜底，避免城市字段为空时完全无显示
-        loc_sql = f"""
-            SELECT 
-                COALESCE(NULLIF(location_city, ''), NULLIF(location_country, ''), 'Unknown') as loc, 
-                COUNT(*) AS count
-            FROM activities 
-            WHERE {type_filter}
-        """
+        # 9. 活动地点 Top 10 (简化格式：中国 杭州 / NYC US)
+        loc_sql = f"SELECT location_city, location_country, COUNT(*) as count FROM activities WHERE {type_filter}"
         loc_params = [*active_types]
         if target_year != "ALL":
             loc_sql += " AND strftime('%Y', start_date_local) = ?"
             loc_params.append(str(target_year))
+        loc_sql += " GROUP BY location_city, location_country ORDER BY count DESC"
         
-        # 排除无效字符，并按地点分组
-        loc_sql += """ 
-            GROUP BY loc 
-            HAVING loc IS NOT NULL AND loc != '' AND UPPER(loc) != 'UNKNOWN'
-            ORDER BY count DESC LIMIT 10
-        """
         cur.execute(loc_sql, loc_params)
-        locations = [{"location_city": r["loc"], "count": r["count"]} for r in cur.fetchall()]
+        raw_locs = cur.fetchall()
+        
+        # 聚合相同名称的地点（格式化后可能重合）
+        loc_map = {}
+        for r in raw_locs:
+            name = format_location(r["location_city"], r["location_country"])
+            if not name or name.upper() == "UNKNOWN":
+                continue
+            loc_map[name] = loc_map.get(name, 0) + r["count"]
 
-        # 如果彻底没有带位置的数据，尝试取一个最基础的（即使是 Unknown）
+        # 转换为列表并排序
+        locations = sorted(
+            [{"location_city": k, "count": v} for k, v in loc_map.items()],
+            key=lambda x: x["count"],
+            reverse=True
+        )[:10]
+
+        # 如果彻底没有带位置的数据，尝试取一个最基础的
         if not locations:
-            cur.execute(f"SELECT COALESCE(NULLIF(location_city, ''), 'Unknown') as loc, COUNT(*) as count FROM activities WHERE {type_filter} GROUP BY loc LIMIT 1", [*active_types])
+            cur.execute(f"SELECT location_city, location_country, COUNT(*) as count FROM activities WHERE {type_filter} GROUP BY location_city, location_country ORDER BY count DESC LIMIT 1", [*active_types])
             fb = cur.fetchone()
             if fb:
-                locations = [{"location_city": fb["loc"], "count": fb["count"]}]
+                name = format_location(fb["location_city"], fb["location_country"]) or "Unknown"
+                locations = [{"location_city": name, "count": fb["count"]}]
 
         # 10. Habit: 计算准确的活动天数与休息天数
         active_days_sql = f"SELECT COUNT(DISTINCT date(start_date_local)) as ad FROM activities WHERE {type_filter}"

@@ -10,7 +10,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Query
 
-from run_page.services.db_service import get_db_conn, row_to_seconds, resolve_active_types
+from run_page.services.db_service import get_db_conn, row_to_seconds, resolve_active_types, format_location
 from run_page.services.cache_service import cache
 from run_page.auth import load_creds
 
@@ -1053,6 +1053,7 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
                 d["calories"] = int(dk2 * weight * cal_factors.get("ride", 0.5))
             else:
                 d["calories"] = int(dk2 * weight * cal_factors.get("default", 0.8))
+            d["location_city"] = format_location(d.get("location_city"), d.get("location_country")) or d.get("location_country") or "—"
             recent.append(d)
 
         # 3. Yearly
