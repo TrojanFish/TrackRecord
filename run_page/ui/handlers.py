@@ -35,7 +35,7 @@ def handle_stats(L):
     db_path = "run_page/data.db"
     if not os.path.exists(db_path):
         console.print(f"[red]{L('db_not_found')}[/red]")
-        return
+        return False
     try:
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
