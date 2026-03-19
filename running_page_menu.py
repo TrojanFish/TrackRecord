@@ -86,19 +86,17 @@ def main():
                 success = run_sync_script(cmd)
             
             # Decide whether to wait for user acknowledgment
-            # Always wait on failure, or for informational tools like stats
             if platform.get("id") != "toggle_lang":
                 if not success or platform.get("id") == "stats":
                     Prompt.ask(f"\n[dim]{L('press_enter')}[/dim]")
                 elif success:
-                    # Brief pause if successful, or just continue to menu
                     time.sleep(1)
         except Exception as e:
             if isinstance(e, SystemExit): raise
             console.print(f"\n[red]{L('error')}: {e}[/red]")
             time.sleep(2)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:

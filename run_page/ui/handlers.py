@@ -79,9 +79,7 @@ def handle_garmin_to_strava(L, get_cred, run_sync_script):
 def handle_tcx_to_garmin(L, get_cred, run_sync_script):
     console.print(f"\n[bold white]📂  TCX[/bold white] [bold white]->[/bold white] [bold blue]Garmin 同步[/bold blue]")
     is_cn = Prompt.ask(f"  {L('is_garmin_cn')}", choices=["y", "n"], default="y") == "y"
-    cred_key = "garmin_secret_cn" if is_cn else "garmin_secret_global"
-    g_secret = get_cred(cred_key, "  Garmin Secret String")
-    cmd = [sys.executable, "run_page/platforms/tcx_to_garmin_sync.py", g_secret]
+    cmd = [sys.executable, "run_page/platforms/tcx_to_garmin_sync.py", get_cred("garmin_secret_cn" if is_cn else "garmin_secret_global", "  Garmin Secret")]
     if is_cn: cmd.append("--is-cn")
     return run_sync_script(cmd)
 
@@ -99,7 +97,6 @@ def handle_toggle_lang(L, get_cred, run_sync_script):
     from run_page.core.config import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
     creds = load_creds()
     cur_lang = creds.get("language", DEFAULT_LANGUAGE)
-    # Simple toggle for 2 languages
     new_lang = SUPPORTED_LANGUAGES[1] if cur_lang == SUPPORTED_LANGUAGES[0] else SUPPORTED_LANGUAGES[0]
     creds["language"] = new_lang
     save_creds(creds)
@@ -112,7 +109,6 @@ def handle_reset_creds(L, get_cred, run_sync_script):
             CRED_FILE.unlink()
     return True
 
-# Registry of handlers for uniform dispatch
 HANDLER_REGISTRY = {
     "joyrun": handle_joyrun,
     "garmin": handle_garmin,
