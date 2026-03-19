@@ -476,25 +476,181 @@ def init_db(db_path):
     add_missing_columns(engine, Segment)
     add_missing_columns(engine, SegmentEffort)
     add_missing_columns(engine, Trophy)
-    add_missing_columns(engine, Photo)
-
-    # Ensure indexes exist
+    add_missing_columns(engine, Photo)    # Ensure indexes exist
     with engine.connect() as conn:
         try:
-            # Segment indexes
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_segments_effort_count ON segments (effort_count DESC)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_segments_city ON segments (city)"))
-            # SegmentEffort indexes
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_efforts_segment_id ON segment_efforts (segment_id)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_efforts_activity_id ON segment_efforts (activity_id)"))
-            # Activity location index
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_activities_country ON activities (location_country)"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_activities_city ON activities (location_city)"))
-        except Exception as ie:
-            print(f"Index creation hint: {ie}")
+            # ── Activities 核心查询字段 ─────────────────────────────────────
+            # type 单列：WHERE type IN (...)
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_type "
+                "ON activities (type)"
+            ))
+            # start_date_local 单列：ORDER BY / date range scans
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_date_local "
+                "ON activities (start_date_local)"
+            ))
+            # 复合索引 (type, start_date_local)：最常见的 WHERE type IN (...) ORDER BY date 查询
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_type_date "
+                "ON activities (type, start_date_local)"
+            ))
+            # distance：Records / max distance 查询
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_distance "
+                "ON activities (distance)"
+            ))
+            # elevation_gain：排行榜查询
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_elevation "
+                "ON activities (elevation_gain)"
+            ))
 
-    sm = sessionmaker(bind=engine)
-    session = sm()
-    # apply the changes
-    session.commit()
-    return session
+            # ── Segments ────────────────────────────────────────────────────
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_segments_effort_count "
+                "ON segments (effort_count DESC)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_segments_city "
+                "ON segments (city)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_segments_activity_type "
+                "ON segments (activity_type)"
+            ))
+
+            # ── SegmentEfforts ──────────────────────────────────────────────
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_efforts_segment_id "
+                "ON segment_efforts (segment_id)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_efforts_activity_id "
+                "ON segment_efforts (activity_id)"
+            ))
+
+            # ── Photos ──────────────────────────────────────────────────────
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_photos_type "
+                "ON photos (type)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_photos_date "
+                "ON photos (date DESC)"
+            ))
+
+            # ── Activities 地理信息 ─────────────────────────────────────────
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_country "
+                "ON activities (location_country)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_city "
+                "ON activities (location_city)"
+            ))
+
+            conn.commit()
+        except Exception as ie:
+            print(f"Index creation note: {ie}")
+
+
+# ─── PERF-2: 聚合查询辅助函数 ─────────────────────────────────────────────────
+
+def get_aggregated_stats(conn, active_types: list[str]) -> dict:
+    """
+    用 1 次 SQL 查询获取 web_api.py get_sports_stats() 所需的基础汇总数据，
+    替代原先的多次独立 SELECT COUNT / SUM / AVG。
+
+    参数
+    ----
+    conn        : sqlite3.Connection（row_factory = sqlite3.Row）
+    active_types: 活动类型列表，如 ['Ride', 'VirtualRide']
+
+    返回
+    ----
+    dict 包含：
+        total_count, total_distance_m, avg_distance_m, max_distance_m,
+        total_moving_time_raw, total_elevation_m, max_heartrate,
+        avg_heartrate, avg_cadence, avg_watts
+    """
+    placeholders = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        SELECT
+            COUNT(*)                            AS total_count,
+            COALESCE(SUM(distance), 0)          AS total_distance_m,
+            COALESCE(AVG(distance), 0)          AS avg_distance_m,
+            COALESCE(MAX(distance), 0)          AS max_distance_m,
+            SUM(moving_time)                    AS total_moving_time_raw,
+            COALESCE(SUM(elevation_gain), 0)    AS total_elevation_m,
+            COALESCE(MAX(max_heartrate), 0)     AS max_heartrate,
+            COALESCE(AVG(average_heartrate), 0) AS avg_heartrate,
+            COALESCE(AVG(average_cadence), 0)   AS avg_cadence,
+            COALESCE(AVG(average_watts), 0)     AS avg_watts
+        FROM activities
+        WHERE type IN ({placeholders})
+        """,
+        tuple(active_types),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return {
+            "total_count": 0, "total_distance_m": 0, "avg_distance_m": 0,
+            "max_distance_m": 0, "total_moving_time_raw": None,
+            "total_elevation_m": 0, "max_heartrate": 0,
+            "avg_heartrate": 0, "avg_cadence": 0, "avg_watts": 0,
+        }
+    return dict(row)
+
+
+def get_yearly_stats(conn, active_types: list[str]) -> dict:
+    """
+    按年分组汇总，替代 get_sports_stats() 中的 yearly aggregates 查询。
+    返回 { "2024": {"count": 120, "distance": 1500.2}, ... }
+    """
+    placeholders = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        SELECT
+            strftime('%Y', start_date_local)    AS year,
+            COUNT(*)                            AS count,
+            COALESCE(SUM(distance), 0)          AS dist
+        FROM activities
+        WHERE type IN ({placeholders})
+          AND year IS NOT NULL
+        GROUP BY year
+        ORDER BY year DESC
+        """,
+        tuple(active_types),
+    )
+    return {
+        row["year"]: {"count": row["count"], "distance": row["dist"] / 1000.0}
+        for row in cur.fetchall()
+    }
+
+
+def get_unique_activity_dates(conn, active_types: list[str]) -> list[str]:
+    """
+    返回已去重、已排序的活动日期列表（YYYY-MM-DD），
+    供 calculate_streaks_detailed() 使用，避免把全部字段拉入内存。
+    """
+    placeholders = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"""
+        SELECT date(start_date_local) AS activity_date
+        FROM activities
+        WHERE type IN ({placeholders})
+        GROUP BY activity_date
+        ORDER BY activity_date ASC
+        """,
+        tuple(active_types),
+    )
+    return [row["activity_date"] for row in cur.fetchall()]
+
+if __name__ == "__main__":
+    from run_page.config import DB_PATH
+    init_db(DB_PATH)

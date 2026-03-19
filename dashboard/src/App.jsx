@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -7,25 +7,37 @@ import {
   Image, Wrench, Milestone 
 } from 'lucide-react';
 
-// Components
+// Components (eagerly loaded — always visible)
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 
-// Pages
-import Dashboard from './pages/Dashboard';
-import Analytics from './pages/Analytics';
-import Eddington from './pages/Eddington';
-import Activities from './pages/Activities';
-import Heatmap from './pages/Heatmap';
-import Records from './pages/Records';
-import Gear from './pages/Gear';
-import MonthlyStats from './pages/MonthlyStats';
-import Challenges from './pages/Challenges';
-import Photos from './pages/Photos';
-import Rewind from './pages/Rewind';
-import Segments from './pages/Segments';
+// ─── ARCH-2: Lazy-load all page components ────────────────────────────────────
+// Each page is split into its own JS chunk and only downloaded when first visited.
+const Dashboard   = lazy(() => import('./pages/Dashboard'));
+const Analytics   = lazy(() => import('./pages/Analytics'));
+const Eddington   = lazy(() => import('./pages/Eddington'));
+const Activities  = lazy(() => import('./pages/Activities'));
+const Heatmap     = lazy(() => import('./pages/Heatmap'));
+const Records     = lazy(() => import('./pages/Records'));
+const Gear        = lazy(() => import('./pages/Gear'));
+const MonthlyStats = lazy(() => import('./pages/MonthlyStats'));
+const Challenges  = lazy(() => import('./pages/Challenges'));
+const Photos      = lazy(() => import('./pages/Photos'));
+const Rewind      = lazy(() => import('./pages/Rewind'));
+const Segments    = lazy(() => import('./pages/Segments'));
+// ─────────────────────────────────────────────────────────────────────────────
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
+
+// Reusable tab-switch loading indicator (lightweight, no extra deps)
+const TabLoader = () => (
+  <div style={{ 
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    minHeight: '300px', opacity: 0.4 
+  }}>
+    <div className="loader-pulse" style={{ width: 40, height: 40 }} />
+  </div>
+);
 
 function App() {
   const [stats, setStats] = useState({ 
@@ -49,15 +61,27 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Sync with sportType change
-  useEffect(() => { 
-    fetchStats(); 
-  }, [sportType]);
+  // ─── PERF-3: AbortController ref persists across renders ─────────────────────
+  const abortControllerRef = useRef(null);
 
-  // Keyboard shortcuts
+  // ─── PERF-3: Debounced fetch — fires 300 ms after sportType stops changing ───
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchStats();
+    }, 300);
+
+    // On cleanup: cancel the timer AND abort any in-flight request
+    return () => {
+      clearTimeout(timer);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [sportType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keyboard shortcut: 'K' toggles sidebar
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Toggle sidebar with 'k' or 'K' key (avoid if in input)
       if ((e.key === 'k' || e.key === 'K') && 
           !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
         setIsSidebarExpanded(prev => !prev);
@@ -67,24 +91,35 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // ─── PERF-3: fetchStats with AbortController ──────────────────────────────────
   const fetchStats = async () => {
+    // Cancel the previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/v1/stats?sport_type=${sportType}`);
+      const res = await axios.get(`${API_BASE}/api/v1/stats?sport_type=${sportType}`, {
+        signal: abortControllerRef.current.signal,
+      });
       setStats(res.data);
-      setLoading(false);
     } catch (err) {
-      console.error("Failed to fetch stats", err);
+      // CanceledError is expected when a newer request supersedes this one
+      if (axios.isCancel(err) || err.name === 'CanceledError') return;
+      console.error('Failed to fetch stats', err);
+    } finally {
       setLoading(false);
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const renderHeatmap = (activeMetric = 'count') => {
     const days = [];
     const today = new Date();
     
-    // Calculate max value for the active metric to determine levels
     const values = Object.values(stats.heatmap || {}).map(d => d[activeMetric] || 0);
     const maxVal = Math.max(...values, 1);
     
@@ -96,20 +131,16 @@ function App() {
             if (val >= 2) return 'level-2';
             return 'level-1';
         }
-        // For other metrics, use quartiles
         const p = val / maxVal;
         if (p > 0.75) return 'level-4';
-        if (p > 0.5) return 'level-3';
+        if (p > 0.5)  return 'level-3';
         if (p > 0.25) return 'level-2';
         return 'level-1';
     };
 
     const unitMap = { count: 'activities', dist: 'KM', time: 'h', elev: 'm', cal: 'kcal' };
-
     const monthLabels = [];
     let lastMonth = -1;
-
-    // Start from Sunday 52 weeks ago to align the grid perfectly
     const daysToShow = 364 + today.getDay(); 
 
     for (let i = daysToShow; i >= 0; i--) {
@@ -119,8 +150,7 @@ function App() {
       const data = stats.heatmap[dateStr] || { count: 0, dist: 0, time: 0, elev: 0, cal: 0 };
       const val = data[activeMetric] || 0;
       
-      // Calculate month labels for top row
-      if (date.getDay() === 0) { // Start of a week (column)
+      if (date.getDay() === 0) {
         const currentMonth = date.getMonth();
         const weekColIndex = Math.floor((daysToShow - i) / 7);
         
@@ -156,7 +186,6 @@ function App() {
     return (
         <div className="heatmap-scroll-island glass-scroll">
             <div className="heatmap-wrapper" style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', minWidth: '850px' }}>
-                {/* Week Labels Column (Fixed relative to grid) */}
                 <div style={{ 
                     display: 'grid', 
                     gridTemplateRows: '22px repeat(7, 12px)', 
@@ -180,7 +209,6 @@ function App() {
                 </div>
 
                 <div style={{ flex: 1, position: 'relative' }}>
-                    {/* Month Labels Row - Using absolute positioning for better overflow handling */}
                     <div style={{ 
                         position: 'relative',
                         height: '22px',
@@ -189,7 +217,6 @@ function App() {
                     }}>
                         {monthLabels}
                     </div>
-                    {/* Heatmap Grid */}
                     <div className="heatmap-container" style={{ 
                         gridTemplateColumns: 'repeat(53, 1fr)',
                         gridTemplateRows: 'repeat(7, 12px)',
@@ -220,35 +247,35 @@ function App() {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'Overview': return <Dashboard stats={stats} setActiveTab={setActiveTab} renderHeatmap={renderHeatmap} setInitialSearch={setInitialSearch} />;
-      case 'Activities': return <Activities stats={stats} setActiveTab={setActiveTab} initialSearch={initialSearch} onSearchClear={() => setInitialSearch('')} sportType={sportType} />;
-      case 'Analytics': return <Analytics stats={stats} sportType={sportType} />;
-      case 'Eddington': return <Eddington stats={stats} sportType={sportType} />;
-      case 'Heatmap': return <Heatmap activities={stats.recent_activities} availableYears={stats.available_years} sportType={sportType} />;
-      case 'Records': return <Records stats={stats} setActiveTab={setActiveTab} setInitialSearch={setInitialSearch} sportType={sportType} />;
-      case 'Gear': return <Gear stats={stats} sportType={sportType} />;
-      case 'Stats': return <MonthlyStats stats={stats} renderHeatmap={renderHeatmap} sportType={sportType} />;
-      case 'Challenges': return <Challenges />;
-      case 'Photos': return <Photos sportType={sportType} />;
-      case 'Rewind': return <Rewind stats={stats} sportType={sportType} />;
-      case 'Segments': return <Segments sportType={sportType} />;
-      default: return <Dashboard stats={stats} setActiveTab={setActiveTab} />;
+      case 'Overview':    return <Dashboard stats={stats} setActiveTab={setActiveTab} renderHeatmap={renderHeatmap} setInitialSearch={setInitialSearch} />;
+      case 'Activities':  return <Activities stats={stats} setActiveTab={setActiveTab} initialSearch={initialSearch} onSearchClear={() => setInitialSearch('')} sportType={sportType} />;
+      case 'Analytics':   return <Analytics stats={stats} sportType={sportType} />;
+      case 'Eddington':   return <Eddington stats={stats} sportType={sportType} />;
+      case 'Heatmap':     return <Heatmap activities={stats.recent_activities} availableYears={stats.available_years} sportType={sportType} />;
+      case 'Records':     return <Records stats={stats} setActiveTab={setActiveTab} setInitialSearch={setInitialSearch} sportType={sportType} />;
+      case 'Gear':        return <Gear stats={stats} sportType={sportType} />;
+      case 'Stats':       return <MonthlyStats stats={stats} renderHeatmap={renderHeatmap} sportType={sportType} />;
+      case 'Challenges':  return <Challenges />;
+      case 'Photos':      return <Photos sportType={sportType} />;
+      case 'Rewind':      return <Rewind stats={stats} sportType={sportType} />;
+      case 'Segments':    return <Segments sportType={sportType} />;
+      default:            return <Dashboard stats={stats} setActiveTab={setActiveTab} />;
     }
   };
 
   const tabMetadata = {
-    'Overview': { title: 'DASHBOARD', icon: LayoutDashboard },
-    'Activities': { title: 'ACTIVITY CENTER', icon: Activity },
-    'Stats': { title: 'MONTHLY STATS', icon: Calendar },
-    'Analytics': { title: 'PERFORMANCE ANALYTICS', icon: TrendingUp },
-    'Rewind': { title: 'ANNUAL REWIND', icon: Star },
-    'Eddington': { title: 'EDDINGTON SCORE', icon: Award },
-    'Heatmap': { title: 'GLOBAL HEATMAP', icon: Map },
-    'Records': { title: 'PERSONAL RECORDS', icon: History },
-    'Challenges': { title: 'STRAVA CHALLENGES', icon: Medal },
-    'Photos': { title: 'ACTIVITY GALLERY', icon: Image },
-    'Segments': { title: 'SEGMENTS PERFORMANCE', icon: Milestone },
-    'Gear': { title: 'EQUIPMENT TRACKING', icon: Wrench }
+    'Overview':    { title: 'DASHBOARD',              icon: LayoutDashboard },
+    'Activities':  { title: 'ACTIVITY CENTER',        icon: Activity },
+    'Stats':       { title: 'MONTHLY STATS',          icon: Calendar },
+    'Analytics':   { title: 'PERFORMANCE ANALYTICS',  icon: TrendingUp },
+    'Rewind':      { title: 'ANNUAL REWIND',          icon: Star },
+    'Eddington':   { title: 'EDDINGTON SCORE',        icon: Award },
+    'Heatmap':     { title: 'GLOBAL HEATMAP',         icon: Map },
+    'Records':     { title: 'PERSONAL RECORDS',       icon: History },
+    'Challenges':  { title: 'STRAVA CHALLENGES',      icon: Medal },
+    'Photos':      { title: 'ACTIVITY GALLERY',       icon: Image },
+    'Segments':    { title: 'SEGMENTS PERFORMANCE',   icon: Milestone },
+    'Gear':        { title: 'EQUIPMENT TRACKING',     icon: Wrench }
   };
 
   const currentTabInfo = tabMetadata[activeTab] || { title: activeTab.toUpperCase(), icon: null };
@@ -265,7 +292,7 @@ function App() {
         activeTab={activeTab} 
         setActiveTab={(tab) => {
           setActiveTab(tab);
-          setIsMobileMenuOpen(false); // Close menu on tab selection
+          setIsMobileMenuOpen(false);
         }} 
         isExpanded={isSidebarExpanded} 
         setIsExpanded={setIsSidebarExpanded}
@@ -284,8 +311,12 @@ function App() {
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
+
+        {/* ── ARCH-2: Suspense wrapper for lazy-loaded pages ── */}
         <AnimatePresence mode="wait">
-          {renderTabContent()}
+          <Suspense fallback={<TabLoader />}>
+            {renderTabContent()}
+          </Suspense>
         </AnimatePresence>
       </main>
     </div>
