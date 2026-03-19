@@ -80,8 +80,8 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
       className="page-content"
     >
       <div className="platform-grid-main">
-          {/* LEFT: COMBINED PB + PEAK */}
-          <div className="platform-grid-2col" style={{ gap: '1.5rem' }}>
+          {/* LEFT: COMBINED PB + PEAK — side by side */}
+          <div className="platform-grid-2col" style={{ gap: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
               {/* COLUMN 1: ALL-TIME RECORDS (THE MEDAL WALL) */}
               <div className="platform-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
                 <h2 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.8, letterSpacing: '1px' }}>PERSONAL BEST MILESTONES</h2>
@@ -117,7 +117,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>{data.moving_time}</div>
                             <div style={{ fontSize: '0.7rem', color: accentColor, fontWeight: 700 }}>{data.pace}</div>
                         </div>
-                        <div style={{ fontSize: '0.55rem', opacity: 0.6, marginTop: '4px' }}>{data.start_date_local.split(' ')[0]}</div>
+                        <div style={{ fontSize: '0.55rem', opacity: 0.6, marginTop: '4px' }}>{data.start_date_local?.split(' ')[0] || '—'}</div>
                       </div>
                     )
                   })}
@@ -211,7 +211,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                       const timeStr = baseRecord?.moving_time || (sportMode === 'Run' ? '00:20:00' : '01:00:00');
                       const timeOnly = timeStr.includes(' ') ? timeStr.split(' ')[1] : timeStr;
                       const baseParts = timeOnly.split(':');
-                      const baseSec = parseInt(baseParts[0])*3600 + parseInt(baseParts[1])*60 + parseInt(baseParts[2]);
+                      const baseSec = (parseInt(baseParts[0])||0)*3600 + (parseInt(baseParts[1])||0)*60 + (parseInt(baseParts[2])||0);
                       return (
                         <div key={race.label} style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '12px' }}>
                             <div style={{ fontSize: '0.65rem', opacity: 0.7, marginBottom: '0.5rem', fontWeight: 700 }}>{race.label}</div>
@@ -257,15 +257,12 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                 <ResponsiveContainer>
                   <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis 
-                      dataKey="date" 
-                      name="Date" 
-                      stroke="rgba(255,255,255,0.3)" 
-                      fontSize={10} 
-                      tickFormatter={(str) => {
-                          const parts = str.split('-');
-                          return parts.length > 2 ? `${parts[1]}/${parts[2]}` : str;
-                      }}
+                    <XAxis
+                      dataKey="date"
+                      name="Year"
+                      stroke="rgba(255,255,255,0.3)"
+                      fontSize={10}
+                      tickFormatter={(str) => str}
                     />
                     <YAxis 
                       dataKey="seconds" 
@@ -293,7 +290,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                 </ResponsiveContainer>
               </div>
               <p style={{ marginTop: '1rem', opacity: 0.7, fontSize: '0.7rem' }}>
-                  Each dot represents {name.includes('Ride') ? 'a ride' : 'a run'} near {name} distance. Higher position means faster pace.
+                  Each dot is the best {name.replace(' Ride', '')} time for that year. Higher position means faster.
               </p>
               
               <div style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>

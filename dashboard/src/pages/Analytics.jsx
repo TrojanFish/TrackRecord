@@ -82,7 +82,7 @@ const Analytics = ({ stats, sportType }) => {
                 axisLine={false}
                 ticks={[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]}
                 tickFormatter={(val) => {
-                  const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+                  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                   const idx = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335].indexOf(val);
                   return idx !== -1 ? months[idx] : "";
                 }}
@@ -96,8 +96,8 @@ const Analytics = ({ stats, sportType }) => {
                 height={36} 
                 onClick={(e) => toggleYear(e.dataKey.split('_')[0])}
                 formatter={(value) => (
-                    <span style={{ 
-                        color: hiddenYears.has(value.split('_')[0]) ? '#444' : 'var(--text-primary)',
+                    <span style={{
+                        color: hiddenYears.has(value.split('_')[0]) ? 'rgba(255,255,255,0.25)' : 'var(--text-primary)',
                         textDecoration: hiddenYears.has(value.split('_')[0]) ? 'line-through' : 'none',
                         cursor: 'pointer',
                         fontSize: '0.8rem',
@@ -203,7 +203,7 @@ const Analytics = ({ stats, sportType }) => {
 
         {/* Specialized Stat Card */}
         <div className="platform-card" style={{ padding: '2rem', background: `linear-gradient(135deg, rgba(255,255,255,0.02) 0%, ${themeColor}11 100%)` }}>
-            <h3 style={{ fontSize: '1rem', mb: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.8 }}>
+            <h3 style={{ fontSize: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.8 }}>
                 <Layers size={18} color={themeColor} /> PRO PERSPECTIVE
             </h3>
             <div style={{ marginTop: '20px' }}>
@@ -231,12 +231,18 @@ const Analytics = ({ stats, sportType }) => {
                             <div style={{ fontSize: '2rem', fontWeight: 900, color: themeColor }}>{Math.round((stats.total_distance > 0 ? (stats.recent_activities?.reduce((acc, a) => acc + (a.elevation_gain || 0), 0) / stats.total_distance) : 0) * 10)} <small style={{fontSize: '1rem'}}>VAM</small></div>
                         </div>
                         <div>
-                             <div style={{ fontSize: '0.7rem', opacity: 0.7, letterSpacing: '1px' }}>POWER OUTPUT DATA</div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>Demos Avail</div>
-                            <div style={{ fontSize: '0.7rem', color: '#60a5fa', fontWeight: 700 }}>Integration via Strava Power API</div>
+                             <div style={{ fontSize: '0.7rem', opacity: 0.7, letterSpacing: '1px' }}>AVG POWER OUTPUT</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 900, color: themeColor }}>
+                              {(() => {
+                                const acts = stats.recent_activities?.filter(a => (a.average_watts || 0) > 0);
+                                if (!acts || acts.length === 0) return <span style={{ fontSize: '1.2rem', opacity: 0.4 }}>No power data</span>;
+                                const avg = Math.round(acts.reduce((s, a) => s + a.average_watts, 0) / acts.length);
+                                return <>{avg} <small style={{ fontSize: '1rem' }}>W</small></>;
+                              })()}
+                            </div>
                         </div>
                         <div style={{ padding: '15px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', fontSize: '0.8rem', opacity: 0.8 }}>
-                            🚴 Climbing Focus: Your elevation-to-distance ratio is optimal for endurance riding. Focus on sustained climbs for power development.
+                            Climbing Focus: Your elevation-to-distance ratio reflects endurance capacity. Target sustained efforts to build power over time.
                         </div>
                     </div>
                 )}

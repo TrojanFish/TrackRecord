@@ -16,6 +16,51 @@ except Exception:
 from stravalib.client import Client
 from stravalib.exc import RateLimitExceeded
 
+# --- Refactored Constants & Formatting ---
+RIDE_TYPES = ['Ride', 'VirtualRide', 'Velomobile', 'E-BikeRide']
+RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']
+ALL_TYPES = RIDE_TYPES + RUN_TYPES
+
+def row_to_seconds(t_str):
+    if not t_str or ":" not in str(t_str): return 0
+    t_only = str(t_str).split(" ")[1] if " " in str(t_str) else str(t_str)
+    parts = t_only.split(":")
+    try:
+        if len(parts) == 3: return int(float(parts[0])) * 3600 + int(float(parts[1])) * 60 + float(parts[2])
+        if len(parts) == 2: return int(float(parts[0])) * 60 + float(parts[1])
+        return float(parts[0])
+    except: return 0
+
+def format_pace(seconds, distance_m, sport_type):
+    if not seconds or not distance_m: return ""
+    dist_km = distance_m / 1000.0
+    if sport_type in RIDE_TYPES:
+        speed = (dist_km / (seconds / 3600.0))
+        return f"{speed:.1f} km/h"
+    pace_sec = seconds / dist_km
+    return f"{int(pace_sec // 60)}:{int(pace_sec % 60):02d} /km"
+
+def calculate_streaks_detailed(dates_list):
+    if not dates_list: return {"current": 0, "longest": 0}
+    unique_dates = sorted(list(set(dates_list)), reverse=True)
+    date_objs = [datetime.strptime(d, "%Y-%m-%d").date() for d in unique_dates]
+    
+    longest, current, temp = 0, 0, 1
+    today = datetime.now().date()
+    
+    is_current = (today - date_objs[0]).days <= 1
+    for i in range(len(date_objs) - 1):
+        if (date_objs[i] - date_objs[i+1]).days == 1:
+            temp += 1
+        else:
+            longest = max(longest, temp)
+            temp = 1
+    longest = max(longest, temp)
+    current = temp if is_current else 0
+    return {"current": current, "longest": longest}
+
+# ───────────────────────────────────────────────────────────────────────────
+
 
 # ── 颜色输出 (Centralized Logging) ─────────────────────────────────────────────
 class C:

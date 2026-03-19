@@ -1,7 +1,12 @@
 import os
 import json
-from rich.prompt import Prompt
-from run_page.core.config import CREDENTIALS_FILE as CRED_FILE
+try:
+    from rich.prompt import Prompt
+except:
+    Prompt = None
+
+# Default path for credentials file
+CRED_FILE = "run_page/credentials.json"
 
 def load_creds():
     if os.path.exists(CRED_FILE):
@@ -20,8 +25,7 @@ def get_credential(key, prompt_text=None, password=False, headless=False):
     # 1. Try environment variables first (Standard for Docker/VPS)
     env_key = key.upper()
     val = os.environ.get(env_key)
-    if val:
-        return val
+    if val: return val
 
     # 2. Try credentials.json
     creds = load_creds()
@@ -29,9 +33,10 @@ def get_credential(key, prompt_text=None, password=False, headless=False):
     if val or headless or prompt_text is None:
         return val
     
-    # 3. Interactive prompt as last resort
-    val = Prompt.ask(prompt_text, default=val, password=password)
-    if val:
-        creds[key] = val
-        save_creds(creds)
+    # 3. Interactive prompt
+    if Prompt:
+        val = Prompt.ask(prompt_text, default=val, password=password)
+        if val:
+            creds[key] = val
+            save_creds(creds)
     return val

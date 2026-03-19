@@ -483,8 +483,10 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                         <ActivityIcon size={16} color="var(--accent-cyan)" /> ACTIVITY INSIGHTS
                       </h4>
                       <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: '1.6' }}>
-                        This {selectedActivity.type} session covered {(selectedActivity.distance / 1000).toFixed(1)}km in {selectedActivity.location_city || 'unknown location'}. 
-                        Your intensity factor suggests a solid training stress of {Math.round(selectedActivity.distance / 100)} points.
+                        This {selectedActivity.type} session covered {(selectedActivity.distance / 1000).toFixed(1)} km
+                        {selectedActivity.location_city ? ` in ${selectedActivity.location_city}` : ''}.
+                        {selectedActivity.elevation_gain > 0 ? ` Elevation gained: ${Math.round(selectedActivity.elevation_gain)} m.` : ''}
+                        {selectedActivity.average_heartrate > 0 ? ` Avg HR: ${Math.round(selectedActivity.average_heartrate)} bpm.` : ''}
                       </p>
                   </div>
               </div>

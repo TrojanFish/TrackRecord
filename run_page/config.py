@@ -24,5 +24,9 @@ SYNCED_FILE = os.path.join(parent, "imported.json")
 BASE_TIMEZONE = "Asia/Shanghai"
 UTC_TIMEZONE = "UTC"
 
+# Web API Settings (Newly refactored)
+API_PORT = int(os.environ.get("API_PORT", 8000))
+FRONTEND_PORT = int(os.environ.get("FRONTEND_PORT", 3000))
+
 start_point = namedtuple("start_point", "lat lon")
 run_map = namedtuple("polyline", "summary_polyline")

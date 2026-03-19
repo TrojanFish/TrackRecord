@@ -11,21 +11,12 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Map libraries — largest bundle (~400 KB gz), load only when Heatmap tab opens
-          'vendor-leaflet': ['leaflet', 'react-leaflet', '@react-leaflet/core'],
-
-          // Chart library — second largest, load only when analytics pages open
-          'vendor-charts': ['recharts'],
-
-          // Animation library — used everywhere but can be deferred
-          'vendor-motion': ['framer-motion'],
-
-          // React core — must be eagerly loaded, but isolated for long-term cache stability
-          'vendor-react': ['react', 'react-dom'],
-
-          // Utility libraries — small, grouped together
-          'vendor-utils': ['axios', 'polyline', 'lucide-react'],
+        manualChunks: (id) => {
+          if (id.includes('leaflet') || id.includes('react-leaflet')) return 'vendor-leaflet';
+          if (id.includes('recharts')) return 'vendor-charts';
+          if (id.includes('framer-motion')) return 'vendor-motion';
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'vendor-react';
+          if (id.includes('axios') || id.includes('polyline') || id.includes('lucide-react')) return 'vendor-utils';
         },
       },
     },

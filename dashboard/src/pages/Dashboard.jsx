@@ -506,7 +506,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                   </td>
                   <td style={{ fontWeight: 700, padding: '12px' }}>
                     <div>{act.name}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400 }}>{act.location_city || 'TrackRecord Studio'}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400 }}>{act.location_city || act.location_country || '—'}</div>
                   </td>
                   <td style={{ padding: '12px' }}><span className={`badge ${act.type.toLowerCase()}`}>{act.type.toUpperCase()}</span></td>
                   <td style={{ padding: '12px' }}>
@@ -655,7 +655,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
                   axisLine={false}
                   ticks={[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]}
                   tickFormatter={(val) => {
-                    const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                     const idx = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335].indexOf(val);
                     return idx !== -1 ? months[idx] : "";
                   }}
@@ -797,7 +797,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               </div>
               <div>
                 <div style={{ fontSize: '0.6rem', opacity: 0.5, letterSpacing: '1px' }}>STEPS</div>
-                <div style={{ fontSize: '1rem', fontWeight: 900 }}>{stats.bio_stats?.estimated_steps?.toLocaleString()}</div>
+                <div style={{ fontSize: '1rem', fontWeight: 900 }}>{(stats.bio_stats?.estimated_steps || 0).toLocaleString()}</div>
               </div>
             </div>
           </motion.div>
@@ -809,7 +809,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               </div>
               <div>
                 <div style={{ fontSize: '0.6rem', opacity: 0.5, letterSpacing: '1px' }}>CALORIES</div>
-                <div style={{ fontSize: '1rem', fontWeight: 900 }}>{stats.bio_stats?.total_calories?.toLocaleString()} KCAL</div>
+                <div style={{ fontSize: '1rem', fontWeight: 900 }}>{(stats.bio_stats?.total_calories || 0).toLocaleString()} KCAL</div>
               </div>
             </div>
           </motion.div>

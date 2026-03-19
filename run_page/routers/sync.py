@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/v1", tags=["sync"])
 def _run_full_sync(force: bool = False):
     """后台全量同步任务（原 web_api.py run_full_sync 内嵌函数）。"""
     from run_page.generator import Generator
-    from run_page.core.auth import get_credential
+    from run_page.auth import get_credential
 
     db_path = os.environ.get("DB_PATH", "run_page/data.db")
     gen = Generator(db_path)
@@ -45,7 +45,7 @@ def _run_full_sync(force: bool = False):
 def _run_segments_sync(limit: int = 20):
     """后台 Segments 同步任务。"""
     from run_page.generator import Generator
-    from run_page.core.auth import get_credential
+    from run_page.auth import get_credential
 
     db_path = os.environ.get("DB_PATH", "run_page/data.db")
     gen = Generator(db_path)

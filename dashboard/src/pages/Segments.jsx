@@ -38,9 +38,11 @@ const Segments = ({ sportType }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(null); // { type: 'success' | 'error', text: string }
 
   const syncSegments = async () => {
     setIsSyncing(true);
+    setSyncMessage(null);
     try {
       const res = await axios.post(`${API_BASE}/api/v1/sync_segments?limit=20`);
       // Since it's a background task, we wait a bit and refresh multiple times
@@ -50,11 +52,13 @@ const Segments = ({ sportType }) => {
         attempts++;
         if (attempts >= 3) clearInterval(interval);
       }, 5000);
-      
-      alert("✅ Strava sync started in background (20 activities).\n\nDue to Strava API rate limits, we fetch segment details in batches. Data will appear in the table as it's processed.");
+
+      setSyncMessage({ type: 'success', text: 'Strava sync started (20 activities). Data will appear as it is processed.' });
+      setTimeout(() => setSyncMessage(null), 8000);
     } catch (err) {
       console.error("Sync failed", err);
-      alert("❌ Sync failed. Please check backend logs or Strava connection.");
+      setSyncMessage({ type: 'error', text: 'Sync failed. Please check backend logs or Strava connection.' });
+      setTimeout(() => setSyncMessage(null), 6000);
     } finally {
       setIsSyncing(false);
     }
@@ -142,10 +146,27 @@ const Segments = ({ sportType }) => {
   const formatDuration = (val) => {
     if (!val) return '--';
     let timeStr = String(val);
-    if (timeStr.includes(' ')) {
-        timeStr = timeStr.split(' ')[1];
-    }
+    if (timeStr.includes(' ')) timeStr = timeStr.split(' ')[1];
     return timeStr.split('.')[0];
+  };
+
+  // Converts "1970-01-01 HH:MM:SS.sss" or "HH:MM:SS" to total seconds
+  const parseToSecs = (val) => {
+    if (!val) return 0;
+    let t = String(val);
+    if (t.includes(' ')) t = t.split(' ')[1];
+    t = t.split('.')[0];
+    const parts = t.split(':');
+    return (parseInt(parts[0] || 0) * 3600) + (parseInt(parts[1] || 0) * 60) + (parseInt(parts[2] || 0));
+  };
+
+  const formatSecondsToTime = (secs) => {
+    if (!secs || isNaN(secs)) return '--';
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = Math.floor(secs % 60);
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${m}:${String(s).padStart(2,'0')}`;
   };
 
   const formatPace = (distMeters, timeStr) => {
@@ -241,8 +262,39 @@ const Segments = ({ sportType }) => {
         </div>
       </div>
 
-      <div style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7, marginBottom: '1rem', letterSpacing: '1px' }}>
-        {filteredSegments.length} SEGMENTS FOUND
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7, letterSpacing: '1px' }}>
+          {filteredSegments.length} SEGMENTS FOUND
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {syncMessage && (
+            <span style={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              padding: '4px 10px',
+              borderRadius: '8px',
+              background: syncMessage.type === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+              color: syncMessage.type === 'success' ? '#10b981' : '#ef4444',
+              border: `1px solid ${syncMessage.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`
+            }}>
+              {syncMessage.text}
+            </span>
+          )}
+          <button
+            onClick={syncSegments}
+            disabled={isSyncing}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)',
+              fontSize: '0.75rem', fontWeight: 700, cursor: isSyncing ? 'default' : 'pointer',
+              opacity: isSyncing ? 0.5 : 1, letterSpacing: '0.5px'
+            }}
+          >
+            <RefreshCw size={12} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
+            {isSyncing ? 'SYNCING...' : 'SYNC'}
+          </button>
+        </div>
       </div>
 
       {/* Segments Table */}
@@ -409,14 +461,14 @@ const Segments = ({ sportType }) => {
                         <ResponsiveContainer width="100%" height="80%">
                             <LineChart data={segmentEfforts.map(e => ({
                                 date: e.start_date_local.split(' ')[0],
-                                seconds: e.moving_time.split(':').reduce((acc, time) => (60 * acc) + +time, 0)
+                                seconds: parseToSecs(e.moving_time)
                             })).reverse()}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                                 <XAxis dataKey="date" stroke="rgba(255,255,255,0.3)" fontSize={10} />
-                                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickFormatter={(v) => formatDuration(v)} />
-                                <Tooltip 
+                                <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickFormatter={formatSecondsToTime} />
+                                <Tooltip
                                     contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    formatter={(v) => [formatDuration(v), 'Time']}
+                                    formatter={(v) => [formatSecondsToTime(v), 'Time']}
                                 />
                                 <Line type="monotone" dataKey="seconds" stroke="var(--accent-cyan)" strokeWidth={3} dot={{ fill: 'var(--accent-cyan)', r: 4 }} activeDot={{ r: 6 }} />
                             </LineChart>
@@ -438,7 +490,7 @@ const Segments = ({ sportType }) => {
                                 />
                                 <Scatter data={segmentEfforts.map(e => ({
                                     hr: e.average_heartrate || 0,
-                                    time: e.moving_time.split(':').reduce((acc, time) => (60 * acc) + +time, 0)
+                                    time: parseToSecs(e.moving_time)
                                 })).filter(e => e.hr > 0)} fill="var(--accent-red)" />
                             </ScatterChart>
                         </ResponsiveContainer>

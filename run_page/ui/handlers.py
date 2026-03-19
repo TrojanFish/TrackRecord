@@ -93,8 +93,9 @@ def handle_garmin_secret(L, get_cred, run_sync_script):
     return run_sync_script(cmd)
 
 def handle_toggle_lang(L, get_cred, run_sync_script):
-    from run_page.core.auth import load_creds, save_creds
-    from run_page.core.config import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
+    from run_page.auth import load_creds, save_creds
+    DEFAULT_LANGUAGE = "en"
+    SUPPORTED_LANGUAGES = ["en", "zh-CN"]
     creds = load_creds()
     cur_lang = creds.get("language", DEFAULT_LANGUAGE)
     new_lang = SUPPORTED_LANGUAGES[1] if cur_lang == SUPPORTED_LANGUAGES[0] else SUPPORTED_LANGUAGES[0]
@@ -103,10 +104,12 @@ def handle_toggle_lang(L, get_cred, run_sync_script):
     return True
 
 def handle_reset_creds(L, get_cred, run_sync_script):
-    from run_page.core.auth import CRED_FILE
+    from run_page.auth import CRED_FILE
+    import pathlib
+    cred_path = pathlib.Path(CRED_FILE)
     if Confirm.ask(f"[red]{L('confirm_reset')}[/red]"):
-        if CRED_FILE.exists():
-            CRED_FILE.unlink()
+        if cred_path.exists():
+            cred_path.unlink()
     return True
 
 HANDLER_REGISTRY = {

@@ -122,7 +122,7 @@ def _get_imported_challenges_from_db() -> dict:
 def _get_strava_clubs() -> list:
     """获取 Strava 俱乐部列表（带简单内存缓存）。"""
     import time
-    from run_page.core.auth import get_credential
+    from run_page.auth import get_credential
 
     # 模块级简单缓存
     now = time.time()

@@ -140,6 +140,30 @@ def get_rewind_report(
         """, mon_params)
         res_map = {r["month_num"]: r for r in cur.fetchall()}
 
+        # Compute monthly PR counts: track best time per distance bucket
+        _ride_buckets = [("30K",28000,32000),("50K",45000,55000),("80K",75000,85000),("100K",95000,105000),("150K",145000,155000)]
+        _run_buckets  = [("5K",4800,5200),("10K",9800,10200),("Half",20900,21300),("Marathon",42000,42400)]
+        _ride_types   = {"Ride","VirtualRide","EBikeRide","GravelRide","MountainBikeRide","Handcycle"}
+        _run_types    = {"Run","VirtualRun","TrailRun","Walk","Hike"}
+
+        pr_sql = f"SELECT strftime('%m', start_date_local) as mo, distance, moving_time, type FROM activities WHERE {type_filter} ORDER BY start_date_local ASC"
+        cur.execute(pr_sql, (*active_types,))
+        pr_monthly = {f"{i:02d}": 0 for i in range(1, 13)}
+        best_pr = {}
+        for row in cur.fetchall():
+            dist = row["distance"] or 0
+            secs = row_to_seconds(row["moving_time"] or "")
+            if secs <= 0:
+                continue
+            rtype = row["type"] or ""
+            buckets = _ride_buckets if rtype in _ride_types else (_run_buckets if rtype in _run_types else [])
+            for label, lo, hi in buckets:
+                if lo <= dist <= hi:
+                    if label not in best_pr or secs < best_pr[label]:
+                        best_pr[label] = secs
+                        pr_monthly[row["mo"]] = pr_monthly.get(row["mo"], 0) + 1
+                    break
+
         monthly_matrix = []
         months_short = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         for i in range(1, 13):
@@ -151,7 +175,7 @@ def get_rewind_report(
                 "dist": round((r["dist"] or 0) / 1000.0, 1),
                 "elev": round(r["elev"] or 0),
                 "time": round(row_to_seconds(r["time"]) / 3600.0, 1),
-                "prs": 0 # Placeholder for PR count if tracked separately
+                "prs": pr_monthly.get(m_num, 0)
             })
 
         # 5. 单次最长 Session (里程/时间)
@@ -176,6 +200,66 @@ def get_rewind_report(
                 "date": p["date"]
             })
 
+        # 7. 连胜（Streaks）
+        streak_sql = f"SELECT date(start_date_local) AS d FROM activities WHERE {type_filter}"
+        streak_params = [*active_types]
+        if target_year != "ALL":
+            streak_sql += " AND strftime('%Y', start_date_local) = ?"
+            streak_params.append(str(target_year))
+        streak_sql += " GROUP BY d ORDER BY d"
+        cur.execute(streak_sql, streak_params)
+        streak_dates = [r["d"] for r in cur.fetchall()]
+
+        from run_page.routers.stats import calculate_streaks_detailed
+        streaks_data = calculate_streaks_detailed(streak_dates)
+
+        # 8. 活动时段分布（按小时）
+        tod_sql = f"""
+            SELECT CAST(strftime('%H', start_date_local) AS INTEGER) AS hour, COUNT(*) AS count
+            FROM activities WHERE {type_filter}
+        """
+        tod_params = [*active_types]
+        if target_year != "ALL":
+            tod_sql += " AND strftime('%Y', start_date_local) = ?"
+            tod_params.append(str(target_year))
+        tod_sql += " GROUP BY hour ORDER BY hour"
+        cur.execute(tod_sql, tod_params)
+        tod_map = {r["hour"]: r["count"] for r in cur.fetchall()}
+        time_of_day = [{"hour": h, "count": tod_map.get(h, 0)} for h in range(24)]
+
+        # 9. 活动地点 Top 10
+        loc_sql = f"""
+            SELECT location_city, COUNT(*) AS count
+            FROM activities WHERE {type_filter} AND location_city IS NOT NULL AND location_city != ''
+        """
+        loc_params = [*active_types]
+        if target_year != "ALL":
+            loc_sql += " AND strftime('%Y', start_date_local) = ?"
+            loc_params.append(str(target_year))
+        loc_sql += " GROUP BY location_city ORDER BY count DESC LIMIT 10"
+        cur.execute(loc_sql, loc_params)
+        locations = [{"location_city": r["location_city"], "count": r["count"]} for r in cur.fetchall()]
+
+        # 10. Habit: 计算准确的活动天数与休息天数
+        active_days_sql = f"SELECT COUNT(DISTINCT date(start_date_local)) as ad FROM activities WHERE {type_filter}"
+        active_days_params = [*active_types]
+        if target_year != "ALL":
+            active_days_sql += " AND strftime('%Y', start_date_local) = ?"
+            active_days_params.append(str(target_year))
+        cur.execute(active_days_sql, active_days_params)
+        active_days_count = (cur.fetchone()["ad"] or 0)
+
+        if target_year == "ALL":
+            total_days = (dt.date.today() - dt.date(int(available_years[-1]), 1, 1)).days + 1 if available_years else 365
+        else:
+            import calendar
+            total_days = 366 if calendar.isleap(int(target_year)) else 365
+            # If the year is current, only count elapsed days
+            if str(target_year) == str(dt.date.today().year):
+                total_days = dt.date.today().timetuple().tm_yday
+
+        rest_days = max(0, total_days - active_days_count)
+
         return {
             "year": target_year,
             "compare_year": compare_year,
@@ -184,15 +268,19 @@ def get_rewind_report(
             "comparison": comparison,
             "carbon": round(carbon_total, 1),
             "passed_cars": int(carbon_total / 20.0) if carbon_total > 0 else 0,
-            "google_searches": int(main_stats["calories"] / 0.2), # 基于能量估算的搜索量（虚构指标）
+            "google_searches": int(main_stats["calories"] / 0.2),
             "longest": longest,
             "habit": {
-                "total_days": 365 if target_year == "ALL" else 366, # Rough
-                "active_days": main_stats["count"] # Rough estimate
+                "total_days": total_days,
+                "active_days": active_days_count,
+                "rest_days": rest_days,
             },
             "gear": gear_usage,
             "monthly": monthly_matrix,
-            "photos": photos
+            "photos": photos,
+            "streaks": {"day": streaks_data["day"], "week": streaks_data["week"], "month": streaks_data["month"]},
+            "time_of_day": time_of_day,
+            "locations": locations,
         }
     except Exception as e:
         import traceback

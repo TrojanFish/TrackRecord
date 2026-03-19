@@ -1,3 +1,6 @@
+import sqlite3
+import contextlib
+import os
 import datetime
 import random
 import string
@@ -465,7 +468,19 @@ def add_missing_columns(engine, model):
                 )
 
 
-def init_db(db_path):
+@contextlib.contextmanager
+def get_db():
+    db_path = os.environ.get("DB_PATH", "run_page/data.db")
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def init_db(db_path=None):
+    if not db_path:
+        db_path = os.environ.get("DB_PATH", "run_page/data.db")
     engine = create_engine(
         f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
     )
@@ -480,30 +495,33 @@ def init_db(db_path):
     with engine.connect() as conn:
         try:
             # ── Activities 核心查询字段 ─────────────────────────────────────
-            # type 单列：WHERE type IN (...)
-            conn.execute(text(
-                "CREATE INDEX IF NOT EXISTS idx_activities_type "
-                "ON activities (type)"
-            ))
-            # start_date_local 单列：ORDER BY / date range scans
-            conn.execute(text(
-                "CREATE INDEX IF NOT EXISTS idx_activities_date_local "
-                "ON activities (start_date_local)"
-            ))
-            # 复合索引 (type, start_date_local)：最常见的 WHERE type IN (...) ORDER BY date 查询
             conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS idx_activities_type_date "
-                "ON activities (type, start_date_local)"
+                "ON activities (type, start_date_local DESC)"
             ))
-            # distance：Records / max distance 查询
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_date_type "
+                "ON activities (start_date_local DESC, type)"
+            ))
             conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS idx_activities_distance "
                 "ON activities (distance)"
             ))
-            # elevation_gain：排行榜查询
             conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS idx_activities_elevation "
                 "ON activities (elevation_gain)"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_hr "
+                "ON activities (average_heartrate) WHERE average_heartrate > 0"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_cadence "
+                "ON activities (average_cadence) WHERE average_cadence > 0"
+            ))
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS idx_activities_watts "
+                "ON activities (average_watts) WHERE average_watts > 0"
             ))
 
             # ── Segments ────────────────────────────────────────────────────

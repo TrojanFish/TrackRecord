@@ -23,7 +23,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
 
   const isRun = sportType === 'Run';
   const isRide = sportType === 'Ride';
-  const themeColor = isRun ? '#ef4444' : '#06b6d4';
+  const themeColor = isRun ? '#ff3366' : '#06b6d4';
 
   const decodePolyline = (str, precision = 5) => {
     if (coordsCache.current[str]) return coordsCache.current[str];
@@ -101,7 +101,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
             
             if (colorMode === 'Type') {
                 if (!sportType || sportType === 'All') {
-                    color = activity.type === 'Run' ? '#ef4444' : '#06b6d4';
+                    color = activity.type === 'Run' ? '#ff3366' : '#06b6d4';
                 } else {
                     color = themeColor;
                 }
@@ -301,7 +301,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                {colorMode === 'Type' ? (
                  <>
-                  {(!sportType || sportType === 'All' || sportType === 'Run') && <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#ef4444' }} /> RUNNING</div>}
+                  {(!sportType || sportType === 'All' || sportType === 'Run') && <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#ff3366' }} /> RUNNING</div>}
                   {(!sportType || sportType === 'All' || sportType === 'Ride') && <div className="legend-item" style={{ fontSize: '0.7rem' }}><div className="dot" style={{ background: '#06b6d4' }} /> CYCLING</div>}
                  </>
                 ) : (

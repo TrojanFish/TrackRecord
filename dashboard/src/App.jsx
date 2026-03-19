@@ -1,18 +1,17 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, Activity, Map, Calendar, 
-  TrendingUp, Star, Award, History, Medal, 
-  Image, Wrench, Milestone 
+import {
+  LayoutDashboard, Activity, Map, Calendar,
+  TrendingUp, Star, Award, History, Medal,
+  Image, Wrench, Milestone
 } from 'lucide-react';
+import { useStats } from './hooks/useStats';
 
 // Components (eagerly loaded — always visible)
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 
-// ─── ARCH-2: Lazy-load all page components ────────────────────────────────────
-// Each page is split into its own JS chunk and only downloaded when first visited.
+// Lazy-load all page components — each is split into its own JS chunk
 const Dashboard   = lazy(() => import('./pages/Dashboard'));
 const Analytics   = lazy(() => import('./pages/Analytics'));
 const Eddington   = lazy(() => import('./pages/Eddington'));
@@ -25,64 +24,32 @@ const Challenges  = lazy(() => import('./pages/Challenges'));
 const Photos      = lazy(() => import('./pages/Photos'));
 const Rewind      = lazy(() => import('./pages/Rewind'));
 const Segments    = lazy(() => import('./pages/Segments'));
-// ─────────────────────────────────────────────────────────────────────────────
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
 // Reusable tab-switch loading indicator (lightweight, no extra deps)
 const TabLoader = () => (
-  <div style={{ 
+  <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    minHeight: '300px', opacity: 0.4 
+    minHeight: '300px', opacity: 0.4
   }}>
     <div className="loader-pulse" style={{ width: 40, height: 40 }} />
   </div>
 );
 
 function App() {
-  const [stats, setStats] = useState({ 
-    total_distance: 0, total_count: 0, recent_activities: [], 
-    heatmap: {}, yearly: {}, monthly_trends: [], breakdown: {},
-    eddington: { Run: 0, Ride: 0 }, yoy_cumulative: [], available_years: [],
-    weekly_trends: [], records: {}, time_preference: [],
-    weekday_preference: [], gear_stats: [], training_load: [],
-    records_trends: {}, daily_stats: [],
-    recent_form: { this_week: { distance: 0, stress: 0, count: 0 }, last_week: { distance: 0, stress: 0, count: 0 } },
-    athlete_metrics: { vo2_estimate: 0, zones: {}, max_hr: 0, resting_hr: 0 },
-    athlete_profile: null,
-    athlete_radar: [],
-    dashboard_records: [],
-    activity_pattern: []
-  });
   const [activeTab, setActiveTab] = useState('Overview');
-  const [sportType, setSportType] = useState('Ride'); 
+  const [sportType, setSportType] = useState('Ride');
   const [initialSearch, setInitialSearch] = useState('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  // ─── PERF-3: AbortController ref persists across renders ─────────────────────
-  const abortControllerRef = useRef(null);
-
-  // ─── PERF-3: Debounced fetch — fires 300 ms after sportType stops changing ───
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchStats();
-    }, 300);
-
-    // On cleanup: cancel the timer AND abort any in-flight request
-    return () => {
-      clearTimeout(timer);
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [sportType]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Stats with built-in caching — switching Run/Ride won't re-fetch if cached
+  const { stats, loading } = useStats(sportType);
 
   // Keyboard shortcut: 'K' toggles sidebar
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === 'k' || e.key === 'K') && 
+      if ((e.key === 'k' || e.key === 'K') &&
           !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
         setIsSidebarExpanded(prev => !prev);
       }
@@ -91,38 +58,13 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // ─── PERF-3: fetchStats with AbortController ──────────────────────────────────
-  const fetchStats = async () => {
-    // Cancel the previous request if still pending
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/v1/stats?sport_type=${sportType}`, {
-        signal: abortControllerRef.current.signal,
-      });
-      setStats(res.data);
-    } catch (err) {
-      // CanceledError is expected when a newer request supersedes this one
-      if (axios.isCancel(err) || err.name === 'CanceledError') return;
-      console.error('Failed to fetch stats', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ─────────────────────────────────────────────────────────────────────────────
-
   const renderHeatmap = (activeMetric = 'count') => {
     const days = [];
     const today = new Date();
-    
+
     const values = Object.values(stats.heatmap || {}).map(d => d[activeMetric] || 0);
     const maxVal = Math.max(...values, 1);
-    
+
     const getMetricLevel = (val) => {
         if (!val) return '';
         if (activeMetric === 'count') {
@@ -141,7 +83,7 @@ function App() {
     const unitMap = { count: 'activities', dist: 'KM', time: 'h', elev: 'm', cal: 'kcal' };
     const monthLabels = [];
     let lastMonth = -1;
-    const daysToShow = 364 + today.getDay(); 
+    const daysToShow = 364 + today.getDay();
 
     for (let i = daysToShow; i >= 0; i--) {
       const date = new Date(today);
@@ -149,18 +91,18 @@ function App() {
       const dateStr = date.toISOString().split('T')[0];
       const data = stats.heatmap[dateStr] || { count: 0, dist: 0, time: 0, elev: 0, cal: 0 };
       const val = data[activeMetric] || 0;
-      
+
       if (date.getDay() === 0) {
         const currentMonth = date.getMonth();
         const weekColIndex = Math.floor((daysToShow - i) / 7);
-        
+
         if (currentMonth !== lastMonth) {
           monthLabels.push(
-            <div key={dateStr} style={{ 
+            <div key={dateStr} style={{
               position: 'absolute',
               left: `${weekColIndex * (100 / 53)}%`,
-              fontSize: '0.65rem', 
-              opacity: 0.5, 
+              fontSize: '0.65rem',
+              opacity: 0.5,
               fontWeight: 800,
               textAlign: 'left',
               whiteSpace: 'nowrap',
@@ -175,10 +117,10 @@ function App() {
       }
 
       days.push(
-        <div 
-            key={dateStr} 
-            className={`heatmap-day ${getMetricLevel(val)}`} 
-            title={`${dateStr}: ${val}${unitMap[activeMetric]} (${data.count} activities)`} 
+        <div
+            key={dateStr}
+            className={`heatmap-day ${getMetricLevel(val)}`}
+            title={`${dateStr}: ${val}${unitMap[activeMetric]} (${data.count} activities)`}
         />
       );
     }
@@ -186,11 +128,11 @@ function App() {
     return (
         <div className="heatmap-scroll-island glass-scroll">
             <div className="heatmap-wrapper" style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', minWidth: '850px' }}>
-                <div style={{ 
-                    display: 'grid', 
-                    gridTemplateRows: '22px repeat(7, 12px)', 
+                <div style={{
+                    display: 'grid',
+                    gridTemplateRows: '22px repeat(7, 12px)',
                     gap: '2px',
-                    fontSize: '0.6rem', 
+                    fontSize: '0.6rem',
                     opacity: 0.3,
                     fontWeight: 800,
                     marginTop: '2px',
@@ -209,7 +151,7 @@ function App() {
                 </div>
 
                 <div style={{ flex: 1, position: 'relative' }}>
-                    <div style={{ 
+                    <div style={{
                         position: 'relative',
                         height: '22px',
                         width: '100%',
@@ -217,7 +159,7 @@ function App() {
                     }}>
                         {monthLabels}
                     </div>
-                    <div className="heatmap-container" style={{ 
+                    <div className="heatmap-container" style={{
                         gridTemplateColumns: 'repeat(53, 1fr)',
                         gridTemplateRows: 'repeat(7, 12px)',
                         gap: '2px'
@@ -287,14 +229,14 @@ function App() {
         <div className="bg-blob blob-2"></div>
         <div className="bg-blob blob-3"></div>
       </div>
-      
-      <Sidebar 
-        activeTab={activeTab} 
+
+      <Sidebar
+        activeTab={activeTab}
         setActiveTab={(tab) => {
           setActiveTab(tab);
           setIsMobileMenuOpen(false);
-        }} 
-        isExpanded={isSidebarExpanded} 
+        }}
+        isExpanded={isSidebarExpanded}
         setIsExpanded={setIsSidebarExpanded}
         isMobileOpen={isMobileMenuOpen}
         setIsMobileOpen={setIsMobileMenuOpen}
@@ -302,17 +244,16 @@ function App() {
       />
 
       <main className="main-content">
-        <Header 
-          title={currentTabInfo.title} 
+        <Header
+          title={currentTabInfo.title}
           icon={currentTabInfo.icon}
-          profile={stats.athlete_profile} 
+          profile={stats.athlete_profile}
           sportType={sportType}
           setSportType={setSportType}
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
 
-        {/* ── ARCH-2: Suspense wrapper for lazy-loaded pages ── */}
         <AnimatePresence mode="wait">
           <Suspense fallback={<TabLoader />}>
             {renderTabContent()}

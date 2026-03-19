@@ -12,7 +12,7 @@ from fastapi import APIRouter, BackgroundTasks, Query
 from stravalib.client import Client
 
 from run_page.services.db_service import get_db_conn, resolve_active_types
-from run_page.core.auth import get_credential
+from run_page.auth import get_credential
 
 router = APIRouter(prefix="/api/v1", tags=["photos"])
 
