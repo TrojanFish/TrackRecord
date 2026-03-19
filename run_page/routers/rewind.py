@@ -227,18 +227,35 @@ def get_rewind_report(
         tod_map = {r["hour"]: r["count"] for r in cur.fetchall()}
         time_of_day = [{"hour": h, "count": tod_map.get(h, 0)} for h in range(24)]
 
-        # 9. 活动地点 Top 10
+        # 9. 活动地点 Top 10 (城市统计)
+        # 使用 COALESCE 增加国家作为兜底，避免城市字段为空时完全无显示
         loc_sql = f"""
-            SELECT location_city, COUNT(*) AS count
-            FROM activities WHERE {type_filter} AND location_city IS NOT NULL AND location_city != ''
+            SELECT 
+                COALESCE(NULLIF(location_city, ''), NULLIF(location_country, ''), 'Unknown') as loc, 
+                COUNT(*) AS count
+            FROM activities 
+            WHERE {type_filter}
         """
         loc_params = [*active_types]
         if target_year != "ALL":
             loc_sql += " AND strftime('%Y', start_date_local) = ?"
             loc_params.append(str(target_year))
-        loc_sql += " GROUP BY location_city ORDER BY count DESC LIMIT 10"
+        
+        # 排除无效字符，并按地点分组
+        loc_sql += """ 
+            GROUP BY loc 
+            HAVING loc IS NOT NULL AND loc != '' AND UPPER(loc) != 'UNKNOWN'
+            ORDER BY count DESC LIMIT 10
+        """
         cur.execute(loc_sql, loc_params)
-        locations = [{"location_city": r["location_city"], "count": r["count"]} for r in cur.fetchall()]
+        locations = [{"location_city": r["loc"], "count": r["count"]} for r in cur.fetchall()]
+
+        # 如果彻底没有带位置的数据，尝试取一个最基础的（即使是 Unknown）
+        if not locations:
+            cur.execute(f"SELECT COALESCE(NULLIF(location_city, ''), 'Unknown') as loc, COUNT(*) as count FROM activities WHERE {type_filter} GROUP BY loc LIMIT 1", [*active_types])
+            fb = cur.fetchone()
+            if fb:
+                locations = [{"location_city": fb["loc"], "count": fb["count"]}]
 
         # 10. Habit: 计算准确的活动天数与休息天数
         active_days_sql = f"SELECT COUNT(DISTINCT date(start_date_local)) as ad FROM activities WHERE {type_filter}"
