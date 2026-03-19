@@ -28,7 +28,7 @@
 - **Git**
 
 ### 2. 配置文件
-将 [config-example.yaml](cci:7://file:///c:/Users/KeiyeeYu/Desktop/running_page/config-example.yaml:0:0-0:0) 复制为 [run_page/settings.yaml](cci:7://file:///c:/Users/KeiyeeYu/Desktop/running_page/run_page/settings.yaml:0:0-0:0) 并填写您的各项指标：
+将 `config-example.yaml` 复制为 `run_page/settings.yaml` 并填写您的各项指标：
 ```yaml
 athlete:
   name: "您的姓名"
@@ -99,6 +99,6 @@ python running_page_menu.py
 
 ## 📜 许可协议
 
-本项目采用 **MIT 协议**。详情请参阅 [LICENSE](cci:7://file:///c:/Users/KeiyeeYu/Desktop/running_page/LICENSE:0:0-0:0)。
+本项目采用 **MIT 协议**。详情请参阅 [LICENSE](./LICENSE)。
 
 *注意事项：在修改核心同步模块时，请务必尊重并遵守上述引用原始项目的开源许可要求。*

@@ -99,6 +99,6 @@ This project stands on the shoulders of giants:
 
 ## 📜 License
 
-Distributed under the **MIT License**. See [LICENSE](cci:7://file:///c:/Users/KeiyeeYu/Desktop/running_page/LICENSE:0:0-0:0) for more information. 
+Distributed under the **MIT License**. See [LICENSE](./LICENSE) for more information. 
 
 *Special Note: Please respect the original licenses of the referenced projects above when modifying core sync components.*
