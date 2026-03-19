@@ -35,6 +35,7 @@ update_schema.py
 
 # Security
 .env
+*.env
 
 # Logs
 *.log

@@ -1,8 +1,7 @@
 import os
 import json
 from rich.prompt import Prompt
-
-CRED_FILE = "run_page/credentials.json"
+from run_page.core.config import CREDENTIALS_FILE as CRED_FILE
 
 def load_creds():
     if os.path.exists(CRED_FILE):

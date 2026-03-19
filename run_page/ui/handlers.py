@@ -19,7 +19,7 @@ def handle_joyrun(L, get_cred, run_sync_script):
         uid = get_cred("joyrun_uid", "  UID")
         sid = get_cred("joyrun_sid", "  SID")
         cmd = [sys.executable, "run_page/platforms/joyrun_sync.py", uid, sid, "--from-uid-sid", "--with-gpx"]
-    run_sync_script(cmd)
+    return run_sync_script(cmd)
 
 def handle_garmin(L, get_cred, run_sync_script):
     console.print(f"\n[bold blue]⌚  Garmin (佳明) 同步[/bold blue]")
@@ -28,7 +28,7 @@ def handle_garmin(L, get_cred, run_sync_script):
     secret = get_cred(cred_key, "  Secret String")
     cmd = [sys.executable, "run_page/platforms/garmin_sync.py", secret]
     if is_cn: cmd.append("--is-cn")
-    run_sync_script(cmd)
+    return run_sync_script(cmd)
 
 def handle_stats(L):
     db_path = "run_page/data.db"
@@ -46,8 +46,10 @@ def handle_stats(L):
                             f"[bold white]{L('total_dist')}[/bold white] [green]{total_dist:.2f} km[/green]",
                             title=L("overview"), border_style="green"))
         conn.close()
+        return True
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
+        return False
 
 def handle_strava_to_garmin(L, get_cred, run_sync_script):
     console.print(f"\n[bold orange1]🧡  Strava[/bold orange1] [bold white]->[/bold white] [bold blue]Garmin 同步[/bold blue]")
@@ -59,7 +61,7 @@ def handle_strava_to_garmin(L, get_cred, run_sync_script):
     g_secret = get_cred(cred_key, "  Garmin Secret String")
     cmd = [sys.executable, "run_page/platforms/strava_to_garmin_sync.py", s_id, s_secret, s_token, g_secret]
     if is_cn: cmd.append("--is-cn")
-    run_sync_script(cmd)
+    return run_sync_script(cmd)
 
 def handle_garmin_to_strava(L, get_cred, run_sync_script):
     console.print(f"\n[bold blue]⌚  Garmin[/bold blue] [bold white]->[/bold white] [bold orange1]Strava 同步[/bold orange1]")
@@ -71,7 +73,7 @@ def handle_garmin_to_strava(L, get_cred, run_sync_script):
     g_secret = get_cred(cred_key, "  Garmin Secret String")
     cmd = [sys.executable, "run_page/platforms/garmin_to_strava_sync.py", s_id, s_secret, s_token, g_secret]
     if is_cn: cmd.append("--is-cn")
-    run_sync_script(cmd)
+    return run_sync_script(cmd)
 
 def handle_tcx_to_garmin(L, get_cred, run_sync_script):
     console.print(f"\n[bold white]📂  TCX[/bold white] [bold white]->[/bold white] [bold blue]Garmin 同步[/bold blue]")
@@ -80,7 +82,7 @@ def handle_tcx_to_garmin(L, get_cred, run_sync_script):
     g_secret = get_cred(cred_key, "  Garmin Secret String")
     cmd = [sys.executable, "run_page/platforms/tcx_to_garmin_sync.py", g_secret]
     if is_cn: cmd.append("--is-cn")
-    run_sync_script(cmd)
+    return run_sync_script(cmd)
 
 def handle_garmin_secret(L, get_cred, run_sync_script):
     console.print(f"\n[bold blue]🔑  {L('get_garmin_secret')}[/bold blue]")
@@ -89,4 +91,35 @@ def handle_garmin_secret(L, get_cred, run_sync_script):
     is_cn = Prompt.ask(f"  {L('is_garmin_cn')}", choices=["y", "n"], default="y") == "y"
     cmd = [sys.executable, "run_page/tools/get_garmin_secret.py", email, password]
     if is_cn: cmd.append("--is-cn")
-    run_sync_script(cmd)
+    return run_sync_script(cmd)
+
+def handle_toggle_lang(L, get_cred, run_sync_script):
+    from run_page.core.auth import load_creds, save_creds
+    from run_page.core.config import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
+    creds = load_creds()
+    cur_lang = creds.get("language", DEFAULT_LANGUAGE)
+    # Simple toggle for 2 languages
+    new_lang = SUPPORTED_LANGUAGES[1] if cur_lang == SUPPORTED_LANGUAGES[0] else SUPPORTED_LANGUAGES[0]
+    creds["language"] = new_lang
+    save_creds(creds)
+    return True
+
+def handle_reset_creds(L, get_cred, run_sync_script):
+    from run_page.core.auth import CRED_FILE
+    if Confirm.ask(f"[red]{L('confirm_reset')}[/red]"):
+        if CRED_FILE.exists():
+            CRED_FILE.unlink()
+    return True
+
+# Registry of handlers for uniform dispatch
+HANDLER_REGISTRY = {
+    "joyrun": handle_joyrun,
+    "garmin": handle_garmin,
+    "strava_to_garmin": handle_strava_to_garmin,
+    "garmin_to_strava": handle_garmin_to_strava,
+    "tcx_to_garmin": handle_tcx_to_garmin,
+    "stats": lambda L, get_cred, run_sync_script: handle_stats(L),
+    "garmin_secret": handle_garmin_secret,
+    "toggle_lang": handle_toggle_lang,
+    "reset_creds": handle_reset_creds,
+}

@@ -30,6 +30,7 @@ sys.path.append(os.getcwd())
 
 from run_page.core.platforms import get_platform_configs
 from run_page.core.auth import load_creds, save_creds, get_credential
+from run_page.core.config import API_PORT, FRONTEND_PORT
 from run_page.ui.i18n import I18N
 
 @contextlib.asynccontextmanager
@@ -55,7 +56,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[f"http://localhost:{FRONTEND_PORT}", f"http://127.0.0.1:{FRONTEND_PORT}"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -2568,5 +2569,5 @@ async def catch_all(full_path: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("run_page.web_api:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("run_page.web_api:app", host="0.0.0.0", port=API_PORT, reload=True)
 # Reload trigger
