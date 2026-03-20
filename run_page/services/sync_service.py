@@ -1,6 +1,7 @@
 import os
 import asyncio
 import time
+import logging
 import requests
 import sqlite3
 from datetime import datetime
@@ -8,15 +9,25 @@ from stravalib.client import Client
 from run_page.generator import Generator
 from run_page.auth import get_credential
 
+logger = logging.getLogger(__name__)
+
+_MAX_PHOTO_BYTES = 20 * 1024 * 1024  # 20 MB hard cap per photo
+
 def get_db_conn():
     db_path = os.environ.get("DB_PATH", "run_page/data.db")
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
-def sync_strava_photos(limit: int = 1000):
-    """Background task to download photos from Strava and save to local DB."""
-    print(f"[{datetime.now()}] Starting photo sync (limit={limit})...")
+def sync_strava_photos(days: int = 90):
+    """
+    Background task: download photos from Strava for activities in the last
+    `days` days and save metadata to the local DB.
+
+    Using an `after` time window instead of a large `limit` drastically reduces
+    the number of paginated API calls (Strava rate limit: 100 req/15 min).
+    """
+    logger.info("Starting photo sync (last %d days)...", days)
     
     client_id = get_credential("strava_client_id")
     client_secret = get_credential("strava_client_secret")
@@ -41,34 +52,52 @@ def sync_strava_photos(limit: int = 1000):
         static_photos_dir = os.path.join("run_page", "static", "photos")
         os.makedirs(static_photos_dir, exist_ok=True)
         
-        activities = list(client.get_activities(limit=limit))
-        photo_activities_count = 0
+        # Fetch only recent activities — per_page=200 uses the Strava API maximum
+        # to minimise the number of paginated requests (default is 30/page).
+        after_dt = datetime.now() - __import__('datetime').timedelta(days=days)
+        activities = list(client.get_activities(after=after_dt, per_page=200))
+        # Batch query which activities already have photos in DB (avoids N+1 queries)
+        photo_activity_ids = [a.id for a in activities if getattr(a, 'total_photo_count', 0) > 0]
+        if not photo_activity_ids:
+            conn.close()
+            return
+        ph_ids = ",".join(["?"] * len(photo_activity_ids))
+        cur.execute(f"SELECT DISTINCT activity_id FROM photos WHERE activity_id IN ({ph_ids})", photo_activity_ids)
+        synced_ids = {row[0] for row in cur.fetchall()}
+
         for activity in activities:
-            if getattr(activity, 'total_photo_count', 0) > 0:
-                photo_activities_count += 1
-                cur.execute("SELECT local_path FROM photos WHERE activity_id = ?", (activity.id,))
-                row = cur.fetchone()
-                if row and row[0] and os.path.exists(row[0]):
-                    continue
-                
-                activity_photos = client.get_activity_photos(activity.id, only_instagram=False, size=800)
-                for idx, photo in enumerate(activity_photos):
+            if getattr(activity, 'total_photo_count', 0) == 0:
+                continue
+            if activity.id in synced_ids:
+                continue
+
+            activity_photos = client.get_activity_photos(activity.id, only_instagram=False, size=800)
+            for idx, photo in enumerate(activity_photos):
                     if hasattr(photo, 'urls') and photo.urls:
                         remote_url = photo.urls.get('800') or photo.urls.get('original') or list(photo.urls.values())[0]
                         photo_id = getattr(photo, 'unique_id', None) or f"{activity.id}_{idx}"
-                        
+
                         local_name = f"{photo_id}.jpg"
                         local_path = os.path.join(static_photos_dir, local_name)
-                        
+
                         if not os.path.exists(local_path):
                             try:
                                 r = requests.get(remote_url, timeout=15)
                                 if r.status_code == 200:
-                                    with open(local_path, "wb") as f:
-                                        f.write(r.content)
+                                    content_type = r.headers.get("Content-Type", "")
+                                    if not content_type.startswith("image/"):
+                                        logger.warning("Skipping non-image URL %s (type: %s)", remote_url, content_type)
+                                        local_path = None
+                                    elif len(r.content) > _MAX_PHOTO_BYTES:
+                                        logger.warning("Skipping oversized photo %s (%d bytes)", remote_url, len(r.content))
+                                        local_path = None
+                                    else:
+                                        with open(local_path, "wb") as f:
+                                            f.write(r.content)
                                 else:
                                     local_path = None
-                            except:
+                            except Exception as dl_err:
+                                logger.warning("Photo download failed for %s: %s", remote_url, dl_err)
                                 local_path = None
                         
                         if local_path:
@@ -85,7 +114,7 @@ def sync_strava_photos(limit: int = 1000):
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"Photo sync error: {e}")
+        logger.error("Photo sync error: %s", e, exc_info=True)
 
 def perform_sync_logic(force=False, segments_limit=20):
     """Core synchronization business logic."""
@@ -101,7 +130,7 @@ def perform_sync_logic(force=False, segments_limit=20):
             gen.set_strava_config(cid, secret, refresh)
             gen.sync(force=force)
             gen.sync_segments(limit=segments_limit)
-            sync_strava_photos(limit=100)
+            sync_strava_photos(days=90)
         gen.close()
     except Exception as e:
         print(f"Sync failed: {e}")

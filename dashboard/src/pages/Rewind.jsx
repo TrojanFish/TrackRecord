@@ -413,14 +413,16 @@ const Rewind = ({ stats: appStats, sportType }) => {
           <SectionTitle icon={Zap} title="CONSECUTIVE RECORDS" rightContent={<div style={{fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '0.5px'}}>{targetYear === 'ALL' ? 'ALL-TIME BEST' : `${targetYear} PERSPECTIVE`}</div>} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', height: '100%', alignItems: 'center' }}>
             {[
-              { label: 'days', value: rewindData?.streaks?.day || 0, sub: 'streak count', color: themeColor },
-              { label: 'weeks', value: rewindData?.streaks?.week || 0, sub: 'streak count', color: isRun ? '#fca5a5' : 'var(--accent-blue)' },
-              { label: 'months', value: rewindData?.streaks?.month || 0, sub: 'streak count', color: isRun ? '#f87171' : 'var(--accent-violet)' }
+              { label: 'days', value: rewindData?.streaks?.day || 0, current: rewindData?.streaks?.current || 0, color: themeColor },
+              { label: 'weeks', value: rewindData?.streaks?.week || 0, current: null, color: isRun ? '#fca5a5' : 'var(--accent-blue)' },
+              { label: 'months', value: rewindData?.streaks?.month || 0, current: null, color: isRun ? '#f87171' : 'var(--accent-violet)' }
             ].map((s, i) => (
               <div key={i} style={{ textAlign: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div style={{ fontSize: '3rem', fontWeight: 900, color: s.color }}>{s.value}</div>
                 <div style={{ fontSize: '0.9rem', fontWeight: 800, marginTop: '5px' }}>{s.label.toUpperCase()}</div>
-                <div style={{ fontSize: '0.6rem', opacity: 0.3, marginTop: '8px', textTransform: 'uppercase' }}>{s.sub}</div>
+                <div style={{ fontSize: '0.6rem', opacity: 0.3, marginTop: '8px' }}>
+                  BEST{s.current != null && s.current > 0 ? ` · NOW ${s.current}` : ''}
+                </div>
               </div>
             ))}
           </div>
@@ -574,7 +576,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem', gridColumn: 'span 2' }}>
            <SectionTitle icon={ImageIcon} title="PHOTOS" />
            {rewindData?.photos?.length > 0 ? (
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.5rem' }}>
+             <div className="rewind-photos-grid" style={{ gap: '1.5rem' }}>
                 {(rewindData?.photos || []).map((photo) => (
                   <div key={photo.id} style={{ height: '220px', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', position: 'relative' }}>
                      <img 

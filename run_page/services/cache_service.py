@@ -125,4 +125,3 @@ def cached(key_fn, ttl: int = 300):
         wrapper.__wrapped__ = func  # 方便测试时绕过缓存
         return wrapper
     return decorator
-    return decorator

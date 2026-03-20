@@ -101,7 +101,7 @@ export function useStats(sportType) {
           return;
         }
         console.error('[useStats] Failed to fetch stats:', err);
-        setError(err);
+        setError({ message: err.message, code: err.code || err.response?.status || 'UNKNOWN' });
       } finally {
         setLoading(false);
       }

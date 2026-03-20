@@ -2042,6 +2042,34 @@ body {
   transform: translateY(-3px);
   box-shadow: 0 10px 20px rgba(6, 182, 212, 0.3);
 }
+/* Responsive table columns */
+@media (max-width: 768px) {
+  .col-hide-mobile { display: none !important; }
+}
+
+/* Photos masonry — responsive columns */
+.photos-masonry {
+  column-count: 3;
+}
+@media (max-width: 1024px) {
+  .photos-masonry { column-count: 2; }
+}
+@media (max-width: 640px) {
+  .photos-masonry { column-count: 1; }
+}
+
+/* Rewind photos grid — responsive columns */
+.rewind-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 1024px) {
+  .rewind-photos-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .rewind-photos-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* Sport Specific Overrides */
 .sport-run {
   --accent-cyan: #ff3366;

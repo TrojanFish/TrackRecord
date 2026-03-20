@@ -62,8 +62,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # API Routers
@@ -100,7 +100,12 @@ async def catch_all(full_path: str):
     if full_path.startswith("api/v1"):
         raise HTTPException(status_code=404, detail="API Route Not Found")
 
-    file_path = os.path.join(dashboard_root, full_path)
+    # Path traversal protection: ensure resolved path stays within dashboard_root
+    safe_root = os.path.realpath(dashboard_root)
+    file_path = os.path.realpath(os.path.join(dashboard_root, full_path))
+    if not (file_path == safe_root or file_path.startswith(safe_root + os.sep)):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     if os.path.exists(file_path) and os.path.isfile(file_path):
         return FileResponse(file_path)
 

@@ -4,6 +4,7 @@ import os
 import datetime
 import random
 import string
+import threading
 
 from geopy.geocoders import options, Nominatim
 from sqlalchemy import (
@@ -31,23 +32,22 @@ options.default_user_agent = "running_page"
 # reverse the location (lat, lon) -> location detail
 g = Nominatim(user_agent=randomword())
 
-# global cache for location to avoid redundant reverse geocoding
-_LOCATION_CACHE = {}
+# global cache for location to avoid redundant reverse geocoding (thread-safe)
+_LOCATION_CACHE: dict = {}
+_LOCATION_CACHE_LOCK = threading.Lock()
 
 def get_location_location(lat, lon):
     # Use a precision of 2 decimal places (~1.1km) for better cache hit rate while maintaining location accuracy
     key = (round(lat, 2), round(lon, 2))
-    if key in _LOCATION_CACHE:
-        return _LOCATION_CACHE[key]
-    
+    with _LOCATION_CACHE_LOCK:
+        if key in _LOCATION_CACHE:
+            return _LOCATION_CACHE[key]
+
     def parse_location(loc):
         if not loc: return None
         addr = loc.raw.get('address', {})
-        # Try to find city, town, village, etc.
         city = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('county') or addr.get('suburb') or ""
         country = addr.get('country', "")
-        
-        # Format for display: Country, City
         if city and country:
             if country == "中国":
                 return f"{country}{city}"
@@ -59,17 +59,16 @@ def get_location_location(lat, lon):
     try:
         location = g.reverse(f"{lat}, {lon}", language="zh-CN")
         formatted = parse_location(location)
-        _LOCATION_CACHE[key] = formatted
-        return formatted
     except Exception:
-        # Retry once on failure
         try:
             location = g.reverse(f"{lat}, {lon}", language="zh-CN")
             formatted = parse_location(location)
-            _LOCATION_CACHE[key] = formatted
-            return formatted
         except Exception:
-            return None
+            formatted = None
+
+    with _LOCATION_CACHE_LOCK:
+        _LOCATION_CACHE[key] = formatted
+    return formatted
 
 def get_location_country(lat, lon):
     # Compatibility wrapper
@@ -300,8 +299,7 @@ def update_or_create_activity(session, run_activity):
                 geocoded = get_location_location(start_point.lat, start_point.lon)
                 if geocoded:
                     location_city = geocoded
-                    if not location_country:
-                        location_country = geocoded
+                    # Extract country portion only (geocoded format: "City, Country" or "国City")
 
             activity = Activity(
                 run_id=run_activity.id,
@@ -350,8 +348,6 @@ def update_or_create_activity(session, run_activity):
                 geocoded = get_location_location(run_activity.start_latlng.lat, run_activity.start_latlng.lon)
                 if geocoded:
                     activity.location_city = geocoded
-                    if not activity.location_country or activity.location_country == "UNKNOWN":
-                        activity.location_country = geocoded
 
             activity.max_heartrate = getattr(run_activity, "max_heartrate", None)
             activity.average_cadence = getattr(run_activity, "average_cadence", None)

@@ -18,6 +18,14 @@ const Eddington = ({ stats, sportType }) => {
   const currentData = stats.eddington[activeType] || { value: 0, next_gap: 0, chart_data: [] };
   const themeColor = activeType === 'Run' ? 'var(--accent-cyan)' : '#bd00ff';
 
+  // Estimate completion date: assume ~3 qualifying sessions/week on average
+  const estimatedWeeks = currentData.next_gap > 0 ? Math.ceil(currentData.next_gap / 3) : 0;
+  const estimatedDate = estimatedWeeks > 0 ? (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + estimatedWeeks * 7);
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  })() : null;
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
@@ -87,6 +95,11 @@ const Eddington = ({ stats, sportType }) => {
                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>
                       Need <b>{currentData.next_gap}</b> more days of {currentData.value + 1}+ km
                    </div>
+                   {estimatedDate && (
+                     <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '4px' }}>
+                       Est. ~{estimatedDate} at 3 qualifying days/wk
+                     </div>
+                   )}
                 </div>
             </div>
           </div>

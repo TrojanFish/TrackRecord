@@ -2,7 +2,7 @@ import os
 import json
 try:
     from rich.prompt import Prompt
-except:
+except ImportError:
     Prompt = None
 
 # Default path for credentials file

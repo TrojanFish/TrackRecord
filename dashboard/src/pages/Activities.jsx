@@ -14,6 +14,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
   const [searchTerm, setSearchTerm] = useState('');
   const isGlobalFilterActive = sportType !== 'All';
   const [internalFilterType, setInternalFilterType] = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'start_date_local', direction: 'desc' });
   const [distanceFilter, setDistanceFilter] = useState('All');
   const [commuteFilter, setCommuteFilter] = useState('All'); // All, Commute, Exclude
@@ -174,100 +175,108 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
     >
       {/* Search & Filter Header */}
       <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem', position: 'relative', zIndex: 10 }}>
-         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center' }}>
-            {/* Search Input */}
-            <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
-               <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }} />
-               <input 
-                 type="text" 
-                 placeholder="Search activity name..." 
-                 className="search-input-fancy"
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-                 style={{ width: '100%', paddingLeft: '45px' }}
-               />
-            </div>
+        {/* Always-visible: search + count + filter toggle */}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }} />
+            <input
+              type="text"
+              placeholder="Search activity name..."
+              className="search-input-fancy"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%', paddingLeft: '45px' }}
+            />
+          </div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.8, whiteSpace: 'nowrap' }}>
+            {filteredActivities.length} FOUND
+          </div>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className="filter-toggle-btn"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '8px 14px', borderRadius: '10px',
+              border: showFilters ? '1px solid rgba(6,182,212,0.5)' : '1px solid rgba(255,255,255,0.1)',
+              background: showFilters ? 'rgba(6,182,212,0.1)' : 'rgba(255,255,255,0.04)',
+              color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
+            }}
+          >
+            <Filter size={13} /> FILTERS {showFilters ? '▲' : '▼'}
+          </button>
+        </div>
 
-            {/* Type Filter - Only show if no global filter active */}
+        {/* Collapsible filter row */}
+        {showFilters && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             {!isGlobalFilterActive && (
               <div className="filter-group">
                 <label><Filter size={14} /> TYPE</label>
                 <select value={internalFilterType} onChange={(e) => setInternalFilterType(e.target.value)}>
-                    <option value="All">All Types</option>
-                    <option value="Run">Running</option>
-                    <option value="Ride">Cycling</option>
-                    <option value="Walk">Walking</option>
+                  <option value="All">All Types</option>
+                  <option value="Run">Running</option>
+                  <option value="Ride">Cycling</option>
+                  <option value="Walk">Walking</option>
                 </select>
               </div>
             )}
-
-            {/* Distance Filter */}
             <div className="filter-group">
-               <label><Zap size={14} /> RANGE</label>
-               <select value={distanceFilter} onChange={(e) => setDistanceFilter(e.target.value)}>
-                  <option value="All">Any Distance</option>
-                  {filterType === 'Ride' ? (
-                    <>
-                      <option value="Short">&lt; 30km</option>
-                      <option value="Medium">30 - 80km</option>
-                      <option value="Long">&gt; 80km</option>
-                    </>
-                  ) : filterType === 'Walk' || filterType === 'Hike' ? (
-                    <>
-                      <option value="Short">&lt; 3km</option>
-                      <option value="Medium">3 - 10km</option>
-                      <option value="Long">&gt; 10km</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Short">&lt; 5km</option>
-                      <option value="Medium">5 - 15km</option>
-                      <option value="Long">&gt; 15km</option>
-                    </>
-                  )}
-               </select>
+              <label><Zap size={14} /> RANGE</label>
+              <select value={distanceFilter} onChange={(e) => setDistanceFilter(e.target.value)}>
+                <option value="All">Any Distance</option>
+                {filterType === 'Ride' ? (
+                  <>
+                    <option value="Short">&lt; 30km</option>
+                    <option value="Medium">30 – 80km</option>
+                    <option value="Long">&gt; 80km</option>
+                  </>
+                ) : filterType === 'Walk' || filterType === 'Hike' ? (
+                  <>
+                    <option value="Short">&lt; 3km</option>
+                    <option value="Medium">3 – 10km</option>
+                    <option value="Long">&gt; 10km</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="Short">&lt; 5km</option>
+                    <option value="Medium">5 – 15km</option>
+                    <option value="Long">&gt; 15km</option>
+                  </>
+                )}
+              </select>
             </div>
-
-            {/* Country Filter */}
             <div className="filter-group">
-               <label><MapPin size={14} /> COUNTRY</label>
-               <select value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)}>
-                  {countries.map(c => <option key={c} value={c}>{c === 'All' ? 'All Countries' : c}</option>)}
-               </select>
+              <label><MapPin size={14} /> COUNTRY</label>
+              <select value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)}>
+                {countries.map(c => <option key={c} value={c}>{c === 'All' ? 'All Countries' : c}</option>)}
+              </select>
             </div>
-
-            {/* Year Filter */}
             <div className="filter-group">
-               <label><Calendar size={14} /> YEAR</label>
-               <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                  {years.map(y => <option key={y} value={y}>{y === 'All' ? 'All Years' : y}</option>)}
-               </select>
+              <label><Calendar size={14} /> YEAR</label>
+              <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                {years.map(y => <option key={y} value={y}>{y === 'All' ? 'All Years' : y}</option>)}
+              </select>
             </div>
-
-            {/* Other Filters */}
             <div className="filter-group">
-               <label><ChevronDown size={14} /> OTHER</label>
-               <select 
-                 value={`${commuteFilter}-${workoutTypeFilter}`} 
-                 onChange={(e) => {
-                    const [c, w] = e.target.value.split('-');
-                    if (c) setCommuteFilter(c);
-                    if (w) setWorkoutTypeFilter(w);
-                 }}
-               >
-                  <option value="All-All">All Tags</option>
-                  <option value="Commute-All">Only Commute</option>
-                  <option value="Exclude-All">Exclude Commute</option>
-                  <option value="All-Race">Races Only</option>
-                  <option value="All-Workout">Workouts Only</option>
-                  <option value="All-Long Run">Long Runs Only</option>
-               </select>
+              <label><ChevronDown size={14} /> OTHER</label>
+              <select
+                value={`${commuteFilter}-${workoutTypeFilter}`}
+                onChange={(e) => {
+                  const [c, w] = e.target.value.split('-');
+                  if (c) setCommuteFilter(c);
+                  if (w) setWorkoutTypeFilter(w);
+                }}
+              >
+                <option value="All-All">All Tags</option>
+                <option value="Commute-All">Only Commute</option>
+                <option value="Exclude-All">Exclude Commute</option>
+                <option value="All-Race">Races Only</option>
+                <option value="All-Workout">Workouts Only</option>
+                <option value="All-Long Run">Long Runs Only</option>
+              </select>
             </div>
-
-            <div style={{ marginLeft: 'auto', fontSize: '0.8rem', fontWeight: 700, opacity: 0.8 }}>
-               FOUND {filteredActivities.length} ACTIVITIES
-            </div>
-         </div>
+          </div>
+        )}
       </div>
 
       {/* Main Table Container */}
@@ -279,12 +288,12 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>DATE <ArrowUpDown size={12} /></div>
               </th>
               <th>NAME / LOCATION</th>
-              <th>TYPE</th>
+              <th className="col-hide-mobile">TYPE</th>
               <th onClick={() => handleSort('distance')} style={{ cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>DISTANCE / CLIMB <ArrowUpDown size={12} /></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>DIST / CLIMB <ArrowUpDown size={12} /></div>
               </th>
-              <th>PACE / GAP / DUR</th>
-              <th>BIO & POWER</th>
+              <th>PACE / DUR</th>
+              <th className="col-hide-mobile">BIO & POWER</th>
               <th>ACTION</th>
             </tr>
           </thead>
@@ -317,7 +326,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                         </div>
                     </div>
                 </td>
-                <td>
+                <td className="col-hide-mobile">
                   <span className={`badge ${activity.type.toLowerCase()}`}>
                     {activity.type.toUpperCase()}
                   </span>
@@ -346,7 +355,7 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                        <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{activity.moving_time.includes(' ') ? activity.moving_time.split(' ')[1].split('.')[0] : activity.moving_time.split('.')[0]}</span>
                   </div>
                 </td>
-                <td>
+                <td className="col-hide-mobile">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {activity.average_heartrate > 0 && (
@@ -354,11 +363,12 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                           <Heart size={12} fill={activity.average_heartrate > 160 ? "#ef4444" : "none"} /> {Math.round(activity.average_heartrate)}
                         </div>
                       )}
-                       {activity.average_cadence > 0 && (
-                         <div style={{ fontSize: '0.75rem', color: activity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                           <Footprints size={12} /> {Math.round(activity.average_cadence < 120 && activity.type.toLowerCase().includes('run') ? activity.average_cadence * 2 : activity.average_cadence)}
-                         </div>
-                       )}
+                      {activity.average_cadence > 0 && (
+                        <div style={{ fontSize: '0.75rem', color: activity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                          <Footprints size={12} /> {Math.round(activity.average_cadence < 120 && activity.type.toLowerCase().includes('run') ? activity.average_cadence * 2 : activity.average_cadence)}
+                          <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>{activity.type.toLowerCase().includes('run') ? 'spm' : 'rpm'}</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {activity.calories > 0 && (
@@ -447,47 +457,83 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
                     )}
                   </div>
 
-                  {/* High Level Stats Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                    <div className="detail-stat-box">
-                        <span className="label">DISTANCE</span>
-                        <span className="value">{(selectedActivity.distance / 1000).toFixed(2)} <small>KM</small></span>
-                    </div>
-                    <div className="detail-stat-box">
-                        <span className="label">PACE / SPEED</span>
-                        <span className="value">
-                            {formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type)}
-                             {selectedActivity.gap_pace && selectedActivity.gap_pace !== formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type) && (
-                                 <div style={{ fontSize: '0.7rem', color: selectedActivity.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)', marginTop: '4px' }}>
-                                     GAP: {selectedActivity.gap_pace}
-                                 </div>
-                             )}
-                        </span>
-                    </div>
-                    <div className="detail-stat-box">
-                        <span className="label">MOVING TIME</span>
-                        <span className="value">{selectedActivity.moving_time.includes(' ') ? selectedActivity.moving_time.split(' ')[1].split('.')[0] : selectedActivity.moving_time.split('.')[0]}</span>
-                    </div>
-                    <div className="detail-stat-box">
-                        <span className="label">ELEVATION GAIN</span>
-                        <span className="value">{selectedActivity.elevation_gain?.toFixed(0) || 0} <small>M</small></span>
-                    </div>
-                    <div className="detail-stat-box">
-                        <span className="label">EST. AVG HEART RATE</span>
-                        <span className="value" style={{ color: '#ef4444' }}>{selectedActivity.average_heartrate?.toFixed(0) || '--'} <small>BPM</small></span>
-                    </div>
-                  </div>
+                  {/* Stats Grid — Run/Ride mode aware */}
+                  {(() => {
+                    const isRun = selectedActivity.type === 'Run' || selectedActivity.type === 'TrailRun';
+                    const accent = isRun ? '#ff3366' : 'var(--accent-cyan)';
+                    const movingTime = selectedActivity.moving_time.includes(' ')
+                      ? selectedActivity.moving_time.split(' ')[1].split('.')[0]
+                      : selectedActivity.moving_time.split('.')[0];
+                    const cadenceDisplay = selectedActivity.average_cadence > 0
+                      ? Math.round(selectedActivity.average_cadence < 120 && isRun ? selectedActivity.average_cadence * 2 : selectedActivity.average_cadence)
+                      : null;
 
-                  <div style={{ padding: '2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <ActivityIcon size={16} color="var(--accent-cyan)" /> ACTIVITY INSIGHTS
-                      </h4>
-                      <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: '1.6' }}>
-                        This {selectedActivity.type} session covered {(selectedActivity.distance / 1000).toFixed(1)} km
-                        {selectedActivity.location_city ? ` in ${selectedActivity.location_city}` : ''}.
-                        {selectedActivity.elevation_gain > 0 ? ` Elevation gained: ${Math.round(selectedActivity.elevation_gain)} m.` : ''}
-                        {selectedActivity.average_heartrate > 0 ? ` Avg HR: ${Math.round(selectedActivity.average_heartrate)} bpm.` : ''}
-                      </p>
+                    const statBoxes = [
+                      { label: 'DISTANCE', value: `${(selectedActivity.distance / 1000).toFixed(2)}`, unit: 'KM' },
+                      {
+                        label: isRun ? 'PACE' : 'AVG SPEED',
+                        value: formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type),
+                        sub: selectedActivity.gap_pace && selectedActivity.gap_pace !== formatPace(selectedActivity.distance, selectedActivity.moving_time, selectedActivity.type)
+                          ? `GAP: ${selectedActivity.gap_pace}` : null,
+                        subColor: accent
+                      },
+                      { label: 'MOVING TIME', value: movingTime },
+                      { label: 'ELEVATION', value: `${selectedActivity.elevation_gain?.toFixed(0) || 0}`, unit: 'M' },
+                      {
+                        label: 'AVG HEART RATE',
+                        value: selectedActivity.average_heartrate?.toFixed(0) || '--',
+                        unit: selectedActivity.average_heartrate ? 'BPM' : '',
+                        color: '#ef4444'
+                      },
+                      {
+                        label: isRun ? 'CADENCE (SPM)' : 'CADENCE (RPM)',
+                        value: cadenceDisplay ?? '--',
+                        color: accent,
+                        hide: !cadenceDisplay
+                      },
+                      {
+                        label: 'AVG POWER',
+                        value: selectedActivity.average_watts > 0 ? `${Math.round(selectedActivity.average_watts)}` : '--',
+                        unit: selectedActivity.average_watts > 0 ? 'W' : '',
+                        color: '#8b5cf6',
+                        hide: !isRun && !selectedActivity.average_watts
+                      },
+                      {
+                        label: 'CALORIES',
+                        value: selectedActivity.calories > 0 ? selectedActivity.calories : '--',
+                        unit: selectedActivity.calories > 0 ? 'KCAL' : '',
+                        hide: !selectedActivity.calories
+                      },
+                    ].filter(b => !b.hide);
+
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                        {statBoxes.map((box, i) => (
+                          <div key={i} className="detail-stat-box">
+                            <span className="label">{box.label}</span>
+                            <span className="value" style={box.color ? { color: box.color } : {}}>
+                              {box.value}{box.unit && <small> {box.unit}</small>}
+                            </span>
+                            {box.sub && <div style={{ fontSize: '0.7rem', color: box.subColor, marginTop: '4px' }}>{box.sub}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ActivityIcon size={16} color="var(--accent-cyan)" /> ACTIVITY INSIGHTS
+                    </h4>
+                    <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: '1.6', margin: 0 }}>
+                      {selectedActivity.type} · {(selectedActivity.distance / 1000).toFixed(1)} km
+                      {selectedActivity.location_city ? ` · ${selectedActivity.location_city}` : ''}.
+                      {selectedActivity.elevation_gain > 0 ? ` ↑${Math.round(selectedActivity.elevation_gain)}m.` : ''}
+                      {selectedActivity.average_heartrate > 0 ? ` Avg HR ${Math.round(selectedActivity.average_heartrate)} bpm.` : ''}
+                      {selectedActivity.average_cadence > 0 && (selectedActivity.type === 'Run' || selectedActivity.type === 'TrailRun')
+                        ? ` Cadence ${Math.round(selectedActivity.average_cadence * 2)} spm${selectedActivity.average_cadence * 2 >= 175 ? ' ✓' : ' (target 175+)'}.`
+                        : ''}
+                    </p>
                   </div>
               </div>
 

@@ -2,15 +2,15 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  AreaChart, Area, CartesianGrid, Legend, BarChart, Bar,
+  AreaChart, Area, CartesianGrid, Legend,
   PieChart, Pie, Cell, ComposedChart,
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import {
   Zap, Activity, TrendingUp, Trophy, ArrowRight,
   Calendar, Layers, Map, PieChart as PieIcon,
-  Heart, Target, Zap as PowerIcon, ChevronRight, Speaker, Volume2, AlertCircle, Clock, Wrench,
-  Footprints, Flame, Scale, User
+  Heart, Target, Zap as PowerIcon, ChevronRight, Speaker, Volume2, AlertCircle, Clock,
+  Footprints, Flame, User
 } from 'lucide-react';
 
 const COLORS = [
@@ -171,10 +171,10 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           </div>
         </motion.div>
 
-        <motion.div variants={item} className="platform-card stat-card interactive-card">
+        <motion.div variants={item} className="platform-card stat-card interactive-card" title="CTL (Chronic Training Load) — your 42-day rolling average of training stress. Higher = more fitness base.">
           <span className="stat-label">FITNESS (CTL)</span>
           <span className="stat-value" style={{ color: stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)' }}>{currentLoad.ctl.toFixed(1)}</span>
-          <span className="stat-sub">Steady Progress</span>
+          <span className="stat-sub">42-day training base</span>
         </motion.div>
 
         <motion.div
@@ -182,20 +182,23 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           className="platform-card stat-card interactive-card"
           onClick={() => { setDetailType('training'); setShowDetail(true); }}
           style={{ cursor: 'pointer' }}
+          title="TSB (Training Stress Balance) = Fitness − Fatigue. Positive = fresh/ready to race. Negative = building fitness. Click for details."
         >
-          <span className="stat-label">STATUS (TSB)</span>
+          <span className="stat-label">FORM (TSB)</span>
           <span className="stat-value" style={{
             color: currentLoad.tsb > 0 ? '#10b981' : (currentLoad.tsb < -10 ? '#ef4444' : '#f59e0b')
           }}>
             {currentLoad.tsb.toFixed(1)}
           </span>
-          <span className="stat-sub">{currentLoad.tsb > 0 ? 'Fresh / Peak' : 'Fatigued'}</span>
+          <span className="stat-sub">{currentLoad.tsb > 5 ? 'Fresh / Race Ready' : currentLoad.tsb > -5 ? 'Neutral' : currentLoad.tsb > -15 ? 'Building' : 'Fatigued'}</span>
         </motion.div>
 
         <motion.div variants={item} className={`platform-card stat-card interactive-card ${stats.streaks?.current > 0 ? 'streak-active' : ''}`}>
-          <span className="stat-label">CURRENT STREAK</span>
+          <span className="stat-label">STREAK</span>
           <span className="stat-value">{stats.streaks?.current || 0}</span>
-          <span className="stat-sub">🔥 CONSECUTIVE DAYS</span>
+          <span className="stat-sub">
+            🔥 NOW &nbsp;/&nbsp; <span style={{ opacity: 0.5 }}>BEST {stats.streaks?.day || 0}</span> DAYS
+          </span>
         </motion.div>
       </div>
 
@@ -626,236 +629,6 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         </motion.div>
       </div>
 
-      {/* 5. Historical Trends & Records (Growth Area) */}
-      <h4 style={{ fontSize: '0.7rem', opacity: 0.4, letterSpacing: '2px', marginBottom: '1.25rem' }}>LONG-TERM GROWTH & RECORDS</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
-        {/* YOY Trends */}
-        <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
-          <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '1rem' }}>
-              <TrendingUp size={18} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> CUMULATIVE DISTANCE TRENDS (YOY)
-            </h3>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '70%' }}>
-              {stats.available_years?.map((yr, i) => (
-                <div key={yr} style={{ fontSize: '0.6rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: COLORS[i % COLORS.length] }}></div> {yr}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ height: '320px' }}>
-            <ResponsiveContainer>
-              <LineChart data={stats.yoy_cumulative}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                <XAxis
-                  dataKey="day"
-                  stroke="rgba(255,255,255,0.2)"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  ticks={[1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]}
-                  tickFormatter={(val) => {
-                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                    const idx = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335].indexOf(val);
-                    return idx !== -1 ? months[idx] : "";
-                  }}
-                />
-                <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}k`} />
-                <Tooltip
-                  contentStyle={{ background: 'rgba(10, 22, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                />
-                {stats.available_years?.map((yr, i) => (
-                  <Line
-                    key={yr}
-                    type="monotone"
-                    dataKey={`${yr}_dist`}
-                    name={yr}
-                    stroke={COLORS[i % COLORS.length]}
-                    strokeWidth={yr === String(new Date().getFullYear()) ? 3 : 1}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                    opacity={yr === String(new Date().getFullYear()) ? 1 : 0.3}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* PR Summary Table */}
-        <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            <Trophy size={16} color="#f59e0b" style={{ flexShrink: 0 }} /> PERSONAL RECORDS
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {stats.dashboard_records?.map((rec, idx) => (
-              <div key={idx} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px',
-                background: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                borderRadius: '10px',
-                borderLeft: `3px solid ${stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'}`
-              }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>{rec.name}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>{rec.date}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 900, color: stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)' }}>{rec.best}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>{rec.pace}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-      {/* 6. System Health & Physiology (Hardware & Bio) */}
-      <h4 style={{ fontSize: '0.7rem', opacity: 0.4, letterSpacing: '2px', marginBottom: '1.25rem' }}>SYSTEM MAINTENANCE & BIOLOGICS</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
-        {/* Gear Monitoring */}
-        <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-            <Wrench size={16} color="#10b981" style={{ flexShrink: 0 }} /> GEAR LIFE MONITOR
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {stats.gear_stats?.slice(0, 2).map((gear, idx) => (
-              <div key={idx}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.75rem' }}>
-                  <span>{gear.name}</span>
-                  <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{gear.distance.toFixed(0)} / {gear.limit} km</span>
-                </div>
-                <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${Math.min(100, (gear.distance / gear.limit) * 100)}%`,
-                    background: gear.distance > gear.limit * 0.9 ? '#ef4444' : '#10b981'
-                  }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* HR Intensity Bands */}
-        <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-            <Heart size={16} color="#ef4444" style={{ flexShrink: 0 }} /> INTENSITY (HR ZONES)
-          </h3>
-          <div style={{ height: '120px' }}>
-            <ResponsiveContainer>
-              <BarChart data={stats.hr_zones}>
-                <XAxis dataKey="zone" hide />
-                <Tooltip
-                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px', fontSize: '10px' }}
-                  itemStyle={{ color: 'white' }}
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                />
-                <Bar dataKey="count" radius={[2, 2, 0, 0]}>
-                  {stats.hr_zones?.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#7c3aed'][index % 5]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{ textAlign: 'center', fontSize: '0.6rem', opacity: 0.4, marginTop: '8px' }}>AEROBIC vs ANAEROBIC MIX</div>
-        </motion.div>
-
-        {/* Distance Structure Breakdown */}
-        <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
-          <h3 className="card-title" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-            <Activity size={16} color="#bd00ff" style={{ flexShrink: 0 }} /> DISTANCE STRUCTURE
-          </h3>
-          <div style={{ height: '120px' }}>
-            <ResponsiveContainer>
-              <BarChart data={stats.distance_breakdown}>
-                <Bar dataKey="count" fill="#bd00ff" radius={[2, 2, 0, 0]} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '12px', fontSize: '10px' }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div style={{ textAlign: 'center', fontSize: '0.6rem', opacity: 0.4, marginTop: '8px' }}>SESSION LENGTH DISTRIBUTION</div>
-        </motion.div>
-      </div>
-
-      {/* 7. Bio & Analytics Footer Group */}
-      <h4 style={{ fontSize: '0.7rem', opacity: 0.4, letterSpacing: '2px', marginBottom: '1.25rem' }}>BIOLOGIC FEEDBACK & CADENCE</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: '2rem', marginBottom: '2.5rem' }}>
-        {/* Bio Summary Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px', color: '#10b981' }}>
-                <Footprints size={18} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.6rem', opacity: 0.5, letterSpacing: '1px' }}>STEPS</div>
-                <div style={{ fontSize: '1rem', fontWeight: 900 }}>{(stats.bio_stats?.estimated_steps || 0).toLocaleString()}</div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', color: '#ef4444' }}>
-                <Flame size={18} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.6rem', opacity: 0.5, letterSpacing: '1px' }}>CALORIES</div>
-                <div style={{ fontSize: '1rem', fontWeight: 900 }}>{(stats.bio_stats?.total_calories || 0).toLocaleString()} KCAL</div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem', flex: 1, display: 'flex', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isRun ? 'rgba(255, 51, 102, 0.1)' : 'rgba(6, 182, 212, 0.1)', borderRadius: '10px', color: 'var(--accent-cyan)' }}>
-                <Scale size={18} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.6rem', opacity: 0.5, letterSpacing: '1px' }}>WEIGHT</div>
-                <div style={{ fontSize: '1rem', fontWeight: 900 }}>{stats.bio_stats?.weight} KG</div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Cadence Distribution */}
-        <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#10b981'} /> {stats.bio_stats?.cadence_type || 'CADENCE PROFILE'}
-          </h3>
-          <div style={{ flex: 1, minHeight: '220px', width: '100%', position: 'relative' }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={stats.bio_stats?.cadence_distribution || []} margin={{ bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                <XAxis dataKey="label" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} dy={10} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ background: 'rgba(10, 22, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px', backdropFilter: 'blur(10px)' }}
-                />
-                <Bar
-                  dataKey="count"
-                  fill={accent}
-                  radius={[4, 4, 0, 0]}
-                  barSize={isRun ? 24 : 32}
-                >
-                  {stats.bio_stats?.cadence_distribution?.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={accent} fillOpacity={0.7 + (index / 5) * 0.3} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-      </div>
 
       {/* 6. Activity Contribution Grid Widget */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>

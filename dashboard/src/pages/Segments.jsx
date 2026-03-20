@@ -39,6 +39,8 @@ const Segments = ({ sportType }) => {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null); // { type: 'success' | 'error', text: string }
+  const [sortCol, setSortCol] = useState('effort_count');
+  const [sortDir, setSortDir] = useState('desc');
 
   const syncSegments = async () => {
     setIsSyncing(true);
@@ -102,25 +104,45 @@ const Segments = ({ sportType }) => {
   const filteredSegments = React.useMemo(() => {
     if (!Array.isArray(segments)) return [];
     const term = searchTerm.toLowerCase();
-    return segments.filter(s => {
-      // Search term
+    const filtered = segments.filter(s => {
       const matchesSearch = s.name.toLowerCase().includes(term) ||
-      (s.city && s.city.toLowerCase().includes(term));
-      
-      // Country
+        (s.city && s.city.toLowerCase().includes(term));
       const matchesCountry = countryFilter === 'All' || s.country === countryFilter;
-      
-      // Other
       let matchesOther = true;
-      if (otherFilter === 'KOM/QOM Only') {
-        matchesOther = s.effort_count > 0 && s.best_rank === 1;
-      } else if (otherFilter === 'Starred Only') {
-        matchesOther = s.starred === true;
-      }
-
+      if (otherFilter === 'KOM/QOM Only') matchesOther = s.effort_count > 0 && s.best_rank === 1;
+      else if (otherFilter === 'Starred Only') matchesOther = s.starred === true;
       return matchesSearch && matchesCountry && matchesOther;
     });
-  }, [segments, searchTerm, countryFilter, otherFilter]);
+
+    filtered.sort((a, b) => {
+      let va, vb;
+      if (sortCol === 'best_time') {
+        va = parseToSecs(a.best_time);
+        vb = parseToSecs(b.best_time);
+      } else if (sortCol === 'distance') {
+        va = a.distance || 0;
+        vb = b.distance || 0;
+      } else if (sortCol === 'average_grade') {
+        va = a.average_grade || 0;
+        vb = b.average_grade || 0;
+      } else {
+        va = a.effort_count || 0;
+        vb = b.effort_count || 0;
+      }
+      return sortDir === 'asc' ? va - vb : vb - va;
+    });
+    return filtered;
+  }, [segments, searchTerm, countryFilter, otherFilter, sortCol, sortDir]);
+
+  const toggleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('desc'); }
+  };
+
+  const SortIcon = ({ col }) => {
+    if (sortCol !== col) return <span style={{ opacity: 0.2, fontSize: '0.7rem' }}>⇅</span>;
+    return <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   const formatCity = (city) => city ? city.replace('市', '') : 'Unknown';
 
@@ -311,11 +333,19 @@ const Segments = ({ sportType }) => {
               <tr>
                 <th style={{ paddingLeft: '2rem' }}>SEGMENT NAME</th>
                 <th>PB DATE</th>
-                <th>BEST TIME</th>
+                <th onClick={() => toggleSort('best_time')} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  BEST TIME <SortIcon col="best_time" />
+                </th>
                 <th>{isRun ? 'PACE' : 'AVG SPEED'}</th>
-                <th>DIST</th>
-                <th>GRADE</th>
-                <th style={{ paddingRight: '2rem', textAlign: 'right' }}>EFFORTS #</th>
+                <th onClick={() => toggleSort('distance')} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  DIST <SortIcon col="distance" />
+                </th>
+                <th onClick={() => toggleSort('average_grade')} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  GRADE <SortIcon col="average_grade" />
+                </th>
+                <th onClick={() => toggleSort('effort_count')} style={{ paddingRight: '2rem', textAlign: 'right', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                  EFFORTS # <SortIcon col="effort_count" />
+                </th>
               </tr>
             </thead>
             <tbody>

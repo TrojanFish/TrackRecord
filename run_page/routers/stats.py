@@ -950,37 +950,11 @@ def _compute_records_trends(conn, active_types: list) -> dict:
     return result
 
 
-# ─── Strava 运动员缓存（兼容 web_api.py 调用） ────────────────────────────────
+# ─── Strava 运动员缓存（代理到 strava_service 统一实现） ──────────────────────
+# 原本此处有独立的 _ATHLETE_CACHE + token refresh 逻辑，
+# 现统一使用 strava_service.get_strava_athlete_cached，避免双份缓存。
 
-import time as _time
-_ATHLETE_CACHE: dict = {"data": None, "expiry": 0}
-
-
-def get_strava_athlete_cached(creds: dict) -> dict:
-    global _ATHLETE_CACHE
-    now = _time.time()
-    if _ATHLETE_CACHE["data"] and now < _ATHLETE_CACHE["expiry"]:
-        return _ATHLETE_CACHE["data"]
-    if "error_expiry" in _ATHLETE_CACHE and now < _ATHLETE_CACHE["error_expiry"]:
-        return {"username": "Athlete", "profile": None}
-    try:
-        from run_page.auth import get_credential
-        cid = get_credential("strava_client_id")
-        sec = get_credential("strava_client_secret")
-        ref = get_credential("strava_refresh_token")
-        if not all([cid, sec, ref]):
-            return {"username": "Athlete", "profile": None}
-        from stravalib.client import Client
-        client = Client()
-        resp = client.refresh_access_token(client_id=cid, client_secret=sec, refresh_token=ref)
-        client.access_token = resp["access_token"]
-        a = client.get_athlete()
-        data = {"username": f"{a.firstname} {a.lastname or ''}".strip(), "profile": a.profile_medium}
-        _ATHLETE_CACHE.update({"data": data, "expiry": now + 3600})
-        return data
-    except Exception:
-        _ATHLETE_CACHE["error_expiry"] = now + 600
-        return {"username": "Athlete", "profile": None}
+from run_page.services.strava_service import get_strava_athlete_cached  # noqa: F401
 
 
 # ─── Main Route ───────────────────────────────────────────────────────────────

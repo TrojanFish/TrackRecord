@@ -160,13 +160,22 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
 
           {/* RIGHT: PHYSIOLOGY SIDEBAR */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="platform-card" style={{ padding: '1.2rem', background: `linear-gradient(135deg, ${sportMode === 'Run' ? '#ff336622' : 'rgba(6,182,212,0.1)'}, rgba(189, 0, 255, 0.1))` }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, marginBottom: '0.2rem' }}>ESTIMATED VO2 MAX</div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 900, color: 'white' }}>{stats.athlete_metrics?.vo2_estimate || calculateVO2Max(stats.records)}</div>
-                  <div style={{ height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '0.5rem' }}>
-                    <div style={{ height: '100%', width: '75%', background: sportMode === 'Run' ? '#ff3366' : 'var(--accent-cyan)', borderRadius: '2px' }} />
+              {(() => {
+                const vo2 = parseFloat(stats.athlete_metrics?.vo2_estimate || calculateVO2Max(stats.records)) || 45;
+                // Typical range: 30 (untrained) to 80 (elite). Normalize to percentage.
+                const vo2Pct = Math.min(100, Math.max(0, ((vo2 - 30) / 50) * 100));
+                const vo2Label = vo2 >= 60 ? 'Superior' : vo2 >= 52 ? 'Excellent' : vo2 >= 44 ? 'Good' : vo2 >= 38 ? 'Fair' : 'Developing';
+                return (
+                  <div className="platform-card" style={{ padding: '1.2rem', background: `linear-gradient(135deg, ${sportMode === 'Run' ? '#ff336622' : 'rgba(6,182,212,0.1)'}, rgba(189, 0, 255, 0.1))` }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, marginBottom: '0.2rem' }}>ESTIMATED VO₂ MAX</div>
+                    <div style={{ fontSize: '2.2rem', fontWeight: 900, color: 'white' }}>{vo2}</div>
+                    <div style={{ height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '0.5rem' }}>
+                      <div style={{ height: '100%', width: `${vo2Pct}%`, background: sportMode === 'Run' ? '#ff3366' : 'var(--accent-cyan)', borderRadius: '2px', transition: 'width 0.8s ease' }} />
+                    </div>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.5, marginTop: '4px' }}>{vo2Label} · ml/kg/min</div>
                   </div>
-              </div>
+                );
+              })()}
               
               <div className="platform-card" style={{ padding: '1.2rem', flex: 1 }}>
                   <h3 style={{ fontSize: '0.7rem', fontWeight: 800, marginBottom: '1rem', opacity: 0.8 }}>HR ZONES</h3>
@@ -186,7 +195,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
       </div>
 
       {/* SECOND ROW: PREDICTOR TRACKING */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '1.5rem', marginBottom: '3rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 300px)', gap: '1.5rem', marginBottom: '3rem' }}>
           <div className="platform-card" style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 800 }}>
@@ -206,18 +215,31 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+              {/* Base record indicator */}
+              <div style={{ marginBottom: '1.5rem', fontSize: '0.7rem', opacity: 0.5, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {baseRecord ? (
+                  <>Based on your <b style={{ opacity: 0.9 }}>{currentConfig.baseKey || currentConfig.fallbackKey}</b> PB:
+                  <span style={{ color: currentConfig.color, fontWeight: 800 }}>
+                    {(baseRecord.moving_time?.includes(' ') ? baseRecord.moving_time.split(' ')[1] : baseRecord.moving_time)?.split('.')[0]}
+                  </span></>
+                ) : (
+                  <span style={{ color: '#f59e0b' }}>⚠ No base record found — record a {currentConfig.baseKey} to improve accuracy</span>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
                   {currentConfig.targets.map(race => {
                       const timeStr = baseRecord?.moving_time || (sportMode === 'Run' ? '00:20:00' : '01:00:00');
                       const timeOnly = timeStr.includes(' ') ? timeStr.split(' ')[1] : timeStr;
                       const baseParts = timeOnly.split(':');
                       const baseSec = (parseInt(baseParts[0])||0)*3600 + (parseInt(baseParts[1])||0)*60 + (parseInt(baseParts[2])||0);
                       return (
-                        <div key={race.label} style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '12px' }}>
-                            <div style={{ fontSize: '0.65rem', opacity: 0.7, marginBottom: '0.5rem', fontWeight: 700 }}>{race.label}</div>
+                        <div key={race.label} style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                            <div style={{ fontSize: '0.65rem', opacity: 0.6, marginBottom: '0.5rem', fontWeight: 700 }}>{race.label}</div>
                             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: currentConfig.color }}>
                                 {predictRace(baseSec, baseDist, race.dist, currentConfig.exponent)}
                             </div>
+                            {!baseRecord && <div style={{ fontSize: '0.55rem', opacity: 0.3, marginTop: '4px' }}>est.</div>}
                         </div>
                       )
                   })}

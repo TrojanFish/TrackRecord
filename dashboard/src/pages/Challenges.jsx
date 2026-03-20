@@ -12,6 +12,8 @@ const Challenges = () => {
   const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
   const [pasteHtml, setPasteHtml] = React.useState('');
   const [importing, setImporting] = React.useState(false);
+  const [importError, setImportError] = React.useState('');
+  const [importSuccess, setImportSuccess] = React.useState('');
 
   React.useEffect(() => {
     fetchChallenges();
@@ -32,14 +34,18 @@ const Challenges = () => {
   const handleImport = async () => {
     if (!pasteHtml.trim()) return;
     setImporting(true);
+    setImportError('');
+    setImportSuccess('');
     try {
-      await axios.post(`${API_BASE}/api/v1/challenges/import`, { html: pasteHtml });
-      setIsImportModalOpen(false);
+      const res = await axios.post(`${API_BASE}/api/v1/challenges/import`, { html: pasteHtml });
+      const count = res.data?.count || 0;
+      setImportSuccess(`${count} trophy${count !== 1 ? 'ies' : 'y'} imported successfully!`);
       setPasteHtml('');
       fetchChallenges();
-      // Optional: Show success alert/toast here
+      setTimeout(() => { setIsImportModalOpen(false); setImportSuccess(''); }, 2000);
     } catch (err) {
-      alert("Failed to parse trophies. Make sure you pasted the full source code from Strava's Trophy Case page.");
+      const detail = err.response?.data?.detail || "Failed to parse trophies.";
+      setImportError(detail + " Make sure you pasted the full page source from Strava's Trophy Case.");
     } finally {
       setImporting(false);
     }
@@ -67,20 +73,32 @@ const Challenges = () => {
           .spinning { animation: spin 1s linear infinite; }
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         `}</style>
+
+        {/* Header row: total count + import button */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <div style={{ fontSize: '0.7rem', opacity: 0.5, fontWeight: 700 }}>
+            {challenges.reduce((s, g) => s + g.items.length, 0)} TOTAL TROPHIES &amp; CLUBS
+          </div>
+          <button
+            onClick={() => { setImportError(''); setImportSuccess(''); setIsImportModalOpen(true); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)',
+              color: 'var(--accent-cyan)', padding: '10px 16px', borderRadius: '12px',
+              fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s'
+            }}
+            className="sync-btn"
+          >
+            <RefreshCw size={16} /> IMPORT TROPHIES
+          </button>
+        </div>
+
+        {/* Empty state */}
         {challenges.length === 0 && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
-             <button 
-               onClick={() => setIsImportModalOpen(true)}
-               style={{ 
-                 display: 'flex', alignItems: 'center', gap: '8px', 
-                 background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)',
-                 color: 'var(--accent-cyan)', padding: '10px 16px', borderRadius: '12px',
-                 fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s'
-               }}
-               className="sync-btn"
-             >
-               <RefreshCw size={16} className={importing ? 'spinning' : ''} /> SYNC HISTORY
-             </button>
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', opacity: 0.4 }}>
+            <Trophy size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem' }}>No trophies yet</h3>
+            <p style={{ fontSize: '0.9rem' }}>Import your Strava Trophy Case to see your achievements here.</p>
           </div>
         )}
 
@@ -105,20 +123,7 @@ const Challenges = () => {
                   <span style={{ fontSize: '0.8rem', opacity: 0.4, fontWeight: 500 }}>({section.items.length})</span>
                 </h3>
 
-                {idx === 0 && (
-                  <button 
-                    onClick={() => setIsImportModalOpen(true)}
-                    style={{ 
-                      display: 'flex', alignItems: 'center', gap: '8px', 
-                      background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.2)',
-                      color: 'var(--accent-cyan)', padding: '10px 16px', borderRadius: '12px',
-                      fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s'
-                    }}
-                    className="sync-btn"
-                  >
-                    <RefreshCw size={16} className={importing ? 'spinning' : ''} /> SYNC HISTORY
-                  </button>
-                )}
+                <span style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 700 }}>{section.items.length} items</span>
              </div>
              
              <div className="challenge-grid">
@@ -258,6 +263,17 @@ const Challenges = () => {
                     resize: 'none'
                   }}
                 />
+
+                {importError && (
+                  <div style={{ marginTop: '1rem', padding: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', fontSize: '0.8rem', color: '#ef4444' }}>
+                    {importError}
+                  </div>
+                )}
+                {importSuccess && (
+                  <div style={{ marginTop: '1rem', padding: '12px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', fontSize: '0.8rem', color: '#10b981', fontWeight: 700 }}>
+                    ✓ {importSuccess}
+                  </div>
+                )}
 
                 <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
                    <button 

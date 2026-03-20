@@ -120,47 +120,9 @@ def _get_imported_challenges_from_db() -> dict:
 
 
 def _get_strava_clubs() -> list:
-    """获取 Strava 俱乐部列表（带简单内存缓存）。"""
-    import time
-    from run_page.auth import get_credential
-
-    # 模块级简单缓存
-    now = time.time()
-    cached = getattr(_get_strava_clubs, "_cache", None)
-    if cached and now < cached.get("expiry", 0):
-        return cached["data"]
-
-    client_id     = get_credential("strava_client_id")
-    client_secret = get_credential("strava_client_secret")
-    refresh_token = get_credential("strava_refresh_token")
-
-    if not all([client_id, client_secret, refresh_token]):
-        return []
-
-    try:
-        from stravalib.client import Client
-        client = Client()
-        resp = client.refresh_access_token(
-            client_id=client_id, client_secret=client_secret, refresh_token=refresh_token
-        )
-        client.access_token = resp["access_token"]
-        clubs_data = [
-            {
-                "id": f"club-{c.id}",
-                "name": c.name,
-                "icon": "🛡️",
-                "color": "#10b981",
-                "progress": "Joined",
-                "image": c.cover_photo_small,
-            }
-            for c in client.get_athlete_clubs()
-        ]
-        _get_strava_clubs._cache = {"data": clubs_data, "expiry": now + 3600}
-        return clubs_data
-    except Exception as e:
-        print(f"[challenges] Club fetch error: {e}")
-        _get_strava_clubs._cache = {"data": [], "expiry": now + 600}
-        return []
+    """获取 Strava 俱乐部列表（代理到 strava_service 统一缓存实现）。"""
+    from run_page.services.strava_service import get_strava_clubs_cached
+    return get_strava_clubs_cached()
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────

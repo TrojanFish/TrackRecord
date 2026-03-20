@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, Calendar, Activity, Maximize2, Minimize2, Layers } from 'lucide-react';
+import { Filter, Calendar, Activity, Maximize2, Minimize2, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Heatmap = ({ activities, availableYears, sportType }) => {
   const mapRef = useRef(null);
@@ -9,9 +9,10 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
   
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedType, setSelectedType] = useState(sportType || 'All');
-  const [colorMode, setColorMode] = useState('Type'); // Type, Pace, Altitude
+  const [colorMode, setColorMode] = useState('Type'); // Type, Pace
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [hoveredActivity, setHoveredActivity] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const coordsCache = useRef({});
 
   // Sync internal type with global sportType
@@ -147,6 +148,26 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
     }
   };
 
+  const filteredCount = useMemo(() => activities.filter(a => {
+    const yearMatch = selectedYear === 'All' || a.start_date_local?.startsWith(selectedYear);
+    const typeMatch = selectedType === 'All' || a.type === selectedType;
+    return yearMatch && typeMatch && a.summary_polyline;
+  }).length, [activities, selectedYear, selectedType]);
+
+  const formatPaceHeatmap = (a) => {
+    const isActivityRun = a.type === 'Run' || a.type === 'TrailRun';
+    const distKm = a.distance / 1000;
+    const movingStr = a.moving_time || '';
+    const parts = movingStr.includes(' ') ? movingStr.split(' ')[1].split(':') : movingStr.split(':');
+    const secs = parts.reduce((acc, t, i) => acc + parseInt(t || 0) * [3600, 60, 1][i], 0);
+    if (!secs || !distKm) return '--';
+    if (isActivityRun) {
+      const paceS = secs / distKm;
+      return `${Math.floor(paceS / 60)}:${String(Math.round(paceS % 60)).padStart(2, '0')}/km`;
+    }
+    return `${((distKm / (secs / 3600))).toFixed(1)} km/h`;
+  };
+
   const cities = activities.reduce((acc, curr) => {
      if (curr.location_city) {
         acc[curr.location_city] = (acc[curr.location_city] || 0) + 1;
@@ -198,22 +219,64 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
         }} 
       ></div>
 
+      {/* Hover Activity Tooltip */}
+      <AnimatePresence>
+        {hoveredActivity && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'absolute', bottom: '30px', left: '50%', transform: 'translateX(-50%)',
+              zIndex: 2100, background: 'rgba(10, 22, 40, 0.95)', backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.15)', borderRadius: '14px',
+              padding: '12px 20px', display: 'flex', gap: '20px', alignItems: 'center',
+              pointerEvents: 'none', whiteSpace: 'nowrap'
+            }}
+          >
+            <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>{hoveredActivity.start_date_local?.split(' ')[0]}</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{hoveredActivity.name}</span>
+            <span style={{ fontSize: '0.75rem', color: hoveredActivity.type === 'Run' ? '#ff3366' : '#06b6d4', fontWeight: 700 }}>
+              {(hoveredActivity.distance / 1000).toFixed(1)} km
+            </span>
+            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>{formatPaceHeatmap(hoveredActivity)}</span>
+            {hoveredActivity.elevation_gain > 0 && (
+              <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>↑{Math.round(hoveredActivity.elevation_gain)}m</span>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Left Control Column (Title, Modes, Cities) */}
-      <div className="heatmap-sidebar" style={{ 
-        position: 'absolute', 
-        top: '30px', 
-        left: '30px', 
-        zIndex: 2001, 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <div className="heatmap-sidebar" style={{
+        position: 'absolute',
+        top: '30px',
+        left: sidebarOpen ? '30px' : '-240px',
+        transition: 'left 0.3s ease',
+        zIndex: 2001,
+        display: 'flex',
+        flexDirection: 'column',
         gap: '15px',
         maxWidth: '260px',
         maxHeight: 'calc(100% - 150px)'
       }}>
          {/* Title & Stats Bubble */}
-         <div style={{ background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
-            <h2 style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', color: themeColor, margin: 0 }}>{sportType ? sportType.toUpperCase() : ''} ROUTE EXPLORER</h2>
-            <div style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '2px' }}>{activities.length} TRACKS LOADED IN DB</div>
+         <div style={{ background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <h2 style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', color: themeColor, margin: 0 }}>
+                {sportType && sportType !== 'All' ? sportType.toUpperCase() : ''} ROUTE EXPLORER
+              </h2>
+              <div style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '2px' }}>
+                {filteredCount} shown · {activities.length} total
+              </div>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(o => !o)}
+              style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer', padding: '6px', display: 'flex', flexShrink: 0 }}
+              title="Toggle sidebar"
+            >
+              <ChevronLeft size={14} />
+            </button>
          </div>
 
          {/* Coloring Modes */}
@@ -323,6 +386,22 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
             </div>
          </div>
       </div>
+
+      {/* Sidebar re-open button when collapsed */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          style={{
+            position: 'absolute', top: '30px', left: '30px', zIndex: 2001,
+            background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
+            color: themeColor, cursor: 'pointer', padding: '10px 14px',
+            fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px'
+          }}
+        >
+          <ChevronRight size={14} /> PANEL
+        </button>
+      )}
 
       {/* Advanced Filters (Floating Right) */}
       <div className="map-controls-floating" style={{ top: '30px', right: '30px', padding: '15px 20px' }}>

@@ -117,21 +117,26 @@ const Gear = ({ stats, sportType }) => {
                    {stats.gear_stats.map((g, i) => {
                      const gColor = g.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
                      return (
-                      <button 
+                      <button
                         key={i}
                         onClick={() => setSelectedGearIndex(i)}
-                        style={{ 
-                          padding: '4px 12px', 
-                          borderRadius: '8px', 
-                          fontSize: '0.7rem', 
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.7rem',
                           background: selectedGearIndex === i ? gColor : 'rgba(255,255,255,0.05)',
                           color: selectedGearIndex === i ? (g.type === 'Run' ? 'white' : 'black') : 'white',
                           border: 'none',
                           cursor: 'pointer',
-                          fontWeight: 700
+                          fontWeight: 700,
+                          maxWidth: '120px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}
+                        title={g.name}
                       >
-                        GEAR {i+1}
+                        {g.name.length > 12 ? g.name.slice(0, 10) + '…' : g.name}
                       </button>
                     )
                    })}
@@ -168,7 +173,7 @@ const Gear = ({ stats, sportType }) => {
       )}
 
       {activeTab === 'Maintenance' && (
-        <div className="platform-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+        <div className="platform-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))' }}>
           {stats.gear_stats?.map(gear => {
             const gearColor = gear.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
             const totalPercent = Math.min(100, (gear.distance / gear.limit) * 100);
@@ -189,15 +194,17 @@ const Gear = ({ stats, sportType }) => {
 
                 <div>
                    <div style={{ height: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', overflow: 'hidden' }}>
-                      <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${totalPercent}%` }}
                         style={{ height: '100%', background: totalPercent > ((stats.athlete_metrics?.analysis?.gear_warning_threshold || 0.9) * 100) ? '#ef4444' : gearColor }}
                       />
                    </div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.75rem', opacity: 0.4 }}>
-                      <span>Progress: {Math.round(totalPercent)}%</span>
-                      <span>Limit: {gear.limit} km</span>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.75rem', opacity: 0.5 }}>
+                      <span>{gear.distance} / {gear.limit} km used ({Math.round(totalPercent)}%)</span>
+                      <span style={{ color: gear.limit - gear.distance < 100 ? '#ef4444' : 'inherit' }}>
+                        {Math.max(0, gear.limit - gear.distance)} km left
+                      </span>
                    </div>
                 </div>
 

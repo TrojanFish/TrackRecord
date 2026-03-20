@@ -138,7 +138,12 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
           <div className="platform-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                <button onClick={() => changeMonth(-1)} className="icon-btn"><ChevronLeft size={20} /></button>
-               <b style={{ fontSize: '1.1rem', letterSpacing: '1px' }}>{selectedMonth}</b>
+               <div style={{ textAlign: 'center' }}>
+                 <b style={{ fontSize: '1.1rem', letterSpacing: '1px', display: 'block' }}>{selectedMonth}</b>
+                 {monthData.totalCount > 0 && (
+                   <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700 }}>{monthData.totalCount} ACTIVITIES</span>
+                 )}
+               </div>
                <button onClick={() => changeMonth(1)} className="icon-btn"><ChevronRight size={20} /></button>
             </div>
             

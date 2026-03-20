@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, Component } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Activity, Map, Calendar,
@@ -25,6 +25,41 @@ const Photos      = lazy(() => import('./pages/Photos'));
 const Rewind      = lazy(() => import('./pages/Rewind'));
 const Segments    = lazy(() => import('./pages/Segments'));
 
+
+// Error boundary to prevent a single bad page from crashing the whole app
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error('[ErrorBoundary] Page crash:', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.6 }}>
+          <p style={{ fontFamily: 'monospace' }}>
+            Something went wrong loading this page.
+          </p>
+          <button
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
+            onClick={() => this.setState({ hasError: false, error: null })}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Reusable tab-switch loading indicator (lightweight, no extra deps)
 const TabLoader = () => (
@@ -255,9 +290,11 @@ function App() {
         />
 
         <AnimatePresence mode="wait">
-          <Suspense fallback={<TabLoader />}>
-            {renderTabContent()}
-          </Suspense>
+          <ErrorBoundary key={activeTab}>
+            <Suspense fallback={<TabLoader />}>
+              {renderTabContent()}
+            </Suspense>
+          </ErrorBoundary>
         </AnimatePresence>
       </main>
     </div>

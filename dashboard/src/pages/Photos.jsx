@@ -138,8 +138,7 @@ const Photos = ({ sportType }) => {
             <p style={{ fontSize: '0.9rem' }}>Try changing your filters or syncing more data.</p>
           </div>
         ) : (
-          <div style={{ 
-            columnCount: 3, 
+          <div className="photos-masonry" style={{
             columnGap: '1.5rem',
             maxWidth: '100%',
             margin: '0'

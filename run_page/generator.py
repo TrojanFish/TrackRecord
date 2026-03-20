@@ -1,6 +1,8 @@
 import datetime
+import logging
 import os
 import sys
+import time
 
 import arrow
 import stravalib
@@ -15,7 +17,32 @@ from run_page.db import Activity, init_db, update_or_create_activity, update_or_
 
 from run_page.synced_data_file_logger import save_synced_data_file_list
 
+logger = logging.getLogger(__name__)
+
 IGNORE_BEFORE_SAVING = os.getenv("IGNORE_BEFORE_SAVING", False)
+
+# Strava API limits: 100 req/15 min, 1000 req/day.
+# When rate limited (429), sleep until the next 15-min window resets.
+_RATE_LIMIT_SLEEP = 900  # seconds (15 minutes)
+_RATE_LIMIT_KEYWORDS = ("rate limit", "429", "too many", "ratelimit")
+
+
+def _is_rate_limit_error(exc: Exception) -> bool:
+    return any(kw in str(exc).lower() for kw in _RATE_LIMIT_KEYWORDS)
+
+
+def _strava_call(fn, *args, max_retries: int = 2, **kwargs):
+    """Call a Strava API function, retrying up to max_retries times on rate-limit errors."""
+    for attempt in range(max_retries + 1):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            if attempt < max_retries and _is_rate_limit_error(exc):
+                logger.warning("Strava rate limit hit — sleeping %ds (attempt %d/%d)",
+                               _RATE_LIMIT_SLEEP, attempt + 1, max_retries)
+                time.sleep(_RATE_LIMIT_SLEEP)
+            else:
+                raise
 
 
 class Generator:
@@ -43,17 +70,29 @@ class Generator:
         self.refresh_token = refresh_token
 
     def check_access(self):
+        """Refresh the Strava access token and persist any rotated refresh token."""
         response = self.client.refresh_access_token(
             client_id=self.client_id,
             client_secret=self.client_secret,
             refresh_token=self.refresh_token,
         )
-        # Update the authdata object
-        self.access_token = response["access_token"]
-        self.refresh_token = response["refresh_token"]
-
         self.client.access_token = response["access_token"]
-        print("Access ok")
+        self.access_token = response["access_token"]
+
+        # Strava rotates refresh tokens — persist the new one so auth survives restarts.
+        new_refresh = response.get("refresh_token") or self.refresh_token
+        if new_refresh and new_refresh != self.refresh_token:
+            self.refresh_token = new_refresh
+            try:
+                from run_page.auth import load_creds, save_creds
+                creds = load_creds()
+                creds["strava_refresh_token"] = new_refresh
+                save_creds(creds)
+                logger.info("Rotated refresh token persisted to credentials.json")
+            except Exception as save_err:
+                logger.warning("Failed to persist rotated refresh token: %s", save_err)
+
+        logger.info("Strava access token refreshed.")
 
     def sync(self, force):
         """
@@ -78,54 +117,52 @@ class Generator:
             else:
                 filters = {"before": datetime.datetime.now(datetime.timezone.utc)}
 
-        activities = list(self.client.get_activities(**filters))
+        # per_page=200 is the Strava API maximum (default is 30 — 6.7× more calls).
+        activities = list(_strava_call(self.client.get_activities, per_page=200, **filters))
         total_count = len(activities)
-        print(f"Total activities to process: {total_count}")
+        logger.info("Total activities to process: %d", total_count)
 
         for index, activity in enumerate(activities, 1):
             run_id = str(activity.id)
             if self.only_run and activity.type != "Run":
                 continue
-            
-            # Optimization: Skip full processing if activity exists and not forced
+
+            # Skip full processing if activity exists and not forced
             if not force and run_id in old_ids:
                 sys.stdout.write(".")
                 sys.stdout.flush()
                 continue
 
-            print(f"\n[{index}/{total_count}] Processing: {activity.name} ({activity.start_date_local})")
+            logger.info("[%d/%d] Processing: %s (%s)", index, total_count, activity.name, activity.start_date_local)
 
             if IGNORE_BEFORE_SAVING:
                 if activity.map and activity.map.summary_polyline:
                     activity.map.summary_polyline = filter_out(
                         activity.map.summary_polyline
                     )
-            #  strava use total_elevation_gain as elevation_gain
             activity.elevation_gain = activity.total_elevation_gain
             activity.subtype = activity.type
-            
+
             created = update_or_create_activity(self.session, activity)
             if created:
-                # For new activities, fetch details to get segments
+                # Fetch detailed activity to retrieve segment efforts (1 API call per new activity)
                 try:
-                    detail = self.client.get_activity(activity.id)
+                    detail = _strava_call(self.client.get_activity, activity.id)
                     if hasattr(detail, 'segment_efforts') and detail.segment_efforts:
-                        print(f"  - Found {len(detail.segment_efforts)} segment efforts")
+                        logger.info("  - Found %d segment efforts", len(detail.segment_efforts))
                         for effort in detail.segment_efforts:
                             update_or_create_segment_effort(self.session, effort, activity.id)
-                except Exception as e:
-                    print(f"  - Error fetching segments for activity {activity.id}: {e}")
-                
-                print(f"  - Successfully saved to database")
+                except Exception as exc:
+                    logger.warning("  - Error fetching segments for activity %s: %s", activity.id, exc)
+
+                logger.info("  - Saved to database")
                 old_ids.add(run_id)
             else:
                 sys.stdout.write(".")
             sys.stdout.flush()
-        
-        # After main sync, automatically backfill some missing segments for existing activities (auto-backfill)
-        print("\nChecking for missing segments in history...")
-        self.sync_segments(limit=10)
-        
+
+        # NOTE: sync_segments() for historical backfill is intentionally NOT called here.
+        # The caller (_run_full_sync) is responsible for deciding backfill scope/limit.
         self.session.commit()
 
     def sync_from_data_dir(self, data_dir, file_suffix="gpx", activity_title_dict={}):
@@ -242,14 +279,13 @@ class Generator:
         activities = self.session.query(Activity).filter(~Activity.run_id.in_(has_segments)).order_by(Activity.start_date.desc()).limit(limit).all()
         
         if not activities:
-            print("No activities found missing segment data.")
+            logger.info("No activities found missing segment data.")
             return
 
-        print(f"Syncing segments for {len(activities)} activities...")
+        logger.info("Syncing segments for %d activities...", len(activities))
         for a in activities:
             try:
-                # Fetch detailed activity to get segments
-                detail = self.client.get_activity(a.run_id)
+                detail = _strava_call(self.client.get_activity, a.run_id)
                 if hasattr(detail, 'segment_efforts') and detail.segment_efforts:
                     for effort in detail.segment_efforts:
                         update_or_create_segment_effort(self.session, effort, a.run_id)
@@ -257,8 +293,8 @@ class Generator:
                 else:
                     sys.stdout.write(".")
                 sys.stdout.flush()
-            except Exception as e:
-                print(f"\nError for activity {a.run_id}: {e}")
+            except Exception as exc:
+                logger.warning("Error fetching segments for activity %s: %s", a.run_id, exc)
                 sys.stdout.write("E")
         self.session.commit()
-        print("\nSegment sync complete.")
+        logger.info("Segment sync complete.")

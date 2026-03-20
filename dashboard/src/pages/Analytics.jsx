@@ -124,7 +124,7 @@ const Analytics = ({ stats, sportType }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
         {/* Weekday Analysis */}
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
@@ -290,42 +290,6 @@ const Analytics = ({ stats, sportType }) => {
           </div>
       </div>
 
-      {/* Gear Statistics */}
-      <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div className="card-header">
-          <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
-            <Zap size={20} color={themeColor} style={{ flexShrink: 0 }} /> {isRun ? 'SHOE LIFE TRACKING' : 'BIKE MAINTENANCE'}
-          </h3>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
-          {stats.gear_stats?.map(gear => {
-            const percent = Math.min(100, (gear.distance / gear.limit) * 100);
-            return (
-              <div key={gear.name} style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{gear.name}</span>
-                   <span style={{ opacity: 0.8, fontSize: '0.8rem' }}>{gear.distance} / {gear.limit} KM</span>
-                </div>
-                <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${percent}%` }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
-                    style={{ 
-                      height: '100%', 
-                      background: percent > 90 ? '#ef4444' : (percent > 70 ? '#f59e0b' : themeColor),
-                      boxShadow: `0 0 10px ${percent > 90 ? 'rgba(239, 68, 68, 0.4)' : (isRun ? 'rgba(255, 51, 102, 0.4)' : 'rgba(6, 182, 212, 0.4)')}`
-                    }} 
-                  />
-                </div>
-                 <div style={{ marginTop: '0.8rem', fontSize: '0.7rem', opacity: 0.7, textAlign: 'right' }}>
-                  {percent.toFixed(1)}% {isRun ? 'SOLE WEAR' : 'MAINTENANCE CYCLE'}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </motion.div>
   );
 };
