@@ -124,6 +124,60 @@ const Analytics = ({ stats, sportType }) => {
         </div>
       </div>
 
+      {/* Yearly Stats Comparison Table */}
+      {stats.yearly_full && stats.yearly_full.length > 0 && (
+        <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+          <h3 className="card-title" style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+            <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> YEARLY PERFORMANCE SUMMARY
+          </h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="analytics-table">
+              <thead>
+                <tr>
+                  <th>YEAR</th>
+                  <th>ACTIVITIES</th>
+                  <th>DISTANCE (KM)</th>
+                  <th>ELEVATION (M)</th>
+                  <th>HOURS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.yearly_full.map(yr => (
+                  <tr key={yr.year}>
+                    <td style={{ fontWeight: 900, fontSize: '0.95rem', color: themeColor }}>{yr.year}</td>
+                    <td>{yr.count}</td>
+                    <td>
+                      <b style={{ color: themeColor }}>{yr.distance}</b>
+                      {yr.dist_delta !== null && (
+                        <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: yr.dist_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                          {yr.dist_delta >= 0 ? '↑' : '↓'} {Math.abs(yr.dist_delta)}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {yr.elevation.toLocaleString()}
+                      {yr.elev_delta !== null && (
+                        <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: yr.elev_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                          {yr.elev_delta >= 0 ? '↑' : '↓'} {Math.abs(yr.elev_delta).toLocaleString()}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {yr.hours}h
+                      {yr.hours_delta !== null && (
+                        <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: yr.hours_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                          {yr.hours_delta >= 0 ? '↑' : '↓'} {Math.abs(yr.hours_delta)}h
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
         <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>BEHAVIORAL PATTERNS</span>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
@@ -366,6 +420,40 @@ const Analytics = ({ stats, sportType }) => {
             <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>TRAINING QUALITY</span>
             <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
           </div>
+          {/* Training Monotony & Strain card */}
+          {stats.training_details && (
+            <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+              <h3 className="card-title" style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+                <Zap size={20} color={themeColor} style={{ flexShrink: 0 }} /> TRAINING MONOTONY & STRAIN
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+                <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px', fontWeight: 700 }}>MONOTONY</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: (stats.training_details.monotony || 0) > 2 ? '#ef4444' : themeColor }}>{stats.training_details.monotony || 0}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4, marginTop: '4px' }}>&lt;2 target</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px', fontWeight: 700 }}>WEEKLY STRAIN</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: '#8b5cf6' }}>{stats.training_details.weekly_stress || 0}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4, marginTop: '4px' }}>TRIMP × monotony</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px', fontWeight: 700 }}>REST DAYS (7D)</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: (stats.training_details.rest_days_7d || 0) < 1 ? '#ef4444' : '#10b981' }}>{stats.training_details.rest_days_7d ?? '—'}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4, marginTop: '4px' }}>of 7 days</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px', fontWeight: 700 }}>WEEKLY TRIMP</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: '#f59e0b' }}>{stats.training_details.weekly_stress || 0}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4, marginTop: '4px' }}>training impulse</div>
+                </div>
+              </div>
+              <div style={{ marginTop: '1rem', fontSize: '0.7rem', opacity: 0.4, padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                💡 Monotony &gt;2.0 with high strain = elevated injury risk. Vary session intensity and include recovery days.
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
             {/* Widget A: 12-Week Consistency Score */}
             <div className="platform-card" style={{ padding: '2rem' }}>

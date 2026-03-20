@@ -202,6 +202,27 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         </motion.div>
       </div>
 
+      {/* Fun Stats Paragraph */}
+      {stats.total_distance > 0 && (() => {
+        const earthTrips = (stats.total_distance / 40075).toFixed(3);
+        const moonPct = ((stats.total_distance / 384400) * 100).toFixed(4);
+        const everestTimes = ((stats.bio_stats?.total_elevation_m || 0) / 8849).toFixed(1);
+        const pizzaSlices = Math.round((stats.bio_stats?.total_calories || 0) / 270);
+        const totalHours = Math.round((stats.total_distance / 12));
+        return (
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem 1.75rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.015)', borderLeft: `4px solid ${accent}` }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5, letterSpacing: '1px', marginBottom: '0.6rem' }}>YOUR LIFETIME JOURNEY IN NUMBERS</div>
+            <p style={{ fontSize: '0.85rem', lineHeight: 1.9, margin: 0, opacity: 0.85 }}>
+              You have covered <kbd style={{ background: `${accent}22`, color: accent, padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{stats.total_distance?.toFixed(0)} km</kbd> across <kbd style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{stats.total_count}</kbd> activities.
+              {' '}That's <kbd style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{earthTrips}×</kbd> around the Earth
+              , <kbd style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{moonPct}%</kbd> of the way to the Moon
+              {everestTimes > 0 && <>, and you've climbed the equivalent of <kbd style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{everestTimes}× Mt. Everest</kbd></>}.
+              {pizzaSlices > 0 && <>{' '}You've burned roughly <kbd style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{pizzaSlices.toLocaleString()}</kbd> pizza slices worth of calories.</>}
+            </p>
+          </motion.div>
+        );
+      })()}
+
       {/* 1.5 Goal / Recovery / Race Countdown Row */}
       {(() => {
         const _sportType = stats.sport_type || 'All';
@@ -377,6 +398,87 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           </motion.div>
         </div>
       )}
+
+      {/* Training Intelligence Row: A:C Ratio + Polarised Training + Recovery */}
+      {stats.training_details && (() => {
+        const acRatio = stats.training_details.ac_ratio || 0;
+        const acStatus = acRatio < 0.8 ? { label: 'Undertrained', color: '#f59e0b' }
+          : acRatio <= 1.3 ? { label: 'Optimal', color: '#10b981' }
+          : acRatio <= 1.5 ? { label: 'High Load', color: '#f87171' }
+          : { label: 'Danger Zone', color: '#ef4444' };
+
+        const hrz = stats.hr_zones || [];
+        const totalHrz = hrz.reduce((s, z) => s + z.count, 0) || 1;
+        const z1z2 = Math.round(((hrz[0]?.count || 0) + (hrz[1]?.count || 0)) / totalHrz * 100);
+        const z3   = Math.round((hrz[2]?.count || 0) / totalHrz * 100);
+        const z4z5 = Math.round(((hrz[3]?.count || 0) + (hrz[4]?.count || 0)) / totalHrz * 100);
+
+        const forecast = stats.training_details.forecast || [];
+        const firstPositive = forecast.find(d => d.tsb > 0);
+        const daysToFresh = firstPositive
+          ? Math.ceil((new Date(firstPositive.date) - new Date()) / 86400000)
+          : null;
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+            {/* A:C Ratio */}
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>A:C RATIO</span>
+                <span style={{ fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px', borderRadius: '5px', background: `${acStatus.color}20`, color: acStatus.color }}>{acStatus.label}</span>
+              </div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: acStatus.color }}>{acRatio.toFixed(2)}</div>
+              <div style={{ marginTop: '0.75rem', fontSize: '0.65rem', opacity: 0.5 }}>ATL ÷ CTL · &lt;0.8 under / 0.8–1.3 optimal / &gt;1.5 danger</div>
+              <div style={{ marginTop: '0.5rem', height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(100, acRatio / 2 * 100)}%`, background: acStatus.color, borderRadius: '2px', transition: 'width 0.8s' }} />
+              </div>
+            </motion.div>
+
+            {/* Polarised Training */}
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>TRAINING POLARISATION</span>
+              </div>
+              {[
+                { label: 'Easy (Z1-2)', pct: z1z2, color: '#10b981', target: '75-90%' },
+                { label: 'Moderate (Z3)', pct: z3, color: '#f59e0b', target: '0-10%' },
+                { label: 'Hard (Z4-5)', pct: z4z5, color: '#ef4444', target: '10-20%' },
+              ].map(({ label, pct, color, target }) => (
+                <div key={label} style={{ marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', opacity: 0.7, marginBottom: '2px' }}>
+                    <span>{label}</span>
+                    <span style={{ color }}>{pct}% <span style={{ opacity: 0.4 }}>({target})</span></span>
+                  </div>
+                  <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '2px', transition: 'width 0.8s' }} />
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Recovery Forecast */}
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px', marginBottom: '0.75rem' }}>RECOVERY FORECAST</div>
+              {daysToFresh !== null ? (
+                <>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: '#10b981' }}>{daysToFresh}</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>DAYS TO POSITIVE FORM</div>
+                </>
+              ) : (
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#10b981', marginTop: '0.5rem' }}>Already Fresh!</div>
+              )}
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {(stats.training_details.forecast || []).slice(0, 3).map((d, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem' }}>
+                    <span style={{ opacity: 0.5 }}>{new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                    <span style={{ color: d.tsb > 0 ? '#10b981' : '#f59e0b', fontWeight: 700 }}>{d.tsb > 0 ? '+' : ''}{d.tsb}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        );
+      })()}
 
       {/* 3. Real-time Training Load & Goals (Side-by-side) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
@@ -646,27 +748,22 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
               </div>
             </motion.div>
 
-            {/* Streak card */}
+            {/* Streak card — 4 metrics */}
             <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px', opacity: 0.5, marginBottom: '1rem' }}>ACTIVITY STREAK</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px' }}>CURRENT</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 900, color: accent }}>{stats.streaks?.current || 0}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>DAYS</div>
-                </div>
-                <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px' }}>BEST</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.streaks?.day || 0}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>DAYS</div>
-                </div>
-                <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px' }}>YEAR</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.this_year?.count || 0}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>SESSIONS</div>
-                </div>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px', opacity: 0.5, marginBottom: '1rem' }}>ACTIVITY STREAKS</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', textAlign: 'center' }}>
+                {[
+                  { label: 'NOW', value: stats.streaks?.current || 0, unit: 'DAYS', color: accent },
+                  { label: 'BEST DAY', value: stats.streaks?.day || 0, unit: 'DAYS', color: null },
+                  { label: 'BEST WEEK', value: stats.streaks?.week || 0, unit: 'WKS', color: null },
+                  { label: 'BEST MONTH', value: stats.streaks?.month || 0, unit: 'MOS', color: null },
+                ].map(({ label, value, unit, color }) => (
+                  <div key={label} style={{ padding: '6px 2px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: '2px', fontWeight: 700 }}>{label}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: color || 'white', lineHeight: 1 }}>{value}</div>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.35, marginTop: '1px' }}>{unit}</div>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </div>

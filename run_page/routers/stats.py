@@ -503,11 +503,19 @@ def _compute_bio_stats(conn, active_types: list, athlete_metrics: dict) -> dict:
     cad_dist = [{"label": lbl, "count": sum(1 for c in cad_vals if lo <= c < hi)}
                 for lo, hi, lbl in bins]
 
+    cur.execute(
+        f"SELECT COALESCE(SUM(elevation_gain), 0) AS total_elev FROM activities WHERE type IN ({ph})",
+        tuple(active_types),
+    )
+    elev_r = cur.fetchone()
+    total_elevation_m = round(elev_r["total_elev"] or 0)
+
     return {
         "estimated_steps": estimated_steps, "total_calories": total_cal,
         "weight": weight, "avg_cadence": avg_cad,
         "cadence_trend": cadence_trend, "cadence_distribution": cad_dist,
         "cadence_type": cad_type,
+        "total_elevation_m": total_elevation_m,
     }
 
 
@@ -538,38 +546,48 @@ def _compute_athlete_radar(conn, active_types: list, athlete_metrics: dict, rece
     cur.execute(
         f"SELECT COALESCE(SUM(distance), 0) / 1000.0 AS dist, "
         f"COALESCE(SUM(elevation_gain), 0) AS elev, COUNT(*) AS cnt, "
-        f"COALESCE(MAX(distance), 0) / 1000.0 AS max_dist "
+        f"COALESCE(MAX(distance), 0) / 1000.0 AS max_dist, "
+        f"COALESCE(AVG(average_heartrate), 0) AS avg_hr, "
+        f"COUNT(DISTINCT date(start_date_local)) AS active_days "
         f"FROM activities WHERE type IN ({ph}) AND date(start_date_local) >= ?",
         (*active_types, month_ago),
     )
     r = cur.fetchone()
     monthly_km = (r["dist"] or 0) if r else 0
-    monthly_elev = (r["elev"] or 0) if r else 0
     monthly_count = (r["cnt"] or 0) if r else 0
-    max_single = (r["max_dist"] or 0) if r else 0
+    avg_hr = (r["avg_hr"] or 0) if r else 0
+    active_days = (r["active_days"] or 0) if r else 0
 
-    speeds = [a.get("average_speed", 0) for a in (recent_activities or [])[:20] if (a.get("average_speed") or 0) > 0]
-    avg_speed = sum(speeds) / len(speeds) if speeds else 0
+    # Avg session duration from recent_activities in last 30 days
+    recent_30 = [a for a in (recent_activities or []) if (a.get("start_date_local") or "")[:10] >= month_ago]
+    total_sec_30 = sum(row_to_seconds(a.get("moving_time", "")) for a in recent_30)
+    avg_session_hrs = (total_sec_30 / 3600.0 / max(monthly_count, 1)) if monthly_count > 0 else 0
 
-    is_run = any(t in _RUN_TYPES for t in active_types)
-    endurance = min(100, int((monthly_km / norms.get("endurance_monthly_km", 150)) * 100))
-    climb = min(100, int((monthly_elev / norms.get("climb_monthly_m", 1500)) * 100))
-    frequency = min(100, int((monthly_count / norms.get("frequency_monthly_sessions", 16)) * 100))
+    # Sport variety in last 30 days
+    cur.execute(
+        f"SELECT COUNT(DISTINCT type) AS variety FROM activities WHERE type IN ({ph}) AND date(start_date_local) >= ?",
+        (*active_types, month_ago),
+    )
+    r2 = cur.fetchone()
+    sport_variety_raw = (r2["variety"] or 1) if r2 else 1
 
-    if is_run:
-        long_run = min(100, int((max_single / norms.get("long_run_km", 25)) * 100))
-        pace_s_per_km = (1000 / avg_speed / 60) if avg_speed > 0 else 10
-        speed_score = min(100, int((norms.get("speed_pace_min_km", 4.0) / pace_s_per_km) * 100)) if pace_s_per_km > 0 else 0
-    else:
-        long_run = min(100, int((max_single / 80) * 100))
-        speed_score = min(100, int((avg_speed * 3.6 / 35) * 100))
+    max_hr_val = athlete_metrics.get("max_hr", 190)
+
+    # 6 axes: Volume, Consistency, Intensity, Duration, Density, Variety
+    volume      = min(100, int((monthly_km / norms.get("endurance_monthly_km", 150)) * 100))
+    consistency = min(100, int((active_days / 20) * 100))
+    intensity   = min(100, int((avg_hr / max_hr_val) * 200)) if avg_hr > 0 else 30
+    duration    = min(100, int((avg_session_hrs / 1.5) * 100))
+    density     = min(100, int((monthly_km / max(active_days, 1) / 15) * 100))
+    variety     = min(100, int((sport_variety_raw / 3) * 100))
 
     return [
-        {"subject": "Endurance", "A": endurance},
-        {"subject": "Climb", "A": climb},
-        {"subject": "Frequency", "A": frequency},
-        {"subject": "Long Effort", "A": long_run},
-        {"subject": "Speed", "A": speed_score},
+        {"subject": "Volume",      "A": volume},
+        {"subject": "Consistency", "A": consistency},
+        {"subject": "Intensity",   "A": intensity},
+        {"subject": "Duration",    "A": duration},
+        {"subject": "Density",     "A": density},
+        {"subject": "Variety",     "A": variety},
     ]
 
 
@@ -893,6 +911,77 @@ def _compute_monthly_trends(conn, active_types: list) -> list:
     ]
 
 
+# ─── 辅助：年度完整统计 ───────────────────────────────────────────────────────
+
+def _compute_yearly_full(conn, active_types: list) -> list:
+    """Per-year totals: distance, elevation, hours, count — with YoY deltas."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT strftime('%Y', start_date_local) AS yr, COUNT(*) AS cnt, "
+        f"COALESCE(SUM(distance), 0) / 1000.0 AS dist, "
+        f"COALESCE(SUM(elevation_gain), 0) AS elev, "
+        f"SUM(moving_time) AS time "
+        f"FROM activities WHERE type IN ({ph}) AND yr IS NOT NULL "
+        f"GROUP BY yr ORDER BY yr DESC",
+        tuple(active_types),
+    )
+    rows = cur.fetchall()
+    result = []
+    for i, r in enumerate(rows):
+        total_sec = row_to_seconds(r["time"])
+        hours = round(total_sec / 3600.0, 1)
+        dist = round(r["dist"], 1)
+        elev = round(r["elev"] or 0)
+        cnt = r["cnt"]
+        prev = rows[i + 1] if i + 1 < len(rows) else None
+        prev_dist = round(prev["dist"], 1) if prev else 0
+        prev_elev = round(prev["elev"] or 0) if prev else 0
+        prev_hours = round(row_to_seconds(prev["time"]) / 3600.0, 1) if prev else 0
+        result.append({
+            "year": r["yr"],
+            "count": cnt,
+            "distance": dist,
+            "elevation": elev,
+            "hours": hours,
+            "dist_delta": round(dist - prev_dist, 1) if prev else None,
+            "elev_delta": elev - prev_elev if prev else None,
+            "hours_delta": round(hours - prev_hours, 1) if prev else None,
+        })
+    return result
+
+
+# ─── 辅助：每月PB数量 ─────────────────────────────────────────────────────────
+
+def _compute_pbs_per_month(conn, active_types: list) -> list:
+    """Count new personal bests set per month (run distances only)."""
+    run_types = [t for t in active_types if t in _RUN_TYPES]
+    if not run_types:
+        return []
+    distance_configs = [
+        (4750, 5250), (9600, 10400), (20297, 21897), (40695, 43695),
+    ]
+    pb_months: dict = {}
+    ph = ",".join(["?"] * len(run_types))
+    cur = conn.cursor()
+    for lo, hi in distance_configs:
+        cur.execute(
+            f"SELECT strftime('%Y-%m', start_date_local) AS month, "
+            f"MIN(moving_time) AS best_time "
+            f"FROM activities WHERE type IN ({ph}) AND distance BETWEEN ? AND ? "
+            f"GROUP BY month ORDER BY month",
+            (*run_types, lo, hi),
+        )
+        best_so_far = None
+        for row in cur.fetchall():
+            t = row_to_seconds(row["best_time"])
+            if t > 0 and (best_so_far is None or t < best_so_far):
+                best_so_far = t
+                m = row["month"]
+                pb_months[m] = pb_months.get(m, 0) + 1
+    return [{"month": m, "pbs": c} for m, c in sorted(pb_months.items())]
+
+
 # ─── 辅助：breakdown ─────────────────────────────────────────────────────────
 
 def _compute_breakdown(conn, active_types: list) -> dict:
@@ -1128,6 +1217,8 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
         records_trends = _compute_records_trends(conn, active_types)
         goals = _compute_goals(conn, active_types, athlete_metrics)
         smart_coach = _compute_smart_coach(training_details)
+        yearly_full = _compute_yearly_full(conn, active_types)
+        pbs_per_month = _compute_pbs_per_month(conn, active_types)
 
         is_run_only = is_run_active and not is_ride_active
         is_ride_only = is_ride_active and not is_run_active
@@ -1262,6 +1353,8 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
             "dashboard_records": dashboard_records,
             "goals": goals,
             "smart_coach": smart_coach,
+            "yearly_full": yearly_full,
+            "pbs_per_month": pbs_per_month,
             "primary_metric": primary_metric,
             "weekly_trends": [],
         }

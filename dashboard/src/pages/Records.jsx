@@ -325,6 +325,33 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
             );
           })()}
 
+          {/* Personal Records per Month */}
+          {stats.pbs_per_month && stats.pbs_per_month.length > 0 && (() => {
+            const last18 = stats.pbs_per_month.slice(-18);
+            return (
+              <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1rem', opacity: 0.8, letterSpacing: '1px' }}>PERSONAL RECORDS SET PER MONTH</h2>
+                <div style={{ height: '160px', width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={last18} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                        formatter={(v) => [`${v} new PB${v !== 1 ? 's' : ''}`, 'Month']}
+                      />
+                      <Line type="monotone" dataKey="pbs" stroke={currentConfig.color} strokeWidth={2.5} dot={{ fill: currentConfig.color, r: 4 }} activeDot={{ r: 6 }} connectNulls />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '0.5rem', textAlign: 'center' }}>
+                  Months where a new all-time best was set for 5K, 10K, Half Marathon, or Marathon
+                </div>
+              </div>
+            );
+          })()}
+
           <h2 className="category-title" style={{ marginBottom: '2rem' }}>Performance Progress Tracking</h2>
           {Object.keys(stats.records_trends || {}).length > 0 ? (
             <div className="platform-grid">

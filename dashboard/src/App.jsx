@@ -24,6 +24,7 @@ const Challenges  = lazy(() => import('./pages/Challenges'));
 const Photos      = lazy(() => import('./pages/Photos'));
 const Rewind      = lazy(() => import('./pages/Rewind'));
 const Segments    = lazy(() => import('./pages/Segments'));
+const CalendarPage = lazy(() => import('./pages/Calendar'));
 
 
 // Error boundary to prevent a single bad page from crashing the whole app
@@ -236,6 +237,7 @@ function App() {
       case 'Photos':      return <Photos sportType={sportType} />;
       case 'Rewind':      return <Rewind stats={stats} sportType={sportType} />;
       case 'Segments':    return <Segments sportType={sportType} />;
+      case 'Calendar':    return <CalendarPage stats={stats} />;
       default:            return <Dashboard stats={stats} setActiveTab={setActiveTab} />;
     }
   };
@@ -252,7 +254,8 @@ function App() {
     'Challenges':  { title: 'STRAVA CHALLENGES',      icon: Medal },
     'Photos':      { title: 'ACTIVITY GALLERY',       icon: Image },
     'Segments':    { title: 'SEGMENTS PERFORMANCE',   icon: Milestone },
-    'Gear':        { title: 'EQUIPMENT TRACKING',     icon: Wrench }
+    'Gear':        { title: 'EQUIPMENT TRACKING',     icon: Wrench },
+    'Calendar':    { title: 'ACTIVITY CALENDAR',      icon: Calendar },
   };
 
   const currentTabInfo = tabMetadata[activeTab] || { title: activeTab.toUpperCase(), icon: null };

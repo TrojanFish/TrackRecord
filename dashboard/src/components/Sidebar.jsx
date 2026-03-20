@@ -68,6 +68,7 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
       items: [
         { id: 'Photos', icon: Image, label: 'PHOTOS' },
         { id: 'Gear', icon: Wrench, label: 'GEAR' },
+        { id: 'Calendar', icon: Calendar, label: 'CALENDAR' },
       ]
     }
   ];
