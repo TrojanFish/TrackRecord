@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Trophy, Calendar, Loader2, RefreshCw, X, ChevronRight, HelpCircle } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip } from 'recharts';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
@@ -92,6 +93,41 @@ const Challenges = () => {
             <RefreshCw size={16} /> IMPORT TROPHIES
           </button>
         </div>
+
+        {/* Trophy Year Chart — only when multiple months of data */}
+        {challenges.length > 1 && (() => {
+          const yearMap = {};
+          challenges.forEach(section => {
+            if (!section?.month) return;
+            // Parse year from "Jan 2024" or similar
+            const parts = section.month.trim().split(' ');
+            const year = parts.length >= 2 ? parts[parts.length - 1] : null;
+            if (!year || !/^\d{4}$/.test(year)) return;
+            yearMap[year] = (yearMap[year] || 0) + (section.items?.length || 0);
+          });
+          const yearData = Object.entries(yearMap)
+            .map(([year, count]) => ({ year, count }))
+            .sort((a, b) => a.year.localeCompare(b.year));
+          if (yearData.length < 2) return null;
+          return (
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px', marginBottom: '1rem' }}>TROPHIES BY YEAR</div>
+              <div style={{ height: '160px', width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={yearData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                    <XAxis dataKey="year" stroke="rgba(255,255,255,0.3)" fontSize={11} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                      formatter={(v) => [v, 'Trophies']}
+                    />
+                    <Bar dataKey="count" fill="var(--accent-cyan)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Empty state */}
         {challenges.length === 0 && (

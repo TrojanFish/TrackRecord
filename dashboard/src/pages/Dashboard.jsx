@@ -202,6 +202,87 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         </motion.div>
       </div>
 
+      {/* 1.5 Goal / Recovery / Race Countdown Row */}
+      {(() => {
+        const weeklyTarget = stats.athlete_metrics?.annual_distance_target
+          ? stats.athlete_metrics.annual_distance_target / 52
+          : 50;
+        const weekDist = stats.recent_form?.this_week?.distance ?? 0;
+        const weekPct = Math.min(100, Math.round((weekDist / weeklyTarget) * 100));
+
+        const recoveryScore = Math.max(0, Math.min(100, Math.round(50 + currentLoad.tsb * 2)));
+        const recoveryStatus = recoveryScore > 80
+          ? { label: 'Excellent', color: '#10b981' }
+          : recoveryScore >= 60
+          ? { label: 'Good', color: '#06b6d4' }
+          : recoveryScore >= 40
+          ? { label: 'Moderate', color: '#f59e0b' }
+          : { label: 'Low', color: '#ef4444' };
+
+        const today = new Date();
+        const futureMilestone = stats.athlete_metrics?.milestones
+          ?.filter(m => m.date && new Date(m.date) > today)
+          ?.sort((a, b) => new Date(a.date) - new Date(b.date))?.[0] ?? null;
+        const daysUntilRace = futureMilestone
+          ? Math.ceil((new Date(futureMilestone.date) - today) / (1000 * 60 * 60 * 24))
+          : null;
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            {/* Widget A: Weekly Goal Progress */}
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>WEEKLY GOAL</span>
+                <Target size={14} color={accent} />
+              </div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: accent }}>{weekDist} <small style={{ fontSize: '0.7rem', opacity: 0.5 }}>KM</small></div>
+              <div style={{ height: '4px', background: 'rgba(255,255,255,0.07)', borderRadius: '2px', overflow: 'hidden', margin: '0.75rem 0' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${weekPct}%` }}
+                  transition={{ duration: 1.2, ease: 'easeOut' }}
+                  style={{ height: '100%', background: accent, borderRadius: '2px' }}
+                />
+              </div>
+              <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>{weekDist} km / {weeklyTarget.toFixed(0)} km target &nbsp;·&nbsp; <b style={{ color: accent }}>{weekPct}%</b></div>
+            </motion.div>
+
+            {/* Widget B: Recovery Score */}
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>RECOVERY SCORE</span>
+                <Heart size={14} color={recoveryStatus.color} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontSize: '3rem', fontWeight: 900, lineHeight: 1, color: recoveryStatus.color }}>{recoveryScore}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: recoveryStatus.color }}>{recoveryStatus.label}</span>
+              </div>
+              <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', opacity: 0.4 }}>TSB: {currentLoad.tsb?.toFixed(1)} · Based on training stress balance</div>
+            </motion.div>
+
+            {/* Widget C: Next Race Countdown */}
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>NEXT RACE</span>
+                <Calendar size={14} color={accent} />
+              </div>
+              {futureMilestone ? (
+                <>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: accent }}>{daysUntilRace}</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, marginTop: '4px', opacity: 0.8 }}>DAYS AWAY</div>
+                  <div style={{ fontSize: '0.75rem', marginTop: '0.5rem', opacity: 0.6, wordBreak: 'break-word' }}>{futureMilestone.name || futureMilestone.event || 'Race'}</div>
+                </>
+              ) : (
+                <div style={{ opacity: 0.3, marginTop: '0.5rem' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>Set a race goal</div>
+                  <div style={{ fontSize: '0.7rem', marginTop: '4px' }}>Add a milestone in settings.yaml</div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        );
+      })()}
+
       {/* 2. Smart Coach Advice (Immediate Context) */}
       {stats.smart_coach && (
         <motion.div

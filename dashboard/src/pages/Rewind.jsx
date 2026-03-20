@@ -599,6 +599,74 @@ const Rewind = ({ stats: appStats, sportType }) => {
              </div>
            )}
         </motion.div>
+
+        {/* Training Schedule Insights */}
+        {(() => {
+          const timeData = rewindData?.time_of_day || [];
+          if (timeData.length === 0) return null;
+          const withActivity = timeData.filter(h => h.count >= 2);
+          const peakHour = timeData.reduce((max, h) => h.count > max.count ? h : max, timeData[0] || { hour: 0, count: 0 });
+          const earliest = [...withActivity].sort((a, b) => a.hour - b.hour)[0];
+          const latest = [...withActivity].sort((a, b) => b.hour - a.hour)[0];
+          const fmt = (h) => {
+            if (h == null) return '--';
+            const p = h >= 12 ? 'PM' : 'AM';
+            const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+            return `${h12}:00 ${p}`;
+          };
+          return (
+            <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
+              <SectionTitle icon={Clock} title="TRAINING SCHEDULE INSIGHTS" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
+                {[
+                  { label: 'PEAK TIME', value: fmt(peakHour?.hour), sub: `${peakHour?.count} sessions`, color: themeColor },
+                  { label: 'EARLIEST START', value: fmt(earliest?.hour), sub: `${earliest?.count} sessions`, color: '#10b981' },
+                  { label: 'LATEST NIGHT', value: fmt(latest?.hour), sub: `${latest?.count} sessions`, color: '#8b5cf6' },
+                ].map(stat => (
+                  <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', padding: '1.25rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.5, letterSpacing: '1px', marginBottom: '8px' }}>{stat.label}</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: stat.color }}>{stat.value}</div>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '4px' }}>{stat.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })()}
+
+        {/* Top Training Cities */}
+        {(() => {
+          const locs = rewindData?.locations || [];
+          if (locs.length === 0) return null;
+          const maxCount = Math.max(...locs.map(l => l.count), 1);
+          const fmtCity = (s) => s ? s.replace(/\s+[A-Z]{2}$/, '').trim() : 'Unknown';
+          return (
+            <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
+              <SectionTitle icon={MapPin} title="TOP TRAINING CITIES" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1.5rem' }}>
+                {locs.slice(0, 8).map((loc, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '18px', fontSize: '0.65rem', fontWeight: 900, opacity: 0.35, textAlign: 'right', flexShrink: 0 }}>#{i + 1}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>{fmtCity(loc.location_city)}</span>
+                        <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{loc.count} sessions</span>
+                      </div>
+                      <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(loc.count / maxCount) * 100}%` }}
+                          transition={{ duration: 0.8, delay: i * 0.05 }}
+                          style={{ height: '100%', background: i === 0 ? themeColor : `${themeColor}88`, borderRadius: '2px' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        })()}
       </div>
 
     </motion.div>

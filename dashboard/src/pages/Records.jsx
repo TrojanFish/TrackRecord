@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Clock, MapPin, TrendingUp, Calendar, Zap, Activity, Heart, Footprints, Flame, ExternalLink } from 'lucide-react';
-import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
 
 const formatTime = (seconds) => {
   const h = Math.floor(seconds / 3600);
@@ -266,6 +266,144 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                 </p>
           </div>
       </div>
+
+      {/* THIRD ROW: PR TIMELINE + WORLD RECORD COMPARISON */}
+      {(() => {
+        const WR = {
+          Run: { '5K': 757, '10K': 1572, 'Half Marathon': 3385, 'Marathon': 7121 },
+          Ride: { '40K TT': 2937, '100K Century': 7920, '160K Imperial': 14400, '200K Brevet': 21600 }
+        };
+
+        const modeWR = WR[sportMode] || WR['Run'];
+        const trends = stats.records_trends || {};
+
+        // Find most-improved record for current sport mode
+        const filteredTrendEntries = Object.entries(trends).filter(([name]) =>
+          sportMode === 'Ride' ? name.includes('Ride') : !name.includes('Ride')
+        );
+        const mostImprovedEntry = filteredTrendEntries.sort((a, b) => (b[1]?.length || 0) - (a[1]?.length || 0))[0];
+        const prTimelineData = mostImprovedEntry
+          ? [...(mostImprovedEntry[1] || [])].sort((a, b) => String(a.date).localeCompare(String(b.date)))
+          : [];
+
+        // World record comparison: get user best for each WR key
+        const wrRows = Object.entries(modeWR).map(([label, wrSec]) => {
+          // Try to find matching record in stats.records
+          const matchKey = Object.keys(stats.records || {}).find(k => {
+            const kClean = k.replace(' Ride', '').toLowerCase();
+            const lClean = label.toLowerCase();
+            return kClean === lClean || lClean.includes(kClean) || kClean.includes(lClean);
+          });
+          const recordData = matchKey ? stats.records[matchKey] : null;
+          let userSec = null;
+          if (recordData?.moving_time) {
+            const t = recordData.moving_time.includes(' ')
+              ? recordData.moving_time.split(' ')[1]
+              : recordData.moving_time;
+            const parts = t.split(':');
+            userSec = (parseInt(parts[0])||0)*3600 + (parseInt(parts[1])||0)*60 + (parseInt(parts[2])||0);
+          }
+          const pct = userSec ? Math.round((userSec / wrSec) * 100) : null;
+          const color = pct == null ? 'rgba(255,255,255,0.3)' : pct < 150 ? '#10b981' : pct < 200 ? '#f59e0b' : '#f97316';
+          return { label, wrSec, userSec, pct, userTime: recordData?.moving_time, color };
+        });
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            {/* PR Timeline Widget */}
+            <div className="platform-card" style={{ padding: '1.5rem' }}>
+              <h2 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1rem', opacity: 0.8, letterSpacing: '1px' }}>PERSONAL BEST PROGRESSION</h2>
+              {mostImprovedEntry && prTimelineData.length > 1 ? (
+                <>
+                  <div style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '1rem' }}>
+                    {mostImprovedEntry[0].replace(' Ride', '')} — {prTimelineData.length} recorded bests
+                  </div>
+                  <div style={{ height: '200px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={prTimelineData} margin={{ top: 5, right: 10, bottom: 20, left: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis
+                          dataKey="date"
+                          stroke="rgba(255,255,255,0.3)"
+                          fontSize={10}
+                          tickFormatter={(v) => String(v)}
+                        />
+                        <YAxis
+                          dataKey="seconds"
+                          stroke="rgba(255,255,255,0.3)"
+                          fontSize={10}
+                          tickFormatter={(v) => {
+                            const m = Math.floor(v / 60);
+                            const s = Math.floor(v % 60);
+                            return `${m}:${s.toString().padStart(2,'0')}`;
+                          }}
+                          reversed={true}
+                          width={45}
+                        />
+                        <Tooltip
+                          contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                          formatter={(v) => {
+                            const m = Math.floor(v / 60);
+                            const s = Math.floor(v % 60);
+                            return [`${m}:${s.toString().padStart(2,'0')}`, 'Time'];
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="seconds"
+                          stroke={currentConfig.color}
+                          strokeWidth={2}
+                          dot={{ fill: currentConfig.color, r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <div style={{ height: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>
+                  <TrendingUp size={36} style={{ marginBottom: '1rem' }} />
+                  <p style={{ fontSize: '0.8rem', textAlign: 'center' }}>Record multiple PBs to see progression over time.</p>
+                </div>
+              )}
+            </div>
+
+            {/* World Record Comparison */}
+            <div className="platform-card" style={{ padding: '1.5rem' }}>
+              <h2 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1rem', opacity: 0.8, letterSpacing: '1px' }}>WORLD RECORD COMPARISON</h2>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                <thead>
+                  <tr style={{ opacity: 0.5 }}>
+                    <th style={{ textAlign: 'left', paddingBottom: '0.75rem', fontWeight: 700, letterSpacing: '0.5px' }}>RECORD</th>
+                    <th style={{ textAlign: 'right', paddingBottom: '0.75rem', fontWeight: 700 }}>YOUR BEST</th>
+                    <th style={{ textAlign: 'right', paddingBottom: '0.75rem', fontWeight: 700 }}>WR</th>
+                    <th style={{ textAlign: 'right', paddingBottom: '0.75rem', fontWeight: 700 }}>YOUR %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {wrRows.map(({ label, wrSec, userSec, pct, userTime, color }) => (
+                    <tr key={label} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '0.6rem 0', fontWeight: 700 }}>{label}</td>
+                      <td style={{ textAlign: 'right', padding: '0.6rem 0', color: currentConfig.color, fontWeight: 800 }}>
+                        {userTime ? (userTime.includes(' ') ? userTime.split(' ')[1].split('.')[0] : userTime.split('.')[0]) : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '0.6rem 0', opacity: 0.5 }}>{formatTime(wrSec)}</td>
+                      <td style={{ textAlign: 'right', padding: '0.6rem 0' }}>
+                        <span style={{ color, fontWeight: 800 }}>{pct != null ? `${pct}%` : '—'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', fontSize: '0.6rem', opacity: 0.4 }}>
+                <span style={{ color: '#10b981' }}>● &lt;150% excellent</span>
+                <span style={{ color: '#f59e0b' }}>● 150–200% good</span>
+                <span style={{ color: '#f97316' }}>● &gt;200% improving</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <h2 className="category-title" style={{ marginBottom: '2rem' }}>Performance Progress Tracking</h2>
       {Object.keys(stats.records_trends || {}).length > 0 ? (

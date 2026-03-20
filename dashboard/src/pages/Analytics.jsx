@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  BarChart, Bar, CartesianGrid, Legend, AreaChart, Area 
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, CartesianGrid, Legend, AreaChart, Area, ReferenceLine
 } from 'recharts';
-import { Calendar, Activity, Zap, Layers, TrendingUp, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Calendar, Activity, Zap, Layers, TrendingUp, Filter, ArrowUpRight, ArrowDownRight, BarChart2, Percent } from 'lucide-react';
 
 const Analytics = ({ stats, sportType }) => {
   const [activeMetric, setActiveMetric] = React.useState('dist'); // 'dist', 'time', 'elev'
@@ -289,6 +289,147 @@ const Analytics = ({ stats, sportType }) => {
               </table>
           </div>
       </div>
+
+      {/* 12-Week Consistency + RPE Trend */}
+      {(() => {
+        // --- 12-Week Consistency ---
+        const today12 = new Date();
+        const weekBuckets = Array.from({ length: 12 }, (_, wi) => {
+          const weekEnd = new Date(today12);
+          weekEnd.setDate(today12.getDate() - wi * 7);
+          const weekStart = new Date(weekEnd);
+          weekStart.setDate(weekEnd.getDate() - 6);
+          const startStr = weekStart.toISOString().slice(0, 10);
+          const endStr = weekEnd.toISOString().slice(0, 10);
+          const activeDays = new Set(
+            (stats.daily_stats || [])
+              .filter(d => d.date >= startStr && d.date <= endStr && Number(d.count || 0) > 0)
+              .map(d => d.date)
+          ).size;
+          return {
+            week: `W-${wi === 0 ? 'now' : wi}`,
+            activeDays
+          };
+        }).reverse();
+
+        const consistentWeeks = weekBuckets.filter(w => w.activeDays >= 3).length;
+        const consistencyPct = Math.round((consistentWeeks / 12) * 100);
+
+        // --- RPE Trend ---
+        const maxHR = stats.athlete_metrics?.max_hr || 190;
+        const recentActs = (stats.recent_activities || []).slice(0, 30);
+
+        // Group last 8 weeks and compute average RPE
+        const rpeWeeks = Array.from({ length: 8 }, (_, wi) => {
+          const weekEnd = new Date(today12);
+          weekEnd.setDate(today12.getDate() - wi * 7);
+          const weekStart = new Date(weekEnd);
+          weekStart.setDate(weekEnd.getDate() - 6);
+          const startStr = weekStart.toISOString().slice(0, 10);
+          const endStr = weekEnd.toISOString().slice(0, 10);
+          const weekActs = recentActs.filter(a => {
+            const d = (a.start_date_local || '').slice(0, 10);
+            return d >= startStr && d <= endStr;
+          });
+          let avgRPE = 0;
+          if (weekActs.length > 0) {
+            const rpes = weekActs.map(a => {
+              if (a.average_heartrate && a.average_heartrate > 0) {
+                return (a.average_heartrate / maxHR) * 100;
+              }
+              // fallback: moving_time / distance ratio normalized
+              const dist = a.distance > 0 ? a.distance / 1000 : 1;
+              const pace = (a.moving_time || 0) / 60 / dist; // min/km
+              return Math.min(100, (pace / 10) * 100);
+            });
+            avgRPE = Math.round(rpes.reduce((s, v) => s + v, 0) / rpes.length);
+          }
+          return {
+            week: `W-${wi === 0 ? 'now' : wi}`,
+            rpe: avgRPE || null
+          };
+        }).reverse();
+
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+            {/* Widget A: 12-Week Consistency Score */}
+            <div className="platform-card" style={{ padding: '2rem' }}>
+              <div className="card-header">
+                <h3 className="card-title" style={{ fontSize: '1.1rem', margin: 0 }}>
+                  <BarChart2 size={20} color={themeColor} style={{ flexShrink: 0 }} /> 12-WEEK CONSISTENCY
+                </h3>
+                <span style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  background: `${themeColor}22`,
+                  color: themeColor
+                }}>{consistencyPct}% CONSISTENT</span>
+              </div>
+              <div style={{ height: '200px', width: '100%', marginTop: '1rem' }}>
+                <ResponsiveContainer>
+                  <BarChart data={weekBuckets}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="week" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis domain={[0, 7]} stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '11px' }}
+                      formatter={(v) => [`${v} active days`, '']}
+                    />
+                    <ReferenceLine y={3} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" />
+                    <Bar dataKey="activeDays" fill={themeColor} radius={[4, 4, 0, 0]} name="Active Days" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ fontSize: '0.7rem', opacity: 0.4, marginTop: '0.5rem', textAlign: 'center' }}>
+                Dashed line = 3-day threshold · {consistentWeeks}/12 weeks met target
+              </div>
+            </div>
+
+            {/* Widget B: RPE Trend */}
+            <div className="platform-card" style={{ padding: '2rem' }}>
+              <div className="card-header">
+                <h3 className="card-title" style={{ fontSize: '1.1rem', margin: 0 }}>
+                  <Percent size={20} color={secondaryColor} style={{ flexShrink: 0 }} /> RELATIVE EFFORT TREND (RPE)
+                </h3>
+              </div>
+              <div style={{ height: '200px', width: '100%', marginTop: '1rem' }}>
+                <ResponsiveContainer>
+                  <AreaChart data={rpeWeeks}>
+                    <defs>
+                      <linearGradient id="rpeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={secondaryColor} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={secondaryColor} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="week" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '11px' }}
+                      formatter={(v) => v != null ? [`${v}%`, 'Avg RPE'] : ['—', 'Avg RPE']}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="rpe"
+                      stroke={secondaryColor}
+                      strokeWidth={2}
+                      fill="url(#rpeGradient)"
+                      connectNulls
+                      name="RPE"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ fontSize: '0.7rem', opacity: 0.4, marginTop: '0.5rem', textAlign: 'center' }}>
+                Based on last 30 activities grouped by week · HR%-based when available
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </motion.div>
   );

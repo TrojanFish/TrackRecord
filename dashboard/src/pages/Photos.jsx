@@ -11,6 +11,7 @@ const Photos = ({ sportType }) => {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('All');
   const [filterCountry, setFilterCountry] = useState('All');
+  const [groupByMonth, setGroupByMonth] = useState(false);
 
   // Extract unique types and countries for filters
   const sportTypes = ['All', ...new Set(photos.map(p => p.type).filter(Boolean))];
@@ -129,6 +130,15 @@ const Photos = ({ sportType }) => {
                  {filteredPhotos.length} PHOTOS FOUND
               </div>
            </div>
+           <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '10px' }}>
+             {[{ key: false, label: 'GRID' }, { key: true, label: 'BY MONTH' }].map(opt => (
+               <button key={String(opt.key)} onClick={() => setGroupByMonth(opt.key)} style={{
+                 padding: '6px 14px', borderRadius: '7px', border: 'none', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer',
+                 background: groupByMonth === opt.key ? 'var(--accent-cyan)' : 'transparent',
+                 color: groupByMonth === opt.key ? '#000' : 'var(--text-secondary)', transition: 'all 0.2s'
+               }}>{opt.label}</button>
+             ))}
+           </div>
         </div>
 
         {filteredPhotos.length === 0 ? (
@@ -137,6 +147,44 @@ const Photos = ({ sportType }) => {
             <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>No photos matching filters</h3>
             <p style={{ fontSize: '0.9rem' }}>Try changing your filters or syncing more data.</p>
           </div>
+        ) : groupByMonth ? (
+          (() => {
+            const grouped = filteredPhotos.reduce((acc, p) => {
+              const key = p.date ? p.date.slice(0, 7) : 'Unknown';
+              if (!acc[key]) acc[key] = [];
+              acc[key].push(p);
+              return acc;
+            }, {});
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+                {Object.entries(grouped).sort(([a], [b]) => b.localeCompare(a)).map(([month, monthPhotos]) => (
+                  <div key={month}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.7, letterSpacing: '1px' }}>
+                        {new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase()}
+                      </span>
+                      <span style={{ fontSize: '0.65rem', opacity: 0.4, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '6px' }}>{monthPhotos.length}</span>
+                    </div>
+                    <div className="photos-masonry" style={{ columnGap: '1.5rem' }}>
+                      {monthPhotos.map((photo) => (
+                        <motion.div
+                          key={photo.id}
+                          whileHover={{ y: -6, scale: 1.02 }}
+                          onClick={() => setSelectedPhoto(photo)}
+                          style={{ breakInside: 'avoid', marginBottom: '1.5rem', borderRadius: '1.5rem', overflow: 'hidden', cursor: 'pointer', border: '1px solid var(--glass-border)' }}
+                        >
+                          <img src={photo.url.startsWith('http') ? photo.url : `${API_BASE}${photo.url}`} alt={photo.title}
+                            style={{ width: '100%', display: 'block' }}
+                            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=40'; }}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()
         ) : (
           <div className="photos-masonry" style={{
             columnGap: '1.5rem',

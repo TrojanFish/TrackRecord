@@ -18,10 +18,10 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ScatterChart, Scatter,
-  ZAxis
+  ZAxis, BarChart, Bar
 } from 'recharts';
 
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
@@ -433,17 +433,17 @@ const Segments = ({ sportType }) => {
 
               {/* Modal Tabs */}
               <div style={{ display: 'flex', padding: '0 2rem', background: 'rgba(255,255,255,0.02)' }}>
-                {['history', 'charts'].map(mode => (
-                  <button 
+                {['history', 'charts', 'bestmonth'].map(mode => (
+                  <button
                     key={mode}
                     onClick={() => setModalMode(mode)}
-                    style={{ 
+                    style={{
                       padding: '1.2rem 1.5rem', background: 'none', border: 'none', color: mode === modalMode ? 'var(--accent-cyan)' : 'white',
                       fontWeight: 800, fontSize: '0.75rem', letterSpacing: '1px', opacity: mode === modalMode ? 1 : 0.6, cursor: 'pointer',
                       position: 'relative', transition: 'all 0.3s'
                     }}
                   >
-                    {mode.toUpperCase()}
+                    {mode === 'bestmonth' ? 'BEST MONTH' : mode.toUpperCase()}
                     {mode === modalMode && <motion.div layoutId="modal-tab" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'var(--accent-cyan)' }} />}
                   </button>
                 ))}

@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  CartesianGrid, PieChart, Pie, Cell 
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  CartesianGrid, PieChart, Pie, Cell, ReferenceLine
 } from 'recharts';
 import { 
   Calendar, Activity, TrendingUp, Clock, ChevronLeft, ChevronRight, Trophy, Zap, Flame 
@@ -188,7 +188,73 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
                 </div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f59e0b' }}>{monthData.trophyCount}</div>
             </div>
+
+            {/* Widget B: Best Single Day */}
+            {(() => {
+              const bestDay = monthData.chartData?.reduce(
+                (best, d) => (Number(d.dist) > Number(best?.dist || 0) ? d : best),
+                null
+              );
+              return bestDay && Number(bestDay.dist) > 0 ? (
+                <div style={{ marginTop: '1rem', background: `${themeColor}11`, border: `1px solid ${themeColor}33`, padding: '0.75rem', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, marginBottom: '4px', letterSpacing: '0.5px' }}>BEST DAY THIS MONTH</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 900, color: themeColor }}>
+                    Day {bestDay.day} &mdash; {bestDay.dist} km
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
+
+          {/* Widget A: 3-Month Comparison Panel */}
+          {(() => {
+            const months3 = [0, 1, 2].map(offset => {
+              const d = new Date(selectedMonth + '-01');
+              d.setMonth(d.getMonth() - offset);
+              const mStr = d.toISOString().slice(0, 7);
+              const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+              const mDays = (stats.daily_stats || []).filter(day => day.date?.startsWith(mStr));
+              return {
+                label,
+                monthStr: mStr,
+                dist: (mDays.reduce((s, dd) => s + Number(dd.dist || 0), 0) / 1000).toFixed(1),
+                count: mDays.reduce((s, dd) => s + Number(dd.count || 0), 0),
+                time: (mDays.reduce((s, dd) => s + Number(dd.time || 0), 0) / 3600).toFixed(1)
+              };
+            });
+            return (
+              <div className="platform-card" style={{ padding: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.8rem', marginBottom: '1rem', opacity: 0.8 }}>3-MONTH COMPARISON</h4>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
+                  <thead>
+                    <tr style={{ opacity: 0.4 }}>
+                      <th style={{ textAlign: 'left', paddingBottom: '6px' }}>MONTH</th>
+                      <th style={{ textAlign: 'right', paddingBottom: '6px' }}>KM</th>
+                      <th style={{ textAlign: 'right', paddingBottom: '6px' }}>#</th>
+                      <th style={{ textAlign: 'right', paddingBottom: '6px' }}>HRS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {months3.map((m, i) => (
+                      <tr
+                        key={m.monthStr}
+                        style={{
+                          borderTop: '1px solid rgba(255,255,255,0.05)',
+                          background: i === 0 ? `${themeColor}11` : 'transparent',
+                          fontWeight: i === 0 ? 800 : 400
+                        }}
+                      >
+                        <td style={{ padding: '5px 0', color: i === 0 ? themeColor : 'inherit' }}>{m.label}</td>
+                        <td style={{ textAlign: 'right', color: i === 0 ? themeColor : 'inherit' }}>{m.dist}</td>
+                        <td style={{ textAlign: 'right', opacity: 0.7 }}>{m.count}</td>
+                        <td style={{ textAlign: 'right', opacity: 0.7 }}>{m.time}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
 
           <div className="platform-card" style={{ padding: '1.5rem' }}>
             <h4 style={{ fontSize: '0.8rem', marginBottom: '1.5rem', opacity: 0.8 }}>SPORT DISTRIBUTION</h4>
@@ -249,6 +315,47 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
               </ResponsiveContainer>
             </div>
           )}
+          {/* Widget C: Weekly Load Breakdown */}
+          {(() => {
+            const secondaryColor = '#bd00ff';
+            const weeklyLoad = [
+              { week: 'W1 (1-7)', dist: 0 },
+              { week: 'W2 (8-14)', dist: 0 },
+              { week: 'W3 (15-21)', dist: 0 },
+              { week: 'W4 (22+)', dist: 0 }
+            ];
+            monthData.chartData.forEach(d => {
+              const day = d.day;
+              const km = Number(d.dist) || 0;
+              if (day <= 7) weeklyLoad[0].dist = +(weeklyLoad[0].dist + km).toFixed(2);
+              else if (day <= 14) weeklyLoad[1].dist = +(weeklyLoad[1].dist + km).toFixed(2);
+              else if (day <= 21) weeklyLoad[2].dist = +(weeklyLoad[2].dist + km).toFixed(2);
+              else weeklyLoad[3].dist = +(weeklyLoad[3].dist + km).toFixed(2);
+            });
+            return (
+              <div style={{ marginTop: '2rem' }}>
+                <h4 style={{ fontSize: '0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
+                  <Zap size={16} color={secondaryColor} /> WEEKLY LOAD
+                </h4>
+                <div style={{ height: '160px', width: '100%' }}>
+                  <ResponsiveContainer>
+                    <BarChart data={weeklyLoad}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="week" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                        contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '11px' }}
+                        formatter={(v) => [`${v} km`, 'Distance']}
+                      />
+                      <Bar dataKey="dist" fill={secondaryColor} radius={[4, 4, 0, 0]} name="km" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })()}
+
           <p style={{ marginTop: '1.5rem', opacity: 0.7, fontSize: '0.75rem', textAlign: 'center' }}>
             Showing {sportType} activity intensity across {selectedMonth}. Bars represent cumulative distance in kilometers per day.
           </p>

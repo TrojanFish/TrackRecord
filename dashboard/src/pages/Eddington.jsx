@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Award, Info, ChevronRight, Activity } from 'lucide-react';
-import { 
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
-  CartesianGrid, ReferenceLine, Label 
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+  CartesianGrid, ReferenceLine, Label,
+  BarChart, Bar
 } from 'recharts';
 
 const Eddington = ({ stats, sportType }) => {
@@ -188,6 +189,66 @@ const Eddington = ({ stats, sportType }) => {
           </div>
         </div>
       </div>
+      {/* Dual E-Numbers (All mode only) */}
+      {!isGlobalFilterActive && stats.eddington?.Run && stats.eddington?.Ride && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+          <div className="platform-card stat-card" style={{ padding: '1.5rem', borderBottom: '3px solid var(--accent-cyan)', textAlign: 'center' }}>
+            <span className="stat-label">RUNNING E-NUMBER</span>
+            <div style={{ fontSize: '4rem', fontWeight: 900, color: 'var(--accent-cyan)', lineHeight: 1.1 }}>E{stats.eddington.Run.value}</div>
+            <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '6px' }}>Next: {stats.eddington.Run.next_gap} more days</div>
+          </div>
+          <div className="platform-card stat-card" style={{ padding: '1.5rem', borderBottom: '3px solid #bd00ff', textAlign: 'center' }}>
+            <span className="stat-label">CYCLING E-NUMBER</span>
+            <div style={{ fontSize: '4rem', fontWeight: 900, color: '#bd00ff', lineHeight: 1.1 }}>E{stats.eddington.Ride.value}</div>
+            <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '6px' }}>Next: {stats.eddington.Ride.next_gap} more days</div>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Qualifying Days BarChart */}
+      {(() => {
+        const today = new Date();
+        const eThreshold = currentData.value;
+        const monthlyQualifying = Array.from({ length: 12 }, (_, mi) => {
+          const d = new Date(today.getFullYear(), today.getMonth() - (11 - mi), 1);
+          const monthStr = d.toISOString().slice(0, 7);
+          const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+          const qualDays = (stats.daily_stats || []).filter(day => {
+            if (!day.date?.startsWith(monthStr)) return false;
+            const distKm = Number(day.dist || 0) / 1000;
+            return distKm >= eThreshold;
+          }).length;
+          return { month: label, qualifyingDays: qualDays };
+        });
+
+        return (
+          <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Award size={20} color={themeColor} /> MONTHLY QUALIFYING DAYS
+              <span style={{ fontSize: '0.7rem', opacity: 0.5, fontWeight: 400 }}>Days with ≥ {eThreshold} km — last 12 months</span>
+            </h3>
+            <div style={{ height: '220px', width: '100%' }}>
+              <ResponsiveContainer>
+                <BarChart data={monthlyQualifying}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '11px' }}
+                    formatter={(v) => [`${v} days`, `≥ ${eThreshold} km`]}
+                  />
+                  <ReferenceLine y={eThreshold} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4">
+                    <Label value={`E${eThreshold} threshold`} position="insideTopRight" fill="rgba(255,255,255,0.3)" fontSize={10} />
+                  </ReferenceLine>
+                  <Bar dataKey="qualifyingDays" fill={themeColor} radius={[4, 4, 0, 0]} name="Qualifying Days" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+      })()}
+
     </motion.div>
   );
 };

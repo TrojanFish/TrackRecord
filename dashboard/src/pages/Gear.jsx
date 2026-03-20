@@ -187,7 +187,16 @@ const Gear = ({ stats, sportType }) => {
                       </div>
                       <div>
                           <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{gear.name}</h4>
-                           <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{gear.count} ACTIVITIES</span>
+                          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{gear.count} ACTIVITIES</span>
+                          {gear.purchase_date && (
+                            <div style={{ fontSize: '0.65rem', opacity: 0.45, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <Calendar size={10} /> Since {gear.purchase_date}
+                              {(() => {
+                                const days = Math.floor((new Date() - new Date(gear.purchase_date)) / 86400000);
+                                return days > 0 ? ` · ${days} days in service` : null;
+                              })()}
+                            </div>
+                          )}
                       </div>
                    </div>
                 </div>
