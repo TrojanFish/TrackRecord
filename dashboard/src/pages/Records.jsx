@@ -117,7 +117,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>{data.moving_time}</div>
                             <div style={{ fontSize: '0.7rem', color: accentColor, fontWeight: 700 }}>{data.pace}</div>
                         </div>
-                        <div style={{ fontSize: '0.55rem', opacity: 0.6, marginTop: '4px' }}>{data.start_date_local?.split(' ')[0] || '—'}</div>
+                        <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '4px' }}>{data.start_date_local?.split(' ')[0] || '—'}</div>
                       </div>
                     )
                   })}
@@ -239,7 +239,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: currentConfig.color }}>
                                 {predictRace(baseSec, baseDist, race.dist, currentConfig.exponent)}
                             </div>
-                            {!baseRecord && <div style={{ fontSize: '0.55rem', opacity: 0.3, marginTop: '4px' }}>est.</div>}
+                            {!baseRecord && <div style={{ fontSize: '0.65rem', opacity: 0.3, marginTop: '4px' }}>est.</div>}
                         </div>
                       )
                   })}
@@ -410,7 +410,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
         <div className="platform-grid">
           {(Object.entries(stats.records_trends || {})).map(([name, data]) => (
             <div key={name} className="platform-card interactive-card" style={{ padding: '2rem' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '0.95rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <TrendingUp size={18} color={sportMode === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} /> {name.toUpperCase()} HISTORIC
               </h3>
               <div style={{ height: '240px', width: '100%' }}>

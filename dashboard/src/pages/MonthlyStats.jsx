@@ -83,7 +83,7 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
     >
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
         <div className="card-header">
-          <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+          <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
             <Calendar size={20} color={themeColor} style={{ flexShrink: 0 }} /> ANNUAL {sportType.toUpperCase()} HEATMAP
           </h3>
           <div className="heatmap-controls" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
@@ -156,25 +156,25 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                         <Activity size={10} /> ACTIVITIES
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{monthData.totalCount}</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                         <Clock size={10} /> TIME
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{(monthData.totalTime / 3600).toFixed(1)}h</div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                         <TrendingUp size={10} /> ELEV.
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{Math.round(monthData.totalElev)}<small style={{fontSize:'0.6rem'}}>M</small></div>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.55rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                         <Flame size={10} /> CALORIES
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{Math.round(monthData.totalCalories).toLocaleString()}</div>
@@ -290,7 +290,7 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
         {/* Right: Daily Activity Chart */}
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '1.1rem' }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem' }}>
               <Activity size={18} color={themeColor} style={{ flexShrink: 0 }} /> DAILY DISTANCE BREAKDOWN
             </h3>
           </div>

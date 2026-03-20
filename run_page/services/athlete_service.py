@@ -94,8 +94,11 @@ def get_athlete_metrics():
         "riegel_exponents": athlete.get("riegel_exponents", {"run": 1.06, "ride": 1.05}),
         "gears": athlete.get("gears", []),
         "annual_distance_target": athlete.get("annual_distance_target", 2000),
+        "run_annual_distance_target": athlete.get("run_annual_distance_target", 0),
+        "ride_annual_distance_target": athlete.get("ride_annual_distance_target", 0),
         "monthly_elevation_target": athlete.get("monthly_elevation_target", 1000),
         "weekly_frequency_target": athlete.get("weekly_frequency_target", 5),
+        "milestones": analysis.get("race_calendar", []),
         "analysis": {
             "calorie_factors": analysis.get("calorie_factors", {"run": 1.036, "ride": 0.5, "default": 0.8}),
             "gap_factor": analysis.get("gap_factor", 6.0),

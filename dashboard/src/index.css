@@ -6,11 +6,19 @@
   --accent-blue: #3b82f6;
   --accent-violet: #8b5cf6;
   --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1; /* Increased from #94a3b8 */
+  --text-secondary: #cbd5e1;
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
   --sidebar-floating-w: 240px;
   --sidebar-collapsed-w: 72px;
   --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Typography Scale */
+  --t-label:  0.65rem;   /* widget sub-labels: "WEEKLY GOAL", "TYPE" — fw800 ls1px op0.6 */
+  --t-title:  0.95rem;   /* card / section titles — fw800 */
+  --t-body:   0.875rem;  /* table cells, general body text */
+  --t-hint:   0.7rem;    /* descriptors, footnotes — op0.5 */
+  --t-badge:  0.65rem;   /* status tags, small badges — fw700 */
+  --t-metric: 2rem;      /* primary dashboard numbers */
 }
 
 /* Custom Glass Scrollbar */
@@ -1190,8 +1198,36 @@ body {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
+  font-size: var(--t-title) !important;
   font-weight: 800 !important;
   letter-spacing: 0.5px !important;
+}
+
+/* Typography utility classes */
+.widget-label {
+  font-size: var(--t-label);
+  font-weight: 800;
+  letter-spacing: 1px;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.widget-title {
+  font-size: var(--t-title);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.stat-hint {
+  font-size: var(--t-hint);
+  opacity: 0.5;
+}
+
+.stat-badge {
+  font-size: var(--t-badge);
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 10px;
 }
 
 .card-title svg {
@@ -1654,19 +1690,20 @@ body {
 }
 
 .activities-table th {
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.5rem;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 800;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--glass-border);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .activities-table td {
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  font-size: 0.9rem;
+  font-size: var(--t-body);
 }
 
 .activities-table tr {

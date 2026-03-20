@@ -59,7 +59,7 @@ const Gear = ({ stats, sportType }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {/* Gear Stats Table-like View */}
           <div className="platform-card" style={{ padding: '2rem' }}>
-             <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 800 }}>
+             <h3 style={{ fontSize: '0.95rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 800 }}>
                 <Shield size={22} color={themeColor} /> {isRun ? 'SHOE SENSORY' : 'VELO STABLE'} STATISTICS
              </h3>
              <div style={{ overflowX: 'auto', width: '100%' }}>
@@ -113,7 +113,7 @@ const Gear = ({ stats, sportType }) => {
            {/* Monthly Distance Chart per Gear */}
            <div className="platform-card" style={{ padding: '2rem' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>MONTHLY PERFORMANCE: {stats.gear_stats[selectedGearIndex]?.name}</h3>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>MONTHLY PERFORMANCE: {stats.gear_stats[selectedGearIndex]?.name}</h3>
                 <div style={{ display: 'flex', gap: '10px' }}>
                    {stats.gear_stats.map((g, i) => {
                      const gColor = g.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
@@ -187,7 +187,7 @@ const Gear = ({ stats, sportType }) => {
                           <Icon size={32} />
                       </div>
                       <div>
-                          <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{gear.name}</h4>
+                          <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900 }}>{gear.name}</h4>
                           <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{gear.count} ACTIVITIES</span>
                           {gear.purchase_date && (
                             <div style={{ fontSize: '0.65rem', opacity: 0.45, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -219,7 +219,7 @@ const Gear = ({ stats, sportType }) => {
                 </div>
 
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '16px' }}>
-                     <div style={{ fontSize: '0.55rem', opacity: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                     <div style={{ fontSize: '0.65rem', opacity: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <Wrench size={16} /> {gear.type === 'Run' ? 'SHOE' : 'COMPONENT'} HEALTH
                    </div>
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -244,7 +244,7 @@ const Gear = ({ stats, sportType }) => {
 
       {activeTab === 'Recording Devices' && (
         <div className="platform-card" style={{ padding: '2rem' }}>
-           <h3 style={{ fontSize: '1.2rem', marginBottom: '2rem', fontWeight: 800 }}>{sportType.toUpperCase()} CAPTURE DEVICES</h3>
+           <h3 style={{ fontSize: '0.95rem', marginBottom: '2rem', fontWeight: 800 }}>{sportType.toUpperCase()} CAPTURE DEVICES</h3>
            <div style={{ overflowX: 'auto', width: '100%' }}>
              <table className="activities-table">
                <thead>

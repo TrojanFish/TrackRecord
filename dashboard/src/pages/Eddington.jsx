@@ -118,7 +118,7 @@ const Eddington = ({ stats, sportType }) => {
 
         {/* Right: Stepped Frontier Chart */}
         <div className="platform-card" style={{ padding: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h3 style={{ fontSize: '0.95rem', marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Activity size={20} color="var(--accent-cyan)" /> EDDINGTON FRONTIER ANALYSIS
           </h3>
           <div style={{ height: '400px', width: '100%' }}>
@@ -223,7 +223,7 @@ const Eddington = ({ stats, sportType }) => {
 
         return (
           <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h3 style={{ fontSize: '0.95rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Award size={20} color={themeColor} /> MONTHLY QUALIFYING DAYS
               <span style={{ fontSize: '0.7rem', opacity: 0.5, fontWeight: 400 }}>Days with ≥ {eThreshold} km — last 12 months</span>
             </h3>

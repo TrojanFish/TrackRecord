@@ -133,7 +133,7 @@ const Challenges = () => {
         {challenges.length === 0 && (
           <div style={{ textAlign: 'center', padding: '4rem 2rem', opacity: 0.4 }}>
             <Trophy size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem' }}>No trophies yet</h3>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, marginBottom: '0.5rem' }}>No trophies yet</h3>
             <p style={{ fontSize: '0.9rem' }}>Import your Strava Trophy Case to see your achievements here.</p>
           </div>
         )}
@@ -253,7 +253,7 @@ const Challenges = () => {
                onClick={e => e.stopPropagation()}
              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                   <h3 style={{ fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                   <h3 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <RefreshCw size={20} /> SYNC TROPHY CASE
                    </h3>
                    <button onClick={() => setIsImportModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', opacity: 0.5, cursor: 'pointer' }}>

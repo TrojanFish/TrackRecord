@@ -43,7 +43,7 @@ const Analytics = ({ stats, sportType }) => {
       {/* YoY Progress Chart */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
         <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
                 <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> YEAR-OVER-YEAR CUMULATIVE {metricLabel[activeMetric]}
             </h3>
             <div className="heatmap-controls" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1.5rem' }}>
@@ -128,7 +128,7 @@ const Analytics = ({ stats, sportType }) => {
         {/* Weekday Analysis */}
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
               <Calendar size={20} color={themeColor} style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} WEEKDAY ANALYSIS
             </h3>
           </div>
@@ -153,7 +153,7 @@ const Analytics = ({ stats, sportType }) => {
         {/* Time Preference */}
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
               <Activity size={20} color={secondaryColor} style={{ flexShrink: 0 }} /> PRIME TIME PREFERENCE
             </h3>
           </div>
@@ -177,7 +177,7 @@ const Analytics = ({ stats, sportType }) => {
         {/* Bio-Efficiency & Distribution */}
         <div className="platform-card" style={{ padding: '2rem' }}>
             <div className="card-header">
-              <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+              <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
                   <Zap size={20} color={themeColor} style={{ flexShrink: 0 }} /> {sportType === 'Run' ? 'DISTANCE STRUCTURE' : 'INTENSITY (HR ZONES)'}
               </h3>
             </div>
@@ -203,7 +203,7 @@ const Analytics = ({ stats, sportType }) => {
 
         {/* Specialized Stat Card */}
         <div className="platform-card" style={{ padding: '2rem', background: `linear-gradient(135deg, rgba(255,255,255,0.02) 0%, ${themeColor}11 100%)` }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.8 }}>
+            <h3 style={{ fontSize: '0.95rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.8 }}>
                 <Layers size={18} color={themeColor} /> PRO PERSPECTIVE
             </h3>
             <div style={{ marginTop: '20px' }}>
@@ -253,7 +253,7 @@ const Analytics = ({ stats, sportType }) => {
       {/* Monthly Performance Table */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
           <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '1.2rem', margin: 0 }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
               <Layers size={20} color="#f59e0b" style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} MONTHLY PROGRESSION
             </h3>
           </div>
@@ -355,7 +355,7 @@ const Analytics = ({ stats, sportType }) => {
             {/* Widget A: 12-Week Consistency Score */}
             <div className="platform-card" style={{ padding: '2rem' }}>
               <div className="card-header">
-                <h3 className="card-title" style={{ fontSize: '1.1rem', margin: 0 }}>
+                <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
                   <BarChart2 size={20} color={themeColor} style={{ flexShrink: 0 }} /> 12-WEEK CONSISTENCY
                 </h3>
                 <span style={{
@@ -391,7 +391,7 @@ const Analytics = ({ stats, sportType }) => {
             {/* Widget B: RPE Trend */}
             <div className="platform-card" style={{ padding: '2rem' }}>
               <div className="card-header">
-                <h3 className="card-title" style={{ fontSize: '1.1rem', margin: 0 }}>
+                <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
                   <Percent size={20} color={secondaryColor} style={{ flexShrink: 0 }} /> RELATIVE EFFORT TREND (RPE)
                 </h3>
               </div>

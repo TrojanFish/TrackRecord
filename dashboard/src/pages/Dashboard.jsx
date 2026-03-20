@@ -204,9 +204,12 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
       {/* 1.5 Goal / Recovery / Race Countdown Row */}
       {(() => {
-        const weeklyTarget = stats.athlete_metrics?.annual_distance_target
-          ? stats.athlete_metrics.annual_distance_target / 52
-          : 50;
+        const annualTarget = sportType === 'Run'
+          ? (stats.athlete_metrics?.run_annual_distance_target || stats.athlete_metrics?.annual_distance_target || 500)
+          : sportType === 'Ride'
+          ? (stats.athlete_metrics?.ride_annual_distance_target || stats.athlete_metrics?.annual_distance_target || 2000)
+          : (stats.athlete_metrics?.annual_distance_target || 800);
+        const weeklyTarget = annualTarget / 52;
         const weekDist = stats.recent_form?.this_week?.distance ?? 0;
         const weekPct = Math.min(100, Math.round((weekDist / weeklyTarget) * 100));
 
@@ -317,7 +320,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <h4 style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, letterSpacing: '1px' }}>SMART COACH ADVICE</h4>
-                <span className={`badge ${stats.smart_coach.status.toLowerCase()}`} style={{ fontSize: '0.55rem' }}>
+                <span className={`badge ${stats.smart_coach.status.toLowerCase()}`} style={{ fontSize: '0.65rem' }}>
                   {stats.smart_coach.status.toUpperCase()}
                 </span>
               </div>
@@ -435,7 +438,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           onClick={() => { setDetailType('training'); setShowDetail(true); }}
         >
           <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '1.1rem' }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem' }}>
               <Activity size={20} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> TRAINING LOAD (90 DAYS)
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -508,7 +511,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
         {/* Goals Summary (Moved here for tighter correlation) */}
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
-          <h3 className="card-title" style={{ fontSize: '1rem', marginBottom: '2rem' }}>
+          <h3 className="card-title" style={{ fontSize: '0.95rem', marginBottom: '2rem' }}>
             <Target size={18} color={stats.sport_type === 'Run' ? '#ff3366' : '#f59e0b'} style={{ flexShrink: 0 }} /> PERFORMANCE GOALS
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -539,7 +542,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       {/* 2.1 Most Recent Activities (New P0 Widget) */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
         <div className="card-header">
-          <h3 className="card-title" style={{ fontSize: '1.2rem' }}>
+          <h3 className="card-title" style={{ fontSize: '0.95rem' }}>
             <Activity size={22} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> MOST RECENT ACTIVITIES
           </h3>
           <button
@@ -714,7 +717,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       {/* 6. Activity Contribution Grid Widget */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
         <div className="card-header">
-          <h3 className="card-title" style={{ fontSize: '1rem', margin: 0 }}>
+          <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
             <Map size={18} color={stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)'} style={{ flexShrink: 0 }} /> YEARLY ACTIVITY CONTRIBUTION
           </h3>
           <div className="heatmap-controls" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>

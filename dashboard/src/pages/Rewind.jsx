@@ -624,7 +624,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
                   { label: 'LATEST NIGHT', value: fmt(latest?.hour), sub: `${latest?.count} sessions`, color: '#8b5cf6' },
                 ].map(stat => (
                   <div key={stat.label} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '16px', padding: '1.25rem', textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: 0.5, letterSpacing: '1px', marginBottom: '8px' }}>{stat.label}</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5, letterSpacing: '1px', marginBottom: '8px' }}>{stat.label}</div>
                     <div style={{ fontSize: '1.4rem', fontWeight: 900, color: stat.color }}>{stat.value}</div>
                     <div style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '4px' }}>{stat.sub}</div>
                   </div>
