@@ -38,6 +38,12 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
   const [detailType, setDetailType] = React.useState(null);
   const [heatMetric, setHeatMetric] = React.useState('count');
   const [panelTab, setPanelTab] = React.useState('history');
+  const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' && window.innerWidth < 768);
+  React.useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const accent = stats.sport_type === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
   const isRun = stats.sport_type === 'Run';
@@ -967,38 +973,6 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
       </div>
 
 
-      {/* Training DNA Card */}
-      {stats.training_dna && (
-        <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
-              <Dna size={18} color="#ec4899" style={{ flexShrink: 0 }} /> TRAINING DNA
-            </h3>
-            <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '3px 12px', borderRadius: '999px', background: 'rgba(236,72,153,0.15)', color: '#ec4899' }}>
-              {stats.training_dna.style}
-            </span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '1rem' }}>
-            {[
-              { label: 'SPORT', value: stats.training_dna.dominant_sport, color: accent },
-              { label: 'FAVE DAY', value: stats.training_dna.fav_day?.slice(0, 3).toUpperCase(), color: '#f59e0b' },
-              { label: 'TIME SLOT', value: stats.training_dna.time_label, color: '#8b5cf6', small: true },
-              { label: 'AVG DISTANCE', value: `${stats.training_dna.avg_distance} km`, color: '#10b981' },
-              { label: 'YEARS ACTIVE', value: stats.training_dna.years_active, color: '#06b6d4' },
-              { label: 'CONSISTENCY', value: stats.training_dna.consistency_grade, color: stats.training_dna.consistency_grade === 'A' ? '#10b981' : stats.training_dna.consistency_grade === 'B' ? '#06b6d4' : stats.training_dna.consistency_grade === 'C' ? '#f59e0b' : '#ef4444' },
-            ].map(d => (
-              <div key={d.label} style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px' }}>{d.label}</div>
-                <div style={{ fontSize: d.small ? '0.8rem' : '1.1rem', fontWeight: 900, color: d.color, lineHeight: 1.2 }}>{d.value}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: '1rem', fontSize: '0.65rem', opacity: 0.35, textAlign: 'center' }}>
-            {stats.training_dna.total_activities} total activities · {stats.training_dna.consistency_pct}% weekly consistency
-          </div>
-        </motion.div>
-      )}
-
       {/* 6. Activity Contribution Grid Widget */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
         <div className="card-header">
@@ -1060,9 +1034,9 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
             onClick={() => setShowDetail(false)}
           >
             <motion.div
-              initial={{ x: 600 }}
-              animate={{ x: 0 }}
-              exit={{ x: 600 }}
+              initial={isMobile ? { y: '100%' } : { x: 600 }}
+              animate={isMobile ? { y: 0 } : { x: 0 }}
+              exit={isMobile ? { y: '100%' } : { x: 600 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="activity-detail-panel"
               onClick={e => e.stopPropagation()}

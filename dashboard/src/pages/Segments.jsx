@@ -411,20 +411,20 @@ const Segments = ({ sportType }) => {
       {/* Detail Modal */}
       <AnimatePresence>
         {isModalOpen && selectedSegment && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div className="segment-modal-wrapper" style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               style={{ position: 'absolute', inset: 0, background: 'rgba(2, 6, 23, 0.8)', backdropFilter: 'blur(10px)' }}
             />
             
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="platform-card"
-              style={{ 
-                width: '100%', maxWidth: '1000px', maxHeight: '90vh', overflow: 'hidden', 
+              className="platform-card segment-modal-card"
+              style={{
+                width: '100%', maxWidth: '1000px', maxHeight: '90vh', overflow: 'hidden',
                 padding: 0, display: 'flex', flexDirection: 'column', zIndex: 1
               }}
             >

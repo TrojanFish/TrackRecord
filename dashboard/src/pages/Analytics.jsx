@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, CartesianGrid, Legend, AreaChart, Area, ReferenceLine, Cell
 } from 'recharts';
-import { Calendar, Activity, Zap, Layers, TrendingUp, Filter, ArrowUpRight, ArrowDownRight, BarChart2, Percent, Heart, Sun } from 'lucide-react';
+import { Calendar, Activity, Zap, Layers, TrendingUp, Filter, ArrowUpRight, ArrowDownRight, BarChart2, Percent, Heart, Sun, Dna } from 'lucide-react';
 
 const Analytics = ({ stats, sportType }) => {
   const [activeMetric, setActiveMetric] = React.useState('dist'); // 'dist', 'time', 'elev'
@@ -131,7 +131,7 @@ const Analytics = ({ stats, sportType }) => {
             <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> YEARLY PERFORMANCE SUMMARY
           </h3>
           <div style={{ overflowX: 'auto' }}>
-            <table className="analytics-table">
+            <table className="analytics-table" style={{ width: '100%' }}>
               <thead>
                 <tr>
                   <th>YEAR</th>
@@ -368,7 +368,7 @@ const Analytics = ({ stats, sportType }) => {
             </h3>
           </div>
           <div style={{ overflowX: 'auto' }}>
-              <table className="analytics-table">
+              <table className="analytics-table" style={{ width: '100%' }}>
                   <thead>
                       <tr>
                           <th>MONTH</th>
@@ -698,6 +698,48 @@ const Analytics = ({ stats, sportType }) => {
                   </div>
                 );
               })}
+            </div>
+          </div>
+          </>
+        );
+      })()}
+
+      {/* Training DNA Card */}
+      {stats.training_dna && (() => {
+        const dna = stats.training_dna;
+        const gradeColor = dna.consistency_grade === 'A' ? '#10b981' : dna.consistency_grade === 'B' ? '#06b6d4' : dna.consistency_grade === 'C' ? '#f59e0b' : '#ef4444';
+        return (
+          <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>ATHLETE IDENTITY</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+                <Dna size={18} color="#ec4899" style={{ flexShrink: 0 }} /> TRAINING DNA
+              </h3>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '3px 12px', borderRadius: '999px', background: 'rgba(236,72,153,0.15)', color: '#ec4899' }}>
+                {dna.style}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '1rem' }}>
+              {[
+                { label: 'SPORT', value: dna.dominant_sport, color: themeColor },
+                { label: 'FAVE DAY', value: dna.fav_day?.slice(0, 3).toUpperCase(), color: '#f59e0b' },
+                { label: 'TIME SLOT', value: dna.time_label, color: '#8b5cf6', small: true },
+                { label: 'AVG DISTANCE', value: `${dna.avg_distance} km`, color: '#10b981' },
+                { label: 'YEARS ACTIVE', value: dna.years_active, color: '#06b6d4' },
+                { label: 'CONSISTENCY', value: dna.consistency_grade, color: gradeColor },
+              ].map(d => (
+                <div key={d.label} style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px' }}>{d.label}</div>
+                  <div style={{ fontSize: d.small ? '0.8rem' : '1.1rem', fontWeight: 900, color: d.color, lineHeight: 1.2 }}>{d.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '1rem', fontSize: '0.65rem', opacity: 0.35, textAlign: 'center' }}>
+              {dna.total_activities} total activities · {dna.consistency_pct}% weekly consistency
             </div>
           </div>
           </>

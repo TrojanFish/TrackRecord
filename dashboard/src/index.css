@@ -709,11 +709,31 @@ body {
     text-align: center !important;
   }
   
-  /* Modal and Detail Panel optimizations */
+  /* Modal and Detail Panel — mobile: slides up from bottom */
+  .modal-overlay {
+    justify-content: center !important;
+    align-items: flex-end !important;
+  }
+
   .activity-detail-panel {
-    width: 90% !important;
-    max-width: 90% !important;
-    border-radius: 2rem 0 0 2rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 85vh !important;
+    border-radius: 1.5rem 1.5rem 0 0 !important;
+    border-left: none !important;
+    border-top: 1px solid var(--glass-border) !important;
+  }
+
+  /* Segments detail modal — mobile: full-width bottom sheet */
+  .segment-modal-wrapper {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .segment-modal-card {
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 1.5rem 1.5rem 0 0 !important;
   }
 
   .panel-content {

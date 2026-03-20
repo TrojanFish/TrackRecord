@@ -23,6 +23,12 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
   
   const filterType = isGlobalFilterActive ? sportType : internalFilterType;
 
@@ -412,9 +418,9 @@ const Activities = ({ stats, setActiveTab, initialSearch, onSearchClear, sportTy
         {isModalOpen && selectedActivity && (
           <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
             <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
+              initial={isMobile ? { y: '100%' } : { x: '100%' }}
+              animate={isMobile ? { y: 0 } : { x: 0 }}
+              exit={isMobile ? { y: '100%' } : { x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="activity-detail-panel"
               onClick={e => e.stopPropagation()}
