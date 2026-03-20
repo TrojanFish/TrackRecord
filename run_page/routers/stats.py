@@ -1383,6 +1383,20 @@ def _compute_seasonal_performance(conn, active_types: list) -> list:
 
 # ─── 辅助：里程碑时间轴 ───────────────────────────────────────────────────────
 
+def _extract_country_name(raw: str) -> str:
+    """Extract the country portion from a Nominatim full address string.
+    Nominatim stores full addresses like 'Street, District, City, Province, PostalCode, Country'.
+    The country is the last non-numeric, non-empty segment.
+    """
+    if not raw:
+        return ""
+    for part in reversed(raw.split(",")):
+        p = part.strip()
+        if p and not p.replace("-", "").isdigit():
+            return p
+    return raw.strip()
+
+
 def _compute_milestones_timeline(conn, active_types: list) -> list:
     """Generate a timeline of achievement milestones."""
     ph = ",".join(["?"] * len(active_types))
@@ -1408,7 +1422,7 @@ def _compute_milestones_timeline(conn, active_types: list) -> list:
         d = row["d"]
         cum_dist += (row["distance"] or 0) / 1000.0
         cum_count += 1
-        country = row["location_country"] or ""
+        country = _extract_country_name(row["location_country"] or "")
 
         # First activity ever
         if cum_count == 1:
@@ -1418,15 +1432,14 @@ def _compute_milestones_timeline(conn, active_types: list) -> list:
                 "description": f"Logged your very first {row['type']} activity."
             })
 
-        # Country firsts
+        # Country firsts (include every unique country, even the first)
         if country and country not in countries_seen:
             countries_seen.add(country)
-            if len(countries_seen) > 1:
-                milestones.append({
-                    "date": d, "type": "country", "icon": "🌍",
-                    "title": f"New Country: {country}",
-                    "description": f"First activity recorded in {country}."
-                })
+            milestones.append({
+                "date": d, "type": "country", "icon": "🌍",
+                "title": f"First in {country}",
+                "description": f"First activity recorded in {country}."
+            })
 
         # Cumulative distance milestones
         while cum_dist >= next_dist_milestone:

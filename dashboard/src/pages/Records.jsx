@@ -381,7 +381,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                         <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>{act.date} · {act.distance} km</div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: currentConfig.color }}>+{act.elevation.toLocaleString()}m</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#10b981' }}>+{act.elevation.toLocaleString()}m</div>
                         <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>{act.type}</div>
                       </div>
                     </div>
@@ -400,7 +400,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                       />
                       <Bar dataKey="elevation" radius={[2, 2, 0, 0]}>
                         {stats.elevation_trophies.monthly_trend.map((_, i) => (
-                          <Cell key={i} fill={i === stats.elevation_trophies.monthly_trend.length - 1 ? currentConfig.color : `${currentConfig.color}44`} />
+                          <Cell key={i} fill={i === stats.elevation_trophies.monthly_trend.length - 1 ? '#10b981' : '#10b98144'} />
                         ))}
                       </Bar>
                     </BarChart>

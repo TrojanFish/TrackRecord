@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, Calendar, Activity, Maximize2, Minimize2, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, Calendar, Activity, Maximize2, Minimize2, Layers, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 
 const Heatmap = ({ activities, availableYears, sportType }) => {
   const mapRef = useRef(null);
@@ -398,9 +398,9 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
           alignItems: 'center',
           justifyContent: 'center'
         }}
-        title={sidebarOpen ? 'Collapse panel' : 'Expand panel'}
+        title={sidebarOpen ? 'Hide panel' : 'Show panel'}
       >
-        {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+        {sidebarOpen ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>
 
       {/* Advanced Filters (Floating Right) */}

@@ -64,15 +64,14 @@ const Calendar = ({ stats }) => {
       <div
         key={day}
         style={{
-          aspectRatio: '1',
-          borderRadius: '10px',
+          borderRadius: '8px',
           border: isToday ? '1px solid var(--accent-cyan)' : '1px solid rgba(255,255,255,0.05)',
           background: hasActivity ? 'rgba(255,255,255,0.03)' : 'transparent',
-          padding: '4px',
-          position: 'relative',
+          padding: '4px 5px',
           display: 'flex',
           flexDirection: 'column',
-          minHeight: '52px',
+          overflow: 'hidden',
+          minHeight: 0,
         }}
       >
         <div style={{
@@ -115,10 +114,11 @@ const Calendar = ({ stats }) => {
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3 }}
       className="page-content"
+      style={{ height: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}
     >
-      <div className="platform-card" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
+      <div className="platform-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         {/* Header: navigator + title */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <button onClick={goBack} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ChevronLeft size={18} />
@@ -148,19 +148,19 @@ const Calendar = ({ stats }) => {
         </div>
 
         {/* Weekday headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '4px' }}>
           {weekdays.map(d => (
-            <div key={d} style={{ textAlign: 'center', fontSize: '0.6rem', fontWeight: 800, opacity: 0.4, padding: '4px 0' }}>{d}</div>
+            <div key={d} style={{ textAlign: 'center', fontSize: '0.6rem', fontWeight: 800, opacity: 0.4, padding: '3px 0' }}>{d}</div>
           ))}
         </div>
 
-        {/* Calendar grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+        {/* Calendar grid — flex: 1 fills remaining space */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', flex: 1, alignContent: 'stretch' }}>
           {cells}
         </div>
 
         {/* Legend */}
-        <div style={{ marginTop: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           {Object.entries(SPORT_COLORS).slice(0, 6).map(([type, color]) => (
             <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.6rem', opacity: 0.6 }}>
               <div style={{ width: '12px', height: '4px', borderRadius: '2px', background: color }} />
