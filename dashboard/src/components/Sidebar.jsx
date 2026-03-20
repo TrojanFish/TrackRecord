@@ -162,7 +162,7 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
         </nav>
 
         {isMobile && (
-          <div className="mobile-sidebar-footer" style={{ padding: '1.5rem', borderTop: '1px solid var(--glass-border)', display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+          <div className="mobile-sidebar-footer" style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--glass-border)', display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
             <a href="https://github.com/TrojanFish/TrackRecord" target="_blank" rel="noreferrer" className="icon-btn-circle" style={{ width: '40px', height: '40px' }}><Github size={18} /></a>
             <button className="icon-btn-circle" style={{ width: '40px', height: '40px' }}><Search size={18} /></button>
             <button className="icon-btn-circle" style={{ width: '40px', height: '40px' }}><Bell size={18} /></button>

@@ -539,23 +539,27 @@ body {
   }
 
   .sidebar-nav {
-    padding: 1.25rem 0.5rem !important;
+    padding: 0.5rem 0.5rem !important;
   }
 
   .nav-group-title {
-    margin-top: 0.6rem !important;
-    margin-bottom: 0.2rem !important;
+    margin-top: 0.3rem !important;
+    margin-bottom: 0.1rem !important;
     font-size: 0.55rem !important;
     opacity: 0.7 !important;
   }
 
   .nav-group {
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .nav-group-items {
+    gap: 2px !important;
   }
 
   .nav-item {
-    margin: 2px 8px !important; /* Reduced margin */
-    padding: 8px 14px !important; /* Reduced padding */
+    margin: 1px 8px !important;
+    padding: 6px 12px !important;
     border-radius: 12px !important;
     width: calc(100% - 16px) !important;
     display: flex !important;
@@ -1192,6 +1196,13 @@ body {
   position: relative;
   overflow: hidden;
   transition: all 0.4s var(--transition-smooth);
+}
+
+/* Gear page tab bar */
+.gear-tabs-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .card-title {
