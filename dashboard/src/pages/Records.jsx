@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Clock, MapPin, TrendingUp, Calendar, Zap, Activity, Heart, Footprints, Flame, ExternalLink } from 'lucide-react';
+import { Trophy, Clock, MapPin, TrendingUp, Calendar, Zap, Activity, Heart, Footprints, Flame, ExternalLink, Mountain } from 'lucide-react';
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid, LineChart, Line, BarChart, Bar, Cell } from 'recharts';
 
 const formatTime = (seconds) => {
@@ -351,6 +351,65 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
               </div>
             );
           })()}
+
+          {/* Elevation Trophy Wall */}
+          {stats.elevation_trophies && (stats.elevation_trophies.top_activities?.length > 0) && (
+            <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <h2 style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.8, letterSpacing: '1px' }}>
+                  <span style={{ marginRight: '8px' }}>⛰️</span>ELEVATION TROPHY WALL
+                </h2>
+                <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.7rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontWeight: 900, color: '#10b981', fontSize: '1.2rem' }}>{(stats.elevation_trophies.best_week_elev || 0).toLocaleString()}m</div>
+                    <div style={{ opacity: 0.4, fontSize: '0.6rem' }}>BEST WEEK</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontWeight: 900, color: '#f59e0b', fontSize: '1.2rem' }}>{(stats.elevation_trophies.best_month_elev || 0).toLocaleString()}m</div>
+                    <div style={{ opacity: 0.4, fontSize: '0.6rem' }}>BEST MONTH</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {stats.elevation_trophies.top_activities.map((act, idx) => {
+                  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+                  return (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem', background: idx === 0 ? 'rgba(245,158,11,0.07)' : 'rgba(255,255,255,0.02)', borderRadius: '10px', borderLeft: idx === 0 ? '3px solid #f59e0b' : '3px solid rgba(255,255,255,0.08)' }}>
+                      <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>{medals[idx]}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{act.name}</div>
+                        <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>{act.date} · {act.distance} km</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: currentConfig.color }}>+{act.elevation.toLocaleString()}m</div>
+                        <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>{act.type}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Monthly trend sparkline */}
+              {stats.elevation_trophies.monthly_trend?.length > 0 && (
+                <div style={{ marginTop: '1.25rem', height: '80px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.elevation_trophies.monthly_trend} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                      <XAxis dataKey="month" hide />
+                      <Tooltip
+                        contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '10px' }}
+                        formatter={(v) => [`${v.toLocaleString()}m`, 'Elevation']}
+                      />
+                      <Bar dataKey="elevation" radius={[2, 2, 0, 0]}>
+                        {stats.elevation_trophies.monthly_trend.map((_, i) => (
+                          <Cell key={i} fill={i === stats.elevation_trophies.monthly_trend.length - 1 ? currentConfig.color : `${currentConfig.color}44`} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.3, textAlign: 'center', marginTop: '2px' }}>Monthly elevation (last 12 months)</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Pace Evolution Timeline */}
           {stats.pace_evolution && Object.keys(stats.pace_evolution).length > 0 && (() => {

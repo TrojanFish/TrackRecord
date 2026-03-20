@@ -987,6 +987,400 @@ def _compute_pbs_per_month(conn, active_types: list) -> list:
     return [{"month": m, "pbs": c} for m, c in sorted(pb_months.items())]
 
 
+# ─── 辅助：HR恢复 / 有氧效率趋势 ────────────────────────────────────────────
+
+def _compute_hr_recovery(conn, active_types: list, max_hr: int) -> list:
+    """Monthly aerobic efficiency: avg HR % of max + pace/speed per HR beat."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT strftime('%Y-%m', start_date_local) AS month, type, "
+        f"AVG(average_heartrate) AS avg_hr, AVG(distance) AS avg_dist, "
+        f"AVG(moving_time) AS avg_time, COUNT(*) AS cnt "
+        f"FROM activities WHERE type IN ({ph}) AND average_heartrate > 0 "
+        f"GROUP BY month ORDER BY month",
+        tuple(active_types),
+    )
+    rows = cur.fetchall()
+    result = []
+    for r in rows:
+        avg_hr = r["avg_hr"] or 0
+        hr_pct = round(avg_hr / max_hr * 100, 1) if max_hr > 0 else 0
+        avg_dist_km = (r["avg_dist"] or 0) / 1000.0
+        avg_sec = row_to_seconds(r["avg_time"] or "")
+        # HR efficiency: km per % HR (higher = better aerobic fitness)
+        hr_eff = round(avg_dist_km / hr_pct, 3) if hr_pct > 0 else 0
+        result.append({
+            "month": r["month"],
+            "avg_hr": round(avg_hr, 1),
+            "hr_pct": hr_pct,
+            "hr_efficiency": hr_eff,
+            "count": r["cnt"],
+        })
+    return result
+
+
+# ─── 辅助：重复路线追踪 ───────────────────────────────────────────────────────
+
+def _compute_repeat_routes(conn, active_types: list) -> list:
+    """Group similar activities (same city, similar distance) as 'repeat routes'."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT name, location_city, location_country, distance, "
+        f"date(start_date_local) AS d, type "
+        f"FROM activities WHERE type IN ({ph}) AND distance > 1000 "
+        f"ORDER BY d DESC",
+        tuple(active_types),
+    )
+    rows = cur.fetchall()
+
+    buckets: dict = {}
+    for r in rows:
+        city = r["location_city"] or r["location_country"] or "Unknown"
+        dist_km = (r["distance"] or 0) / 1000.0
+        bucket_km = round(dist_km)  # round to nearest km
+        key = (city, bucket_km, r["type"])
+        if key not in buckets:
+            buckets[key] = {"city": city, "distance_km": bucket_km, "type": r["type"],
+                            "count": 0, "dates": [], "names": []}
+        b = buckets[key]
+        b["count"] += 1
+        if r["d"] and len(b["dates"]) < 3:
+            b["dates"].append(r["d"])
+        if r["name"] and r["name"] not in b["names"] and len(b["names"]) < 2:
+            b["names"].append(r["name"])
+
+    # Return routes done at least 3 times, sorted by count
+    repeated = [v for v in buckets.values() if v["count"] >= 3]
+    repeated.sort(key=lambda x: x["count"], reverse=True)
+    return repeated[:20]
+
+
+# ─── 辅助：训练DNA ────────────────────────────────────────────────────────────
+
+def _compute_training_dna(conn, active_types: list, athlete_metrics: dict,
+                          weekday_preference: list, time_preference: list) -> dict:
+    """Build a personalised training identity card."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+
+    # Dominant sport
+    cur.execute(f"SELECT type, COUNT(*) AS cnt FROM activities WHERE type IN ({ph}) GROUP BY type ORDER BY cnt DESC LIMIT 1", tuple(active_types))
+    r = cur.fetchone()
+    dominant_sport = r["type"] if r else (active_types[0] if active_types else "Run")
+
+    # Favourite weekday
+    fav_wd = max(weekday_preference, key=lambda x: x["count"]) if weekday_preference else {"day": "—", "weekday": -1}
+    days_full = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    fav_day = days_full[fav_wd["weekday"]] if 0 <= fav_wd.get("weekday", -1) <= 6 else "—"
+
+    # Favourite time slot
+    tp_sorted = sorted(time_preference, key=lambda x: x["count"], reverse=True)
+    fav_hour = tp_sorted[0]["slot"] if tp_sorted else 0
+    if 5 <= fav_hour < 10: time_label = "Early Bird"
+    elif 10 <= fav_hour < 14: time_label = "Midday Runner"
+    elif 14 <= fav_hour < 18: time_label = "Afternoon Crusher"
+    else: time_label = "Night Owl"
+
+    # Avg distance
+    cur.execute(f"SELECT AVG(distance) AS avg_d FROM activities WHERE type IN ({ph}) AND distance > 0", tuple(active_types))
+    r2 = cur.fetchone()
+    avg_dist = round((r2["avg_d"] or 0) / 1000.0, 1) if r2 else 0
+
+    # Style: based on avg distance + avg HR availability
+    cur.execute(f"SELECT AVG(distance) AS d, AVG(moving_time) AS t FROM activities WHERE type IN ({ph})", tuple(active_types))
+    r3 = cur.fetchone()
+    avg_d_m = r3["d"] or 0
+    avg_t_s = row_to_seconds(r3["t"] or "") if r3 else 0
+
+    if avg_d_m > 15000:
+        style = "Long Distance Endurance"
+    elif avg_d_m > 8000 and avg_t_s > 2400:
+        style = "Balanced All-Rounder"
+    elif avg_d_m < 5000:
+        style = "Speed & Short Efforts"
+    else:
+        style = "Mid-Distance Builder"
+
+    # Total years active
+    cur.execute(f"SELECT MIN(date(start_date_local)) AS first, MAX(date(start_date_local)) AS last FROM activities WHERE type IN ({ph})", tuple(active_types))
+    r4 = cur.fetchone()
+    first_date = r4["first"] if r4 else None
+    years_active = 0
+    if first_date:
+        try:
+            years_active = round((dt.date.today() - dt.date.fromisoformat(first_date)).days / 365.25, 1)
+        except Exception:
+            pass
+
+    # Total activities
+    cur.execute(f"SELECT COUNT(*) AS cnt FROM activities WHERE type IN ({ph})", tuple(active_types))
+    total = cur.fetchone()["cnt"] or 0
+
+    # Consistency grade based on active weeks / total weeks
+    if first_date:
+        try:
+            total_weeks = max(1, (dt.date.today() - dt.date.fromisoformat(first_date)).days // 7)
+            cur.execute(
+                f"SELECT COUNT(DISTINCT strftime('%Y-%W', start_date_local)) AS active_wks "
+                f"FROM activities WHERE type IN ({ph})", tuple(active_types)
+            )
+            aw = cur.fetchone()["active_wks"] or 0
+            consistency_pct = min(100, int(aw / total_weeks * 100))
+            if consistency_pct >= 80: grade = "A"
+            elif consistency_pct >= 65: grade = "B"
+            elif consistency_pct >= 50: grade = "C"
+            elif consistency_pct >= 35: grade = "D"
+            else: grade = "F"
+        except Exception:
+            grade = "—"
+            consistency_pct = 0
+    else:
+        grade = "—"
+        consistency_pct = 0
+
+    return {
+        "dominant_sport": dominant_sport,
+        "fav_day": fav_day,
+        "fav_hour": fav_hour,
+        "time_label": time_label,
+        "avg_distance": avg_dist,
+        "style": style,
+        "years_active": years_active,
+        "total_activities": total,
+        "consistency_grade": grade,
+        "consistency_pct": consistency_pct,
+    }
+
+
+# ─── 辅助：海拔成就墙 ─────────────────────────────────────────────────────────
+
+def _compute_elevation_trophies(conn, active_types: list) -> dict:
+    """Top elevation achievements: single activity, best week, best month."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+
+    # Top 5 activities by elevation
+    cur.execute(
+        f"SELECT name, elevation_gain, distance, date(start_date_local) AS d, type "
+        f"FROM activities WHERE type IN ({ph}) AND elevation_gain > 0 "
+        f"ORDER BY elevation_gain DESC LIMIT 5",
+        tuple(active_types),
+    )
+    top_activities = [
+        {"name": r["name"], "elevation": round(r["elevation_gain"]),
+         "distance": round((r["distance"] or 0) / 1000.0, 1),
+         "date": r["d"], "type": r["type"]}
+        for r in cur.fetchall()
+    ]
+
+    # Best week (7-day rolling)
+    cur.execute(
+        f"SELECT strftime('%Y-%W', start_date_local) AS wk, "
+        f"SUM(elevation_gain) AS total_elev "
+        f"FROM activities WHERE type IN ({ph}) AND elevation_gain > 0 "
+        f"GROUP BY wk ORDER BY total_elev DESC LIMIT 1",
+        tuple(active_types),
+    )
+    bw = cur.fetchone()
+    best_week_elev = round(bw["total_elev"]) if bw else 0
+    best_week_label = bw["wk"] if bw else "—"
+
+    # Best month
+    cur.execute(
+        f"SELECT strftime('%Y-%m', start_date_local) AS mo, "
+        f"SUM(elevation_gain) AS total_elev "
+        f"FROM activities WHERE type IN ({ph}) AND elevation_gain > 0 "
+        f"GROUP BY mo ORDER BY total_elev DESC LIMIT 1",
+        tuple(active_types),
+    )
+    bm = cur.fetchone()
+    best_month_elev = round(bm["total_elev"]) if bm else 0
+    best_month_label = bm["mo"] if bm else "—"
+
+    # Monthly elevation trend (last 12 months)
+    cur.execute(
+        f"SELECT strftime('%Y-%m', start_date_local) AS mo, "
+        f"COALESCE(SUM(elevation_gain), 0) AS total_elev "
+        f"FROM activities WHERE type IN ({ph}) "
+        f"AND start_date_local >= date('now', '-12 months') "
+        f"GROUP BY mo ORDER BY mo",
+        tuple(active_types),
+    )
+    monthly_trend = [{"month": r["mo"], "elevation": round(r["total_elev"])} for r in cur.fetchall()]
+
+    return {
+        "top_activities": top_activities,
+        "best_week_elev": best_week_elev,
+        "best_week_label": best_week_label,
+        "best_month_elev": best_month_elev,
+        "best_month_label": best_month_label,
+        "monthly_trend": monthly_trend,
+    }
+
+
+# ─── 辅助：竞赛就绪评分 ───────────────────────────────────────────────────────
+
+def _compute_race_readiness(training_details: dict) -> dict:
+    """Composite race readiness score 0-100 from training metrics."""
+    if not training_details or training_details.get("ctl", 0) == 0:
+        return {"score": 0, "label": "No Data", "color": "#6b7280", "components": []}
+
+    tsb = training_details.get("tsb", 0)
+    ac_ratio = training_details.get("ac_ratio", 1.0)
+    ctl = training_details.get("ctl", 0)
+    monotony = training_details.get("monotony", 0)
+
+    # TSB score (form window)
+    if 5 < tsb <= 20: tsb_score = 100
+    elif 0 < tsb <= 5: tsb_score = 85
+    elif -10 < tsb <= 0: tsb_score = 70
+    elif -25 < tsb <= -10: tsb_score = 45
+    else: tsb_score = 20
+
+    # A:C ratio score
+    if 0.8 <= ac_ratio <= 1.3: ac_score = 100
+    elif 0.6 <= ac_ratio < 0.8: ac_score = 65
+    elif 1.3 < ac_ratio <= 1.5: ac_score = 60
+    else: ac_score = 25
+
+    # CTL fitness score (normalised to 100 scale, 70 CTL = 100)
+    ctl_score = min(100, int(ctl / 70 * 100))
+
+    # Monotony score
+    if monotony < 1.0: mono_score = 100
+    elif monotony < 1.5: mono_score = 80
+    elif monotony < 2.0: mono_score = 55
+    else: mono_score = 25
+
+    overall = int(tsb_score * 0.40 + ac_score * 0.30 + ctl_score * 0.20 + mono_score * 0.10)
+
+    if overall >= 80: label, color = "Race Ready", "#10b981"
+    elif overall >= 65: label, color = "On Track", "#06b6d4"
+    elif overall >= 45: label, color = "Building", "#f59e0b"
+    else: label, color = "Recovery", "#ef4444"
+
+    return {
+        "score": overall,
+        "label": label,
+        "color": color,
+        "components": [
+            {"name": "Form (TSB)", "score": tsb_score, "value": f"{tsb:+.1f}", "weight": 40},
+            {"name": "Load Balance", "score": ac_score, "value": f"{ac_ratio:.2f}", "weight": 30},
+            {"name": "Fitness (CTL)", "score": ctl_score, "value": f"{ctl:.0f}", "weight": 20},
+            {"name": "Variety", "score": mono_score, "value": f"{monotony:.1f}", "weight": 10},
+        ]
+    }
+
+
+# ─── 辅助：4周训练块 ──────────────────────────────────────────────────────────
+
+def _compute_weekly_blocks(conn, active_types: list, athlete_metrics: dict) -> list:
+    """Last 4 complete weeks + current partial week, with per-week stats."""
+    max_hr = athlete_metrics.get("max_hr", 190)
+    fallbacks = athlete_metrics["analysis"]["training_load"].get("trimp_fallbacks", {"run": 8.0, "ride": 2.0})
+    today = dt.date.today()
+    ph = ",".join(["?"] * len(active_types))
+    result = []
+
+    for wi in range(4, -1, -1):
+        if wi == 0:
+            # Current week (partial): Mon–today
+            week_start = today - dt.timedelta(days=today.weekday())
+            week_end = today
+            label = "This Week"
+        else:
+            week_end = today - dt.timedelta(days=today.weekday() + 1 + (wi - 1) * 7)
+            week_start = week_end - dt.timedelta(days=6)
+            label = f"W-{wi}"
+
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT distance, moving_time, elevation_gain, type, average_heartrate "
+            f"FROM activities WHERE type IN ({ph}) "
+            f"AND date(start_date_local) BETWEEN ? AND ?",
+            (*active_types, week_start.isoformat(), week_end.isoformat()),
+        )
+        rows = cur.fetchall()
+
+        dist = sum((r["distance"] or 0) for r in rows) / 1000.0
+        elev = sum((r["elevation_gain"] or 0) for r in rows)
+        count = len(rows)
+        trimp = 0.0
+        for r in rows:
+            dur_min = row_to_seconds(r["moving_time"] or "") / 60.0
+            if r["average_heartrate"] and r["average_heartrate"] > 0:
+                hr_ratio = r["average_heartrate"] / max_hr
+                trimp += dur_min * hr_ratio * 0.64 * math.exp(1.92 * hr_ratio)
+            else:
+                fb = fallbacks.get("run", 8.0) if r["type"] in _RUN_TYPES else fallbacks.get("ride", 2.0)
+                trimp += dur_min * fb / 60.0
+
+        result.append({
+            "label": label,
+            "start": week_start.isoformat(),
+            "end": week_end.isoformat(),
+            "distance": round(dist, 1),
+            "elevation": round(elev),
+            "count": count,
+            "trimp": round(trimp, 1),
+        })
+
+    return result
+
+
+# ─── 辅助：季节性表现 ─────────────────────────────────────────────────────────
+
+def _compute_seasonal_performance(conn, active_types: list) -> list:
+    """Quarterly performance averages — used as weather/season proxy."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT CAST(strftime('%m', start_date_local) AS INTEGER) AS mo, "
+        f"COUNT(*) AS cnt, "
+        f"COALESCE(SUM(distance), 0) / 1000.0 AS dist, "
+        f"MIN(CASE WHEN distance BETWEEN 4750 AND 5250 THEN moving_time ELSE NULL END) AS best_5k "
+        f"FROM activities WHERE type IN ({ph}) AND distance > 0 "
+        f"GROUP BY mo ORDER BY mo",
+        tuple(active_types),
+    )
+    months = {r["mo"]: r for r in cur.fetchall()}
+    quarter_map = {1: "Q1 Winter", 2: "Q1 Winter", 3: "Q2 Spring",
+                   4: "Q2 Spring", 5: "Q2 Spring", 6: "Q3 Summer",
+                   7: "Q3 Summer", 8: "Q3 Summer", 9: "Q4 Autumn",
+                   10: "Q4 Autumn", 11: "Q4 Autumn", 12: "Q1 Winter"}
+    quarters: dict = {}
+    for mo in range(1, 13):
+        q = quarter_map[mo]
+        r = months.get(mo, {})
+        if q not in quarters:
+            quarters[q] = {"quarter": q, "count": 0, "distance": 0.0, "best_5k_sec": None}
+        quarters[q]["count"] += r.get("cnt", 0) or 0
+        quarters[q]["distance"] = round(quarters[q]["distance"] + (r.get("dist", 0) or 0), 1)
+        raw_5k = r.get("best_5k") if r else None
+        if raw_5k:
+            sec = row_to_seconds(raw_5k)
+            if sec > 0 and (quarters[q]["best_5k_sec"] is None or sec < quarters[q]["best_5k_sec"]):
+                quarters[q]["best_5k_sec"] = sec
+
+    result = []
+    for q_label in ["Q1 Winter", "Q2 Spring", "Q3 Summer", "Q4 Autumn"]:
+        d = quarters.get(q_label, {"quarter": q_label, "count": 0, "distance": 0.0, "best_5k_sec": None})
+        pace_str = None
+        if d["best_5k_sec"]:
+            pace_per_km = d["best_5k_sec"] / 5.0
+            pace_str = f"{int(pace_per_km // 60)}:{int(pace_per_km % 60):02d}"
+        result.append({
+            "quarter": q_label,
+            "count": d["count"],
+            "distance": d["distance"],
+            "best_5k_pace": pace_str,
+            "best_5k_sec": d["best_5k_sec"],
+        })
+    return result
+
+
 # ─── 辅助：里程碑时间轴 ───────────────────────────────────────────────────────
 
 def _compute_milestones_timeline(conn, active_types: list) -> list:
@@ -1383,6 +1777,13 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
         pace_evolution = _compute_pace_evolution(conn, active_types)
         activity_world = _compute_activity_world(conn, active_types)
         power_history = _compute_power_history(conn, active_types)
+        hr_recovery = _compute_hr_recovery(conn, active_types, max_hr)
+        repeat_routes = _compute_repeat_routes(conn, active_types)
+        training_dna = _compute_training_dna(conn, active_types, athlete_metrics, weekday_preference, time_preference)
+        elevation_trophies = _compute_elevation_trophies(conn, active_types)
+        race_readiness = _compute_race_readiness(training_details)
+        weekly_blocks = _compute_weekly_blocks(conn, active_types, athlete_metrics)
+        seasonal_performance = _compute_seasonal_performance(conn, active_types)
 
         is_run_only = is_run_active and not is_ride_active
         is_ride_only = is_ride_active and not is_run_active
@@ -1523,6 +1924,13 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
             "pace_evolution": pace_evolution,
             "activity_world": activity_world,
             "power_history": power_history,
+            "hr_recovery": hr_recovery,
+            "repeat_routes": repeat_routes,
+            "training_dna": training_dna,
+            "elevation_trophies": elevation_trophies,
+            "race_readiness": race_readiness,
+            "weekly_blocks": weekly_blocks,
+            "seasonal_performance": seasonal_performance,
             "primary_metric": primary_metric,
             "weekly_trends": [],
         }

@@ -17,6 +17,7 @@ import {
   Milestone as RouteIcon,
   Flag,
   Globe,
+  Repeat,
   Github,
   Search,
   Bell,
@@ -73,6 +74,7 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
         { id: 'Calendar', icon: Calendar, label: 'CALENDAR' },
         { id: 'Milestones', icon: Flag, label: 'MILESTONES' },
         { id: 'WorldMap', icon: Globe, label: 'WORLD MAP' },
+        { id: 'RepeatRoutes', icon: Repeat, label: 'REPEAT ROUTES' },
       ]
     }
   ];

@@ -10,7 +10,7 @@ import {
   Zap, Activity, TrendingUp, Trophy, ArrowRight,
   Calendar, Layers, Map, PieChart as PieIcon,
   Heart, Target, Zap as PowerIcon, ChevronRight, Speaker, Volume2, AlertCircle, Clock,
-  Footprints, Flame, User
+  Footprints, Flame, User, Dna, Mountain, CheckSquare
 } from 'lucide-react';
 
 const COLORS = [
@@ -517,6 +517,51 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         );
       })()}
 
+      {/* Race Readiness Score */}
+      {stats.race_readiness && stats.race_readiness.score > 0 && (() => {
+        const rr = stats.race_readiness;
+        return (
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {/* Score dial */}
+                <div style={{ position: 'relative', width: '72px', height: '72px', flexShrink: 0 }}>
+                  <svg viewBox="0 0 72 72" style={{ width: '72px', height: '72px', transform: 'rotate(-90deg)' }}>
+                    <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+                    <circle cx="36" cy="36" r="28" fill="none" stroke={rr.color} strokeWidth="8"
+                      strokeDasharray={`${2 * Math.PI * 28}`}
+                      strokeDashoffset={`${2 * Math.PI * 28 * (1 - rr.score / 100)}`}
+                      strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease' }} />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 900, color: rr.color, lineHeight: 1 }}>{rr.score}</span>
+                    <span style={{ fontSize: '0.45rem', opacity: 0.5, fontWeight: 700 }}>/ 100</span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.5, letterSpacing: '1px' }}>RACE READINESS</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: rr.color, lineHeight: 1.2 }}>{rr.label}</div>
+                </div>
+              </div>
+              {/* Component breakdown */}
+              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                {(rr.components || []).map(c => (
+                  <div key={c.name} style={{ textAlign: 'center', minWidth: '70px' }}>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: '2px', fontWeight: 700 }}>{c.name.toUpperCase()}</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: c.score >= 70 ? '#10b981' : c.score >= 45 ? '#f59e0b' : '#ef4444' }}>{c.score}</div>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>{c.value}</div>
+                    <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '4px' }}>
+                      <div style={{ height: '100%', width: `${c.score}%`, background: c.score >= 70 ? '#10b981' : c.score >= 45 ? '#f59e0b' : '#ef4444', transition: 'width 0.8s' }} />
+                    </div>
+                    <div style={{ fontSize: '0.5rem', opacity: 0.3, marginTop: '2px' }}>{c.weight}% weight</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
+
       {/* 3. Real-time Training Load & Goals (Side-by-side) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2.5rem' }}>
         <motion.div
@@ -626,6 +671,50 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           </div>
         </motion.div>
       </div>
+
+      {/* 4-Week Training Block */}
+      {stats.weekly_blocks && stats.weekly_blocks.length > 0 && (() => {
+        const blocks = stats.weekly_blocks;
+        const maxDist = Math.max(...blocks.map(b => b.distance), 1);
+        return (
+          <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+                <CheckSquare size={18} color={accent} style={{ flexShrink: 0 }} /> 4-WEEK TRAINING BLOCK
+              </h3>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
+              {blocks.map((b, i) => {
+                const pct = (b.distance / maxDist) * 100;
+                const isCurrentWeek = b.label === 'This Week';
+                return (
+                  <div key={b.label} style={{
+                    padding: '1rem 0.75rem',
+                    background: isCurrentWeek ? `${accent}15` : 'rgba(255,255,255,0.02)',
+                    borderRadius: '12px',
+                    border: isCurrentWeek ? `1px solid ${accent}44` : '1px solid rgba(255,255,255,0.04)',
+                    textAlign: 'center',
+                    position: 'relative'
+                  }}>
+                    <div style={{ fontSize: '0.55rem', fontWeight: 800, opacity: isCurrentWeek ? 1 : 0.5, color: isCurrentWeek ? accent : 'white', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                      {b.label}
+                    </div>
+                    {/* Volume bar */}
+                    <div style={{ height: '50px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '6px' }}>
+                      <div style={{ width: '24px', background: isCurrentWeek ? accent : `${accent}55`, borderRadius: '3px 3px 0 0', height: `${Math.max(4, pct * 0.5)}px`, transition: 'height 0.8s ease' }} />
+                    </div>
+                    <div style={{ fontSize: '1rem', fontWeight: 900, color: isCurrentWeek ? accent : 'white', lineHeight: 1 }}>{b.distance}</div>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.4, marginBottom: '6px' }}>km</div>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>{b.count} sessions</div>
+                    {b.elevation > 0 && <div style={{ fontSize: '0.55rem', opacity: 0.35, marginTop: '2px' }}>↑{b.elevation}m</div>}
+                    {b.trimp > 0 && <div style={{ fontSize: '0.55rem', opacity: 0.35 }}>TRIMP {b.trimp}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* Combined: Recent Activities + Smart Coach sidebar */}
       <div style={{ display: 'grid', gridTemplateColumns: stats.smart_coach ? 'minmax(0, 2fr) minmax(0, 1fr)' : '1fr', gap: '2rem', marginBottom: '2.5rem', alignItems: 'start' }}>
@@ -877,6 +966,38 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         </motion.div>
       </div>
 
+
+      {/* Training DNA Card */}
+      {stats.training_dna && (
+        <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+              <Dna size={18} color="#ec4899" style={{ flexShrink: 0 }} /> TRAINING DNA
+            </h3>
+            <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '3px 12px', borderRadius: '999px', background: 'rgba(236,72,153,0.15)', color: '#ec4899' }}>
+              {stats.training_dna.style}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '1rem' }}>
+            {[
+              { label: 'SPORT', value: stats.training_dna.dominant_sport, color: accent },
+              { label: 'FAVE DAY', value: stats.training_dna.fav_day?.slice(0, 3).toUpperCase(), color: '#f59e0b' },
+              { label: 'TIME SLOT', value: stats.training_dna.time_label, color: '#8b5cf6', small: true },
+              { label: 'AVG DISTANCE', value: `${stats.training_dna.avg_distance} km`, color: '#10b981' },
+              { label: 'YEARS ACTIVE', value: stats.training_dna.years_active, color: '#06b6d4' },
+              { label: 'CONSISTENCY', value: stats.training_dna.consistency_grade, color: stats.training_dna.consistency_grade === 'A' ? '#10b981' : stats.training_dna.consistency_grade === 'B' ? '#06b6d4' : stats.training_dna.consistency_grade === 'C' ? '#f59e0b' : '#ef4444' },
+            ].map(d => (
+              <div key={d.label} style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.5rem', opacity: 0.5, fontWeight: 800, letterSpacing: '0.5px', marginBottom: '4px' }}>{d.label}</div>
+                <div style={{ fontSize: d.small ? '0.8rem' : '1.1rem', fontWeight: 900, color: d.color, lineHeight: 1.2 }}>{d.value}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '1rem', fontSize: '0.65rem', opacity: 0.35, textAlign: 'center' }}>
+            {stats.training_dna.total_activities} total activities · {stats.training_dna.consistency_pct}% weekly consistency
+          </div>
+        </motion.div>
+      )}
 
       {/* 6. Activity Contribution Grid Widget */}
       <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>

@@ -2,9 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, CartesianGrid, Legend, AreaChart, Area, ReferenceLine
+  BarChart, Bar, CartesianGrid, Legend, AreaChart, Area, ReferenceLine, Cell
 } from 'recharts';
-import { Calendar, Activity, Zap, Layers, TrendingUp, Filter, ArrowUpRight, ArrowDownRight, BarChart2, Percent } from 'lucide-react';
+import { Calendar, Activity, Zap, Layers, TrendingUp, Filter, ArrowUpRight, ArrowDownRight, BarChart2, Percent, Heart, Sun } from 'lucide-react';
 
 const Analytics = ({ stats, sportType }) => {
   const [activeMetric, setActiveMetric] = React.useState('dist'); // 'dist', 'time', 'elev'
@@ -575,6 +575,129 @@ const Analytics = ({ stats, sportType }) => {
               <div style={{ fontSize: '0.7rem', opacity: 0.4, marginTop: '0.5rem', textAlign: 'center' }}>
                 Based on last 30 activities grouped by week · HR%-based when available
               </div>
+            </div>
+          </div>
+          </>
+        );
+      })()}
+
+      {/* HR Recovery / Aerobic Efficiency Trend */}
+      {stats.hr_recovery && stats.hr_recovery.length > 2 && (() => {
+        const hrData = stats.hr_recovery.slice(-18);
+        return (
+          <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>AEROBIC EFFICIENCY</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+            {/* HR % Trend */}
+            <div className="platform-card" style={{ padding: '2rem' }}>
+              <div className="card-header">
+                <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+                  <Heart size={20} color="#ef4444" style={{ flexShrink: 0 }} /> AVG HR % OF MAX (MONTHLY)
+                </h3>
+              </div>
+              <div style={{ height: '220px', marginTop: '1rem' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={hrData}>
+                    <defs>
+                      <linearGradient id="hrGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false}
+                      tickFormatter={(v) => v.slice(2)} interval="preserveStartEnd" />
+                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false} unit="%" domain={['auto', 'auto']} />
+                    <Tooltip
+                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '11px' }}
+                      formatter={(v) => [`${v}%`, 'Avg HR % of max']}
+                    />
+                    <Area type="monotone" dataKey="hr_pct" stroke="#ef4444" strokeWidth={2}
+                      fill="url(#hrGradient)" dot={{ fill: '#ef4444', r: 2 }} connectNulls />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ fontSize: '0.65rem', opacity: 0.35, marginTop: '0.5rem', textAlign: 'center' }}>
+                Lower trend = improving aerobic fitness (heart working less for same effort)
+              </div>
+            </div>
+
+            {/* HR Efficiency Trend */}
+            <div className="platform-card" style={{ padding: '2rem' }}>
+              <div className="card-header">
+                <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+                  <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> AEROBIC EFFICIENCY (KM / %HR)
+                </h3>
+              </div>
+              <div style={{ height: '220px', marginTop: '1rem' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={hrData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false}
+                      tickFormatter={(v) => v.slice(2)} interval="preserveStartEnd" />
+                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                    <Tooltip
+                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '11px' }}
+                      formatter={(v) => [v, 'km per %HR']}
+                    />
+                    <Line type="monotone" dataKey="hr_efficiency" stroke={themeColor} strokeWidth={2.5}
+                      dot={{ fill: themeColor, r: 3 }} activeDot={{ r: 5 }} connectNulls />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ fontSize: '0.65rem', opacity: 0.35, marginTop: '0.5rem', textAlign: 'center' }}>
+                Higher trend = aerobic engine improving — more output per heartbeat
+              </div>
+            </div>
+          </div>
+          </>
+        );
+      })()}
+
+      {/* Seasonal Performance (天气/季节-表现相关性) */}
+      {stats.seasonal_performance && stats.seasonal_performance.length > 0 && (() => {
+        const seasons = stats.seasonal_performance;
+        const seasonColors = { 'Q1 Winter': '#06b6d4', 'Q2 Spring': '#10b981', 'Q3 Summer': '#f59e0b', 'Q4 Autumn': '#f97316' };
+        const seasonEmoji = { 'Q1 Winter': '❄️', 'Q2 Spring': '🌸', 'Q3 Summer': '☀️', 'Q4 Autumn': '🍂' };
+        const maxDist = Math.max(...seasons.map(s => s.distance), 1);
+        return (
+          <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>SEASONAL PERFORMANCE</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+            <div className="card-header">
+              <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+                <Sun size={20} color="#f59e0b" style={{ flexShrink: 0 }} /> PERFORMANCE BY SEASON
+              </h3>
+              <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>Volume & best pace per quarter</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginTop: '1.5rem' }}>
+              {seasons.map(s => {
+                const color = seasonColors[s.quarter] || '#fff';
+                const pct = (s.distance / maxDist) * 100;
+                return (
+                  <div key={s.quarter} style={{ textAlign: 'center', padding: '1.25rem 0.75rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', borderTop: `3px solid ${color}` }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>{seasonEmoji[s.quarter]}</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, marginBottom: '8px' }}>{s.quarter}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1 }}>{s.distance}</div>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.4, marginBottom: '8px' }}>km total</div>
+                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '2px', transition: 'width 0.8s' }} />
+                    </div>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>{s.count} sessions</div>
+                    {s.best_5k_pace && (
+                      <div style={{ marginTop: '6px', padding: '3px 6px', background: `${color}20`, borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, color }}>
+                        Best 5K: {s.best_5k_pace}/km
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
           </>
