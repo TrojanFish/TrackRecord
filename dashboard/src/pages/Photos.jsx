@@ -144,7 +144,7 @@ const Photos = ({ sportType }) => {
         {filteredPhotos.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '6rem 2rem', opacity: 0.3 }}>
             <ImageIcon size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>No photos matching filters</h3>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>No photos matching filters</h3>
             <p style={{ fontSize: '0.9rem' }}>Try changing your filters or syncing more data.</p>
           </div>
         ) : groupByMonth ? (

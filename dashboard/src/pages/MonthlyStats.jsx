@@ -4,8 +4,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, PieChart, Pie, Cell, ReferenceLine
 } from 'recharts';
-import { 
-  Calendar, Activity, TrendingUp, Clock, ChevronLeft, ChevronRight, Trophy, Zap, Flame 
+import {
+  Calendar, Activity, TrendingUp, Clock, ChevronLeft, ChevronRight, Trophy, Zap, Flame
 } from 'lucide-react';
 
 const COLORS = ['var(--accent-cyan)', '#bd00ff', '#3b82f6', '#f59e0b', '#10b981'];
@@ -25,12 +25,12 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
 
     // Group by month to see what's available
     const daily = stats.daily_stats.filter(d => d.date && d.date.startsWith(selectedMonth));
-    
+
     const totalDist = daily.reduce((acc, d) => acc + Number(d.dist || 0), 0);
     const totalTime = daily.reduce((acc, d) => acc + Number(d.time || 0), 0);
     const totalCount = daily.reduce((acc, d) => acc + Number(d.count || 0), 0);
     const totalElev = daily.reduce((acc, d) => acc + Number(d.elev || 0), 0);
-    
+
     // Calorie calculation (consistent with backend logic)
     const weight = stats.bio_stats?.weight || 70;
     const totalCalories = daily.reduce((acc, d) => {
@@ -74,13 +74,14 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3 }}
       className="page-content"
     >
+      {/* Annual Heatmap card — unchanged */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
         <div className="card-header">
           <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
@@ -111,7 +112,7 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
               <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Last 365 Days</div>
           </div>
         </div>
-        
+
         {renderHeatmap(heatMetric)}
 
         <div className="heatmap-legend" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '1.5rem', opacity: 0.7 }}>
@@ -132,162 +133,55 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem', alignItems: 'start' }}>
-        {/* Left: Monthly Summary & Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div className="platform-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-               <button onClick={() => changeMonth(-1)} className="icon-btn"><ChevronLeft size={20} /></button>
-               <div style={{ textAlign: 'center' }}>
-                 <b style={{ fontSize: '1.1rem', letterSpacing: '1px', display: 'block' }}>{selectedMonth}</b>
-                 {monthData.totalCount > 0 && (
-                   <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700 }}>{monthData.totalCount} ACTIVITIES</span>
-                 )}
-               </div>
-               <button onClick={() => changeMonth(1)} className="icon-btn"><ChevronRight size={20} /></button>
+      {/* Section 1: Header row card — month navigator + 5 key stat pills */}
+      <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+          {/* Left: month navigator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button onClick={() => changeMonth(-1)} className="icon-btn"><ChevronLeft size={20} /></button>
+            <div style={{ textAlign: 'center', minWidth: '120px' }}>
+              <b style={{ fontSize: '1rem', letterSpacing: '1px', display: 'block' }}>{selectedMonth}</b>
+              {monthData.totalCount > 0 && (
+                <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: 700 }}>{monthData.totalCount} ACTIVITIES</span>
+              )}
             </div>
-            
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 800, opacity: 0.8 }}>MONTHLY DISTANCE</div>
-                <div style={{ fontSize: '2.5rem', fontWeight: 900, color: themeColor }}>
-                    {(monthData.totalDist / 1000).toFixed(1)} <small style={{ fontSize: '0.8rem' }}>KM</small>
-                </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                        <Activity size={10} /> ACTIVITIES
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{monthData.totalCount}</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                        <Clock size={10} /> TIME
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{(monthData.totalTime / 3600).toFixed(1)}h</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                        <TrendingUp size={10} /> ELEV.
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{Math.round(monthData.totalElev)}<small style={{fontSize:'0.6rem'}}>M</small></div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '0.65rem', opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                        <Flame size={10} /> CALORIES
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{Math.round(monthData.totalCalories).toLocaleString()}</div>
-                </div>
-            </div>
-
-            <div style={{ marginTop: '1rem', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.1)', padding: '0.75rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Trophy size={16} color="#f59e0b" />
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.5px' }}>TROPHIES EARNED</span>
-                </div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f59e0b' }}>{monthData.trophyCount}</div>
-            </div>
-
-            {/* Widget B: Best Single Day */}
-            {(() => {
-              const bestDay = monthData.chartData?.reduce(
-                (best, d) => (Number(d.dist) > Number(best?.dist || 0) ? d : best),
-                null
-              );
-              return bestDay && Number(bestDay.dist) > 0 ? (
-                <div style={{ marginTop: '1rem', background: `${themeColor}11`, border: `1px solid ${themeColor}33`, padding: '0.75rem', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, marginBottom: '4px', letterSpacing: '0.5px' }}>BEST DAY THIS MONTH</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 900, color: themeColor }}>
-                    Day {bestDay.day} &mdash; {bestDay.dist} km
-                  </div>
-                </div>
-              ) : null;
-            })()}
+            <button onClick={() => changeMonth(1)} className="icon-btn"><ChevronRight size={20} /></button>
           </div>
 
-          {/* Widget A: 3-Month Comparison Panel */}
-          {(() => {
-            const months3 = [0, 1, 2].map(offset => {
-              const d = new Date(selectedMonth + '-01');
-              d.setMonth(d.getMonth() - offset);
-              const mStr = d.toISOString().slice(0, 7);
-              const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-              const mDays = (stats.daily_stats || []).filter(day => day.date?.startsWith(mStr));
-              return {
-                label,
-                monthStr: mStr,
-                dist: (mDays.reduce((s, dd) => s + Number(dd.dist || 0), 0) / 1000).toFixed(1),
-                count: mDays.reduce((s, dd) => s + Number(dd.count || 0), 0),
-                time: (mDays.reduce((s, dd) => s + Number(dd.time || 0), 0) / 3600).toFixed(1)
-              };
-            });
-            return (
-              <div className="platform-card" style={{ padding: '1.5rem' }}>
-                <h4 style={{ fontSize: '0.8rem', marginBottom: '1rem', opacity: 0.8 }}>3-MONTH COMPARISON</h4>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
-                  <thead>
-                    <tr style={{ opacity: 0.4 }}>
-                      <th style={{ textAlign: 'left', paddingBottom: '6px' }}>MONTH</th>
-                      <th style={{ textAlign: 'right', paddingBottom: '6px' }}>KM</th>
-                      <th style={{ textAlign: 'right', paddingBottom: '6px' }}>#</th>
-                      <th style={{ textAlign: 'right', paddingBottom: '6px' }}>HRS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {months3.map((m, i) => (
-                      <tr
-                        key={m.monthStr}
-                        style={{
-                          borderTop: '1px solid rgba(255,255,255,0.05)',
-                          background: i === 0 ? `${themeColor}11` : 'transparent',
-                          fontWeight: i === 0 ? 800 : 400
-                        }}
-                      >
-                        <td style={{ padding: '5px 0', color: i === 0 ? themeColor : 'inherit' }}>{m.label}</td>
-                        <td style={{ textAlign: 'right', color: i === 0 ? themeColor : 'inherit' }}>{m.dist}</td>
-                        <td style={{ textAlign: 'right', opacity: 0.7 }}>{m.count}</td>
-                        <td style={{ textAlign: 'right', opacity: 0.7 }}>{m.time}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })()}
-
-          <div className="platform-card" style={{ padding: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.8rem', marginBottom: '1.5rem', opacity: 0.8 }}>SPORT DISTRIBUTION</h4>
-            <div style={{ height: '180px' }}>
-                <ResponsiveContainer>
-                    <PieChart>
-                        <Pie
-                            data={monthData.pieData}
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                        >
-                            {monthData.pieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={secondaryColors[index % secondaryColors.length]} />
-                            ))}
-                        </Pie>
-                        <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '12px' }} />
-                    </PieChart>
-                </ResponsiveContainer>
+          {/* Right: 5 key stat pills in a row */}
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {/* DISTANCE */}
+            <div style={{ textAlign: 'center', padding: '0.5rem 1.25rem', background: `${themeColor}15`, borderRadius: '12px', border: `1px solid ${themeColor}30` }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>DISTANCE</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: themeColor }}>{(monthData.totalDist / 1000).toFixed(1)} <small style={{ fontSize: '0.7rem' }}>KM</small></div>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '1rem', justifyContent: 'center' }}>
-                {monthData.pieData.map((entry, index) => (
-                    <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem' }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: secondaryColors[index % secondaryColors.length] }} />
-                        <span>{entry.name}</span>
-                    </div>
-                ))}
+            {/* TIME */}
+            <div style={{ textAlign: 'center', padding: '0.5rem 1.25rem', background: 'rgba(255,255,255,0.04)', borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>TIME</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900 }}>{(monthData.totalTime / 3600).toFixed(1)} <small style={{ fontSize: '0.7rem' }}>H</small></div>
+            </div>
+            {/* ELEVATION */}
+            <div style={{ textAlign: 'center', padding: '0.5rem 1.25rem', background: 'rgba(255,255,255,0.04)', borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>ELEVATION</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900 }}>{Math.round(monthData.totalElev)} <small style={{ fontSize: '0.7rem' }}>M</small></div>
+            </div>
+            {/* CALORIES */}
+            <div style={{ textAlign: 'center', padding: '0.5rem 1.25rem', background: 'rgba(255,255,255,0.04)', borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>CALORIES</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900 }}>{(Math.round(monthData.totalCalories) / 1000).toFixed(1)} <small style={{ fontSize: '0.7rem' }}>KCAL</small></div>
+            </div>
+            {/* TROPHIES */}
+            <div style={{ textAlign: 'center', padding: '0.5rem 1.25rem', background: 'rgba(245,158,11,0.08)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)' }}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px', color: '#f59e0b' }}>TROPHIES</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#f59e0b' }}>{monthData.trophyCount}</div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right: Daily Activity Chart */}
+      {/* Section 2: Middle 2fr 1fr chart grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2rem', alignItems: 'start' }}>
+        {/* Left: Daily bar chart + Weekly Load */}
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
             <h3 className="card-title" style={{ fontSize: '0.95rem' }}>
@@ -300,22 +194,23 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
                 <p>No activity data discovered for this month.</p>
             </div>
           ) : (
-            <div style={{ height: '500px', width: '100%' }}>
+            <div style={{ height: '400px', width: '100%' }}>
               <ResponsiveContainer>
                 <BarChart data={monthData.chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="day" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} />
                   <YAxis stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip 
+                  <Tooltip
                       cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px' }} 
+                      contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px' }}
                   />
                   <Bar dataKey="dist" fill={themeColor} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
-          {/* Widget C: Weekly Load Breakdown */}
+
+          {/* Weekly Load Breakdown */}
           {(() => {
             const secondaryColor = '#bd00ff';
             const weeklyLoad = [
@@ -355,11 +250,109 @@ const MonthlyStats = ({ stats, renderHeatmap, sportType }) => {
               </div>
             );
           })()}
-
-          <p style={{ marginTop: '1.5rem', opacity: 0.7, fontSize: '0.75rem', textAlign: 'center' }}>
-            Showing {sportType} activity intensity across {selectedMonth}. Bars represent cumulative distance in kilometers per day.
-          </p>
         </div>
+
+        {/* Right: Sport Distribution + Best Day */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Sport Distribution pie card */}
+          <div className="platform-card" style={{ padding: '1.5rem' }}>
+            <h4 style={{ fontSize: '0.8rem', marginBottom: '1.5rem', opacity: 0.8 }}>SPORT DISTRIBUTION</h4>
+            <div style={{ height: '180px' }}>
+                <ResponsiveContainer>
+                    <PieChart>
+                        <Pie
+                            data={monthData.pieData}
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                        >
+                            {monthData.pieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={secondaryColors[index % secondaryColors.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px', fontSize: '12px' }} />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '1rem', justifyContent: 'center' }}>
+                {monthData.pieData.map((entry, index) => (
+                    <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: secondaryColors[index % secondaryColors.length] }} />
+                        <span>{entry.name}</span>
+                    </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Best Day card */}
+          {(() => {
+            const bestDay = monthData.chartData?.reduce(
+              (best, d) => (Number(d.dist) > Number(best?.dist || 0) ? d : best),
+              null
+            );
+            return bestDay && Number(bestDay.dist) > 0 ? (
+              <div className="platform-card" style={{ padding: '1.5rem' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, marginBottom: '0.75rem', letterSpacing: '1px' }}>BEST DAY THIS MONTH</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: themeColor }}>
+                  Day {bestDay.day} &mdash; {bestDay.dist} km
+                </div>
+              </div>
+            ) : null;
+          })()}
+        </div>
+      </div>
+
+      {/* Section 3: 3-Month Comparison — full width */}
+      <div style={{ marginBottom: '2rem' }}>
+        {(() => {
+          const months3 = [0, 1, 2].map(offset => {
+            const d = new Date(selectedMonth + '-01');
+            d.setMonth(d.getMonth() - offset);
+            const mStr = d.toISOString().slice(0, 7);
+            const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            const mDays = (stats.daily_stats || []).filter(day => day.date?.startsWith(mStr));
+            return {
+              label,
+              monthStr: mStr,
+              dist: (mDays.reduce((s, dd) => s + Number(dd.dist || 0), 0) / 1000).toFixed(1),
+              count: mDays.reduce((s, dd) => s + Number(dd.count || 0), 0),
+              time: (mDays.reduce((s, dd) => s + Number(dd.time || 0), 0) / 3600).toFixed(1)
+            };
+          });
+          return (
+            <div className="platform-card" style={{ padding: '1.5rem' }}>
+              <h4 style={{ fontSize: '0.8rem', marginBottom: '1rem', opacity: 0.8 }}>3-MONTH COMPARISON</h4>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem' }}>
+                <thead>
+                  <tr style={{ opacity: 0.4 }}>
+                    <th style={{ textAlign: 'left', paddingBottom: '6px' }}>MONTH</th>
+                    <th style={{ textAlign: 'right', paddingBottom: '6px' }}>KM</th>
+                    <th style={{ textAlign: 'right', paddingBottom: '6px' }}>#</th>
+                    <th style={{ textAlign: 'right', paddingBottom: '6px' }}>HRS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {months3.map((m, i) => (
+                    <tr
+                      key={m.monthStr}
+                      style={{
+                        borderTop: '1px solid rgba(255,255,255,0.05)',
+                        background: i === 0 ? `${themeColor}11` : 'transparent',
+                        fontWeight: i === 0 ? 800 : 400
+                      }}
+                    >
+                      <td style={{ padding: '5px 0', color: i === 0 ? themeColor : 'inherit' }}>{m.label}</td>
+                      <td style={{ textAlign: 'right', color: i === 0 ? themeColor : 'inherit' }}>{m.dist}</td>
+                      <td style={{ textAlign: 'right', opacity: 0.7 }}>{m.count}</td>
+                      <td style={{ textAlign: 'right', opacity: 0.7 }}>{m.time}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
     </motion.div>
   );

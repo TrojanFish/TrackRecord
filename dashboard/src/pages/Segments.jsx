@@ -284,37 +284,54 @@ const Segments = ({ sportType }) => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.7, letterSpacing: '1px' }}>
-          {filteredSegments.length} SEGMENTS FOUND
+      <div style={{ marginBottom: '1.5rem' }}>
+        {/* Stats summary row */}
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          {(() => {
+            const totalEfforts = filteredSegments.reduce((s, seg) => s + (seg.effort_count || 0), 0);
+            const totalDistKm = (filteredSegments.reduce((s, seg) => s + (seg.distance || 0), 0) / 1000).toFixed(1);
+            const avgGrade = filteredSegments.length > 0
+              ? (filteredSegments.reduce((s, seg) => s + (seg.average_grade || 0), 0) / filteredSegments.length).toFixed(1)
+              : 0;
+            const starredCount = filteredSegments.filter(s => s.starred).length;
+            const segColor = isRun ? '#ff3366' : 'var(--accent-cyan)';
+
+            const statItems = [
+              { label: 'SEGMENTS', value: filteredSegments.length, unit: '' },
+              { label: 'TOTAL EFFORTS', value: totalEfforts, unit: '' },
+              { label: 'TOTAL DIST', value: totalDistKm, unit: 'KM' },
+              { label: 'AVG GRADE', value: avgGrade, unit: '%' },
+              { label: 'STARRED', value: starredCount, unit: '' },
+            ];
+
+            return statItems.map(stat => (
+              <div key={stat.label} className="platform-card" style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '100px' }}>
+                <span style={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '1px', opacity: 0.5 }}>{stat.label}</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: segColor }}>
+                  {stat.value}{stat.unit && <small style={{ fontSize: '0.65rem', marginLeft: '3px', opacity: 0.7 }}>{stat.unit}</small>}
+                </span>
+              </div>
+            ));
+          })()}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+        {/* Keep sync button row */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem' }}>
           {syncMessage && (
             <span style={{
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              padding: '4px 10px',
-              borderRadius: '8px',
+              fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: '8px',
               background: syncMessage.type === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
               color: syncMessage.type === 'success' ? '#10b981' : '#ef4444',
-              border: `1px solid ${syncMessage.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`
-            }}>
-              {syncMessage.text}
-            </span>
+            }}>{syncMessage.text}</span>
           )}
-          <button
-            onClick={syncSegments}
-            disabled={isSyncing}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)',
-              fontSize: '0.75rem', fontWeight: 700, cursor: isSyncing ? 'default' : 'pointer',
-              opacity: isSyncing ? 0.5 : 1, letterSpacing: '0.5px'
-            }}
-          >
-            <RefreshCw size={12} style={{ animation: isSyncing ? 'spin 1s linear infinite' : 'none' }} />
-            {isSyncing ? 'SYNCING...' : 'SYNC'}
+          <button onClick={syncSegments} disabled={isSyncing} style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '8px 16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.05)', color: 'white', cursor: isSyncing ? 'not-allowed' : 'pointer',
+            fontSize: '0.7rem', fontWeight: 700, opacity: isSyncing ? 0.5 : 1
+          }}>
+            <RefreshCw size={14} className={isSyncing ? 'spinning' : ''} />
+            {isSyncing ? 'SYNCING...' : 'SYNC STRAVA'}
           </button>
         </div>
       </div>
@@ -324,7 +341,7 @@ const Segments = ({ sportType }) => {
         {filteredSegments.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '6rem 2rem', opacity: 0.3 }}>
             <RouteIcon size={64} style={{ marginBottom: '1.5rem', strokeWidth: 1 }} />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>No segments matching filters</h3>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>No segments matching filters</h3>
             <p style={{ fontSize: '0.9rem' }}>Try syncing more data or check your <a href="https://www.strava.com/athlete/segments" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'none' }}>Strava Segments</a>.</p>
           </div>
         ) : (

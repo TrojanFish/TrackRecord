@@ -124,7 +124,12 @@ const Analytics = ({ stats, sportType }) => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+        <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>BEHAVIORAL PATTERNS</span>
+        <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
         {/* Weekday Analysis */}
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
@@ -171,6 +176,11 @@ const Analytics = ({ stats, sportType }) => {
             </ResponsiveContainer>
           </div>
         </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+        <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>STRUCTURE & EFFICIENCY</span>
+        <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
@@ -351,7 +361,12 @@ const Analytics = ({ stats, sportType }) => {
         }).reverse();
 
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+          <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>TRAINING QUALITY</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
             {/* Widget A: 12-Week Consistency Score */}
             <div className="platform-card" style={{ padding: '2rem' }}>
               <div className="card-header">
@@ -428,6 +443,7 @@ const Analytics = ({ stats, sportType }) => {
               </div>
             </div>
           </div>
+          </>
         );
       })()}
 
