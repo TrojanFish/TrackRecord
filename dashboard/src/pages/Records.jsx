@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Clock, MapPin, TrendingUp, Calendar, Zap, Activity, Heart, Footprints, Flame, ExternalLink } from 'lucide-react';
-import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
+import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid, LineChart, Line, BarChart, Bar, Cell } from 'recharts';
 
 const formatTime = (seconds) => {
   const h = Math.floor(seconds / 3600);
@@ -352,6 +352,65 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
             );
           })()}
 
+          {/* Pace Evolution Timeline */}
+          {stats.pace_evolution && Object.keys(stats.pace_evolution).length > 0 && (() => {
+            const distances = Object.keys(stats.pace_evolution).filter(k =>
+              sportMode === 'Run' ? true : false
+            );
+            if (distances.length === 0) return null;
+            const distColors = { '5K': '#ff3366', '10K': '#f59e0b', 'Half': '#10b981', 'Marathon': '#8b5cf6' };
+            // Merge all months across distances
+            const allMonths = [...new Set(distances.flatMap(d => stats.pace_evolution[d].map(p => p.month)))].sort();
+            const chartData = allMonths.map(month => {
+              const entry = { month };
+              distances.forEach(d => {
+                const pt = stats.pace_evolution[d].find(p => p.month === month);
+                if (pt) entry[d] = pt.pace_sec;
+              });
+              return entry;
+            });
+            return (
+              <div className="platform-card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h2 style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.8, letterSpacing: '1px' }}>PACE EVOLUTION TIMELINE</h2>
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.6rem' }}>
+                    {distances.map(d => (
+                      <span key={d} style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.7 }}>
+                        <span style={{ width: '8px', height: '2px', background: distColors[d] || '#fff', display: 'inline-block' }} />
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ height: '200px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 10, bottom: 20, left: 30 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false}
+                        tickFormatter={(v) => v.slice(2)} interval="preserveStartEnd" />
+                      <YAxis stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false}
+                        reversed={true}
+                        tickFormatter={(v) => `${Math.floor(v/60)}:${String(Math.floor(v%60)).padStart(2,'0')}`}
+                        width={38}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '11px' }}
+                        formatter={(v, name) => [`${Math.floor(v/60)}:${String(Math.floor(v%60)).padStart(2,'0')}/km`, name]}
+                      />
+                      {distances.map(d => (
+                        <Line key={d} type="monotone" dataKey={d} stroke={distColors[d] || '#fff'} strokeWidth={2}
+                          dot={false} activeDot={{ r: 4 }} connectNulls />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '0.5rem', textAlign: 'center' }}>
+                  Monthly best pace per distance — lower line = faster pace
+                </div>
+              </div>
+            );
+          })()}
+
           <h2 className="category-title" style={{ marginBottom: '2rem' }}>Performance Progress Tracking</h2>
           {Object.keys(stats.records_trends || {}).length > 0 ? (
             <div className="platform-grid">
@@ -428,6 +487,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
 
       {/* TAB 2: PHYSIOLOGY */}
       {pageTab === 'physiology' && (
+        <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
           {/* VO2 Max card */}
           {(() => {
@@ -483,6 +543,85 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                 </p>
           </div>
         </div>
+
+        {/* Peak Power Curve (Ride) + FTP History */}
+        {sportMode === 'Ride' && stats.power_history && stats.power_history.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+            {/* Peak Power by Month from recent activities */}
+            {(() => {
+              const powerByMonth = {};
+              (stats.recent_activities || []).forEach(a => {
+                if ((a.average_watts || 0) > 0) {
+                  const m = (a.start_date_local || '').slice(0, 7);
+                  if (m && (!powerByMonth[m] || a.average_watts > powerByMonth[m])) {
+                    powerByMonth[m] = a.average_watts;
+                  }
+                }
+              });
+              const powerData = Object.entries(powerByMonth)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .slice(-18)
+                .map(([month, watts]) => ({ month: month.slice(2), watts: Math.round(watts) }));
+              if (powerData.length === 0) return null;
+              return (
+                <div className="platform-card" style={{ padding: '1.5rem' }}>
+                  <h3 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1rem', opacity: 0.8, letterSpacing: '1px' }}>
+                    MONTHLY PEAK POWER CURVE
+                  </h3>
+                  <div style={{ height: '220px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={powerData} margin={{ top: 5, right: 5, bottom: 5, left: -10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false} />
+                        <YAxis stroke="rgba(255,255,255,0.3)" fontSize={9} tickLine={false} axisLine={false} unit="W" />
+                        <Tooltip
+                          contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '11px' }}
+                          formatter={(v) => [`${v} W`, 'Peak Avg Power']}
+                        />
+                        <Bar dataKey="watts" radius={[4, 4, 0, 0]}>
+                          {powerData.map((_, i) => (
+                            <Cell key={i} fill={i === powerData.length - 1 ? 'var(--accent-cyan)' : 'rgba(6,182,212,0.35)'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={{ fontSize: '0.65rem', opacity: 0.4, marginTop: '0.5rem', textAlign: 'center' }}>
+                    Monthly best average wattage from all ride activities
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* FTP History */}
+            <div className="platform-card" style={{ padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1rem', opacity: 0.8, letterSpacing: '1px' }}>
+                FTP HISTORY (ANNUAL)
+              </h3>
+              <div style={{ height: '220px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={stats.power_history} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis dataKey="year" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} unit="W" />
+                    <Tooltip
+                      contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '11px' }}
+                      formatter={(v, name) => [`${v} W`, name === 'ftp_estimate' ? 'Est. FTP (95%)' : 'Best Avg Power']}
+                    />
+                    <Line type="monotone" dataKey="best_watts" stroke="rgba(6,182,212,0.5)" strokeWidth={1.5}
+                      dot={{ fill: 'rgba(6,182,212,0.5)', r: 3 }} name="best_watts" strokeDasharray="4 2" />
+                    <Line type="monotone" dataKey="ftp_estimate" stroke="var(--accent-cyan)" strokeWidth={2.5}
+                      dot={{ fill: 'var(--accent-cyan)', r: 4 }} activeDot={{ r: 6 }} name="ftp_estimate" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', fontSize: '0.6rem', opacity: 0.5, justifyContent: 'center' }}>
+                <span>── Best Avg Power &nbsp;&nbsp;— — FTP estimate (95%)</span>
+              </div>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {/* TAB 3: PREDICTOR */}

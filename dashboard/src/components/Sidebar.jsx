@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
+import {
   X,
-  LayoutDashboard, 
-  Activity, 
-  Map as MapIcon, 
-  Calendar, 
-  ChevronLeft, 
+  LayoutDashboard,
+  Activity,
+  Map as MapIcon,
+  Calendar,
+  ChevronLeft,
   ChevronRight,
   TrendingUp,
   History,
@@ -15,6 +15,8 @@ import {
   Image,
   Wrench,
   Milestone as RouteIcon,
+  Flag,
+  Globe,
   Github,
   Search,
   Bell,
@@ -69,6 +71,8 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
         { id: 'Photos', icon: Image, label: 'PHOTOS' },
         { id: 'Gear', icon: Wrench, label: 'GEAR' },
         { id: 'Calendar', icon: Calendar, label: 'CALENDAR' },
+        { id: 'Milestones', icon: Flag, label: 'MILESTONES' },
+        { id: 'WorldMap', icon: Globe, label: 'WORLD MAP' },
       ]
     }
   ];

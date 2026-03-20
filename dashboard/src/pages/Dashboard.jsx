@@ -223,6 +223,43 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         );
       })()}
 
+      {/* Carbon Saved Widget */}
+      {stats.total_distance > 0 && (() => {
+        // Average car emission: 0.21 kg CO2 per km; running/cycling = 0
+        const co2SavedKg = Math.round(stats.total_distance * 0.21);
+        const treesEquiv = Math.round(co2SavedKg / 21.77); // avg tree absorbs ~21.77 kg CO2/year
+        const carsOffRoad = (co2SavedKg / 4600).toFixed(2); // avg car emits ~4600 kg CO2/year
+        return (
+          <motion.div variants={item} className="platform-card" style={{
+            padding: '1.25rem 1.75rem', marginBottom: '1.5rem',
+            background: 'rgba(16,185,129,0.04)', borderLeft: '4px solid #10b981'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>🌱 CARBON FOOTPRINT SAVED</div>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981', lineHeight: 1 }}>{co2SavedKg.toLocaleString()}</div>
+                <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '2px' }}>kg CO₂ offset vs. car</div>
+              </div>
+              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#34d399' }}>{treesEquiv.toLocaleString()}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>trees / year equiv.</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#6ee7b7' }}>{carsOffRoad}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>cars off road / year</div>
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: '120px', fontSize: '0.7rem', opacity: 0.5, lineHeight: 1.6 }}>
+                Based on avg. car emission of 210g CO₂/km across {stats.total_distance?.toFixed(0)} km.
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
+
       {/* 1.5 Goal / Recovery / Race Countdown Row */}
       {(() => {
         const _sportType = stats.sport_type || 'All';

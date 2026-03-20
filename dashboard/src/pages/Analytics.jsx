@@ -314,6 +314,52 @@ const Analytics = ({ stats, sportType }) => {
         </div>
       </div>
 
+      {/* Morning vs Evening Comparison */}
+      {(() => {
+        const tp = stats.time_preference || [];
+        const morning = tp.filter(t => t.slot >= 5 && t.slot < 12).reduce((s, t) => s + t.count, 0);
+        const afternoon = tp.filter(t => t.slot >= 12 && t.slot < 17).reduce((s, t) => s + t.count, 0);
+        const evening = tp.filter(t => t.slot >= 17 && t.slot < 22).reduce((s, t) => s + t.count, 0);
+        const night = tp.filter(t => t.slot < 5 || t.slot >= 22).reduce((s, t) => s + t.count, 0);
+        const total = morning + afternoon + evening + night || 1;
+        const blocks = [
+          { label: 'Morning', range: '5–12h', count: morning, color: '#f59e0b', icon: '🌅' },
+          { label: 'Afternoon', range: '12–17h', count: afternoon, color: '#ff8533', icon: '☀️' },
+          { label: 'Evening', range: '17–22h', count: evening, color: '#8b5cf6', icon: '🌆' },
+          { label: 'Night', range: '22–5h', count: night, color: '#06b6d4', icon: '🌙' },
+        ];
+        const dominant = blocks.reduce((a, b) => a.count > b.count ? a : b);
+        return (
+          <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+            <div className="card-header">
+              <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+                <Filter size={20} color={themeColor} style={{ flexShrink: 0 }} /> TRAINING TIME DISTRIBUTION
+              </h3>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.5 }}>
+                You prefer <b style={{ color: dominant.color }}>{dominant.label}</b> {dominant.icon}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+              {blocks.map(b => {
+                const pct = Math.round((b.count / total) * 100);
+                return (
+                  <div key={b.label} style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', borderTop: `3px solid ${b.color}` }}>
+                    <div style={{ fontSize: '1.3rem', marginBottom: '4px' }}>{b.icon}</div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.7, marginBottom: '4px' }}>{b.label}</div>
+                    <div style={{ fontSize: '0.55rem', opacity: 0.4, marginBottom: '8px' }}>{b.range}</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: b.color, lineHeight: 1 }}>{pct}%</div>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.5, marginTop: '4px' }}>{b.count} sessions</div>
+                    <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '8px' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: b.color, borderRadius: '2px', transition: 'width 0.8s' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Monthly Performance Table */}
       <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
           <div className="card-header">

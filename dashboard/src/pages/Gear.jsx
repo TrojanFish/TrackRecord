@@ -110,6 +110,51 @@ const Gear = ({ stats, sportType }) => {
               </div>
            </div>
   
+           {/* Gear Cost Tracking */}
+           {stats.gear_stats.some(g => g.purchase_price > 0) && (
+             <div className="platform-card" style={{ padding: '2rem' }}>
+               <h3 style={{ fontSize: '0.95rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 800 }}>
+                 <Zap size={22} color={themeColor} /> COST EFFICIENCY TRACKER
+               </h3>
+               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                 {stats.gear_stats.filter(g => g.purchase_price > 0).map(gear => {
+                   const gColor = gear.type === 'Run' ? '#ff3366' : 'var(--accent-cyan)';
+                   const costPerKm = gear.cost_per_km;
+                   const totalSpent = gear.purchase_price;
+                   const pct = Math.min(100, (gear.distance / gear.limit) * 100);
+                   return (
+                     <div key={gear.name} style={{ padding: '1.25rem', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                       <div style={{ fontSize: '0.7rem', fontWeight: 800, color: gColor, marginBottom: '0.75rem' }}>{gear.name}</div>
+                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                         <div>
+                           <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: '2px' }}>PURCHASE PRICE</div>
+                           <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>¥{totalSpent.toLocaleString()}</div>
+                         </div>
+                         <div>
+                           <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: '2px' }}>COST / KM</div>
+                           <div style={{ fontSize: '1.1rem', fontWeight: 900, color: costPerKm < 0.5 ? '#10b981' : costPerKm < 1.5 ? '#f59e0b' : '#ef4444' }}>
+                             ¥{costPerKm ?? '—'}
+                           </div>
+                         </div>
+                         <div>
+                           <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: '2px' }}>DISTANCE</div>
+                           <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{gear.distance} km</div>
+                         </div>
+                         <div>
+                           <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: '2px' }}>VALUE USED</div>
+                           <div style={{ fontSize: '1.1rem', fontWeight: 900, color: gColor }}>{Math.round(pct)}%</div>
+                         </div>
+                       </div>
+                       <div style={{ marginTop: '0.75rem', fontSize: '0.6rem', opacity: 0.4, padding: '0.5rem', background: 'rgba(0,0,0,0.15)', borderRadius: '6px' }}>
+                         Total value extracted: ¥{Math.round(totalSpent * pct / 100).toLocaleString()} of ¥{totalSpent.toLocaleString()}
+                       </div>
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+           )}
+
            {/* Monthly Distance Chart per Gear */}
            <div className="platform-card" style={{ padding: '2rem' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>

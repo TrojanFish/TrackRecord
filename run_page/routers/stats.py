@@ -658,16 +658,21 @@ def _compute_gear_stats(conn, active_types: list, athlete_metrics: dict) -> list
                 "limit": c_limit
             })
 
+        purchase_price = gear.get("purchase_price", 0)
+        cost_per_km = round(purchase_price / distance, 2) if distance > 0 and purchase_price > 0 else None
+
         result.append({
-            "name": name, 
+            "name": name,
             "type": g_type,
             "icon": gear.get("icon", "Footprints" if g_type == "Run" else "Bike"),
-            "distance": distance, 
-            "limit": limit, 
+            "distance": distance,
+            "limit": limit,
             "count": count,
             "elevation": elevation,
             "time": time_str,
             "purchase_date": gear.get("purchase_date"),
+            "purchase_price": purchase_price,
+            "cost_per_km": cost_per_km,
             "monthly_mileage": monthly,
             "components": g_components
         })
@@ -982,6 +987,161 @@ def _compute_pbs_per_month(conn, active_types: list) -> list:
     return [{"month": m, "pbs": c} for m, c in sorted(pb_months.items())]
 
 
+# ─── 辅助：里程碑时间轴 ───────────────────────────────────────────────────────
+
+def _compute_milestones_timeline(conn, active_types: list) -> list:
+    """Generate a timeline of achievement milestones."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT date(start_date_local) AS d, distance, type, location_country "
+        f"FROM activities WHERE type IN ({ph}) AND d IS NOT NULL "
+        f"ORDER BY d ASC",
+        tuple(active_types),
+    )
+    rows = cur.fetchall()
+    if not rows:
+        return []
+
+    milestones = []
+    cum_dist = 0.0
+    cum_count = 0
+    next_dist_milestone = 500
+    next_count_milestone = 100
+    countries_seen: set = set()
+
+    for row in rows:
+        d = row["d"]
+        cum_dist += (row["distance"] or 0) / 1000.0
+        cum_count += 1
+        country = row["location_country"] or ""
+
+        # First activity ever
+        if cum_count == 1:
+            milestones.append({
+                "date": d, "type": "first", "icon": "🚀",
+                "title": "First Activity",
+                "description": f"Logged your very first {row['type']} activity."
+            })
+
+        # Country firsts
+        if country and country not in countries_seen:
+            countries_seen.add(country)
+            if len(countries_seen) > 1:
+                milestones.append({
+                    "date": d, "type": "country", "icon": "🌍",
+                    "title": f"New Country: {country}",
+                    "description": f"First activity recorded in {country}."
+                })
+
+        # Cumulative distance milestones
+        while cum_dist >= next_dist_milestone:
+            milestones.append({
+                "date": d, "type": "distance", "icon": "🏅",
+                "title": f"{next_dist_milestone:,} km Total",
+                "description": f"Reached {next_dist_milestone:,} km lifetime distance."
+            })
+            next_dist_milestone += 500 if next_dist_milestone < 2000 else (1000 if next_dist_milestone < 10000 else 5000)
+
+        # Activity count milestones
+        while cum_count >= next_count_milestone:
+            milestones.append({
+                "date": d, "type": "count", "icon": "🎯",
+                "title": f"{next_count_milestone} Activities",
+                "description": f"Completed {next_count_milestone} activities."
+            })
+            next_count_milestone += 100 if next_count_milestone < 500 else (250 if next_count_milestone < 1000 else 500)
+
+    # Sort by date descending for display
+    milestones.sort(key=lambda x: x["date"], reverse=True)
+    return milestones[:50]
+
+
+# ─── 辅助：配速演变 ───────────────────────────────────────────────────────────
+
+def _compute_pace_evolution(conn, active_types: list) -> dict:
+    """Monthly best pace for standard race distances (run types only)."""
+    run_types = [t for t in active_types if t in _RUN_TYPES]
+    if not run_types:
+        return {}
+    ph = ",".join(["?"] * len(run_types))
+    result = {}
+    for label, target, tol in [("5K", 5000, 250), ("10K", 10000, 400),
+                                 ("Half", 21097, 800), ("Marathon", 42195, 1500)]:
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT strftime('%Y-%m', start_date_local) AS month, "
+            f"MIN(moving_time) AS best_time, distance "
+            f"FROM activities WHERE type IN ({ph}) AND distance BETWEEN ? AND ? "
+            f"GROUP BY month ORDER BY month",
+            (*run_types, target - tol, target + tol),
+        )
+        rows = cur.fetchall()
+        data = []
+        for row in rows:
+            secs = row_to_seconds(row["best_time"])
+            dk = (row["distance"] or target) / 1000.0
+            if secs > 0 and dk > 0:
+                pace_sec = secs / dk  # sec/km
+                data.append({
+                    "month": row["month"],
+                    "pace_sec": round(pace_sec),
+                    "pace_str": f"{int(pace_sec // 60)}:{int(pace_sec % 60):02d}",
+                    "time_str": f"{int(secs // 60)}:{int(secs % 60):02d}",
+                })
+        if data:
+            result[label] = data
+    return result
+
+
+# ─── 辅助：活动版图（国家/地区统计） ─────────────────────────────────────────
+
+def _compute_activity_world(conn, active_types: list) -> list:
+    """Count activities and distance per country."""
+    ph = ",".join(["?"] * len(active_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT location_country AS country, COUNT(*) AS count, "
+        f"COALESCE(SUM(distance), 0) / 1000.0 AS dist "
+        f"FROM activities WHERE type IN ({ph}) AND location_country IS NOT NULL AND location_country != '' "
+        f"GROUP BY country ORDER BY count DESC",
+        tuple(active_types),
+    )
+    return [
+        {"country": r["country"], "count": r["count"], "distance": round(r["dist"], 1)}
+        for r in cur.fetchall()
+    ]
+
+
+# ─── 辅助：功率历史 ───────────────────────────────────────────────────────────
+
+def _compute_power_history(conn, active_types: list) -> list:
+    """Annual best average power and estimated FTP for ride activities."""
+    ride_types = [t for t in active_types if t in _RIDE_TYPES]
+    if not ride_types:
+        return []
+    ph = ",".join(["?"] * len(ride_types))
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT strftime('%Y', start_date_local) AS yr, "
+        f"MAX(average_watts) AS best_watts, AVG(average_watts) AS avg_watts "
+        f"FROM activities WHERE type IN ({ph}) AND average_watts > 0 "
+        f"GROUP BY yr ORDER BY yr ASC",
+        tuple(ride_types),
+    )
+    result = []
+    for r in cur.fetchall():
+        best = int(r["best_watts"] or 0)
+        ftp_est = int(best * 0.95)  # FTP ≈ 95% of best avg watts
+        result.append({
+            "year": r["yr"],
+            "best_watts": best,
+            "avg_watts": round(r["avg_watts"] or 0),
+            "ftp_estimate": ftp_est,
+        })
+    return result
+
+
 # ─── 辅助：breakdown ─────────────────────────────────────────────────────────
 
 def _compute_breakdown(conn, active_types: list) -> dict:
@@ -1219,6 +1379,10 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
         smart_coach = _compute_smart_coach(training_details)
         yearly_full = _compute_yearly_full(conn, active_types)
         pbs_per_month = _compute_pbs_per_month(conn, active_types)
+        milestones_timeline = _compute_milestones_timeline(conn, active_types)
+        pace_evolution = _compute_pace_evolution(conn, active_types)
+        activity_world = _compute_activity_world(conn, active_types)
+        power_history = _compute_power_history(conn, active_types)
 
         is_run_only = is_run_active and not is_ride_active
         is_ride_only = is_ride_active and not is_run_active
@@ -1355,6 +1519,10 @@ def get_sports_stats(sport_type: Optional[str] = Query(None)):
             "smart_coach": smart_coach,
             "yearly_full": yearly_full,
             "pbs_per_month": pbs_per_month,
+            "milestones_timeline": milestones_timeline,
+            "pace_evolution": pace_evolution,
+            "activity_world": activity_world,
+            "power_history": power_history,
             "primary_metric": primary_metric,
             "weekly_trends": [],
         }

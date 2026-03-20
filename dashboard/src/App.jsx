@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Activity, Map, Calendar,
   TrendingUp, Star, Award, History, Medal,
-  Image, Wrench, Milestone
+  Image, Wrench, Milestone, Flag, Globe
 } from 'lucide-react';
 import { useStats } from './hooks/useStats';
 
@@ -25,6 +25,8 @@ const Photos      = lazy(() => import('./pages/Photos'));
 const Rewind      = lazy(() => import('./pages/Rewind'));
 const Segments    = lazy(() => import('./pages/Segments'));
 const CalendarPage = lazy(() => import('./pages/Calendar'));
+const Milestones  = lazy(() => import('./pages/Milestones'));
+const WorldMap    = lazy(() => import('./pages/WorldMap'));
 
 
 // Error boundary to prevent a single bad page from crashing the whole app
@@ -238,6 +240,8 @@ function App() {
       case 'Rewind':      return <Rewind stats={stats} sportType={sportType} />;
       case 'Segments':    return <Segments sportType={sportType} />;
       case 'Calendar':    return <CalendarPage stats={stats} />;
+      case 'Milestones':  return <Milestones stats={stats} />;
+      case 'WorldMap':    return <WorldMap stats={stats} />;
       default:            return <Dashboard stats={stats} setActiveTab={setActiveTab} />;
     }
   };
@@ -256,6 +260,8 @@ function App() {
     'Segments':    { title: 'SEGMENTS PERFORMANCE',   icon: Milestone },
     'Gear':        { title: 'EQUIPMENT TRACKING',     icon: Wrench },
     'Calendar':    { title: 'ACTIVITY CALENDAR',      icon: Calendar },
+    'Milestones':  { title: 'ACHIEVEMENT MILESTONES', icon: Flag },
+    'WorldMap':    { title: 'ACTIVITY WORLD MAP',     icon: Globe },
   };
 
   const currentTabInfo = tabMetadata[activeTab] || { title: activeTab.toUpperCase(), icon: null };
