@@ -381,7 +381,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {wrRows.map(({ label, wrSec, userSec, pct, userTime, color }) => (
+                  {wrRows.map(({ label, wrSec, pct, userTime, color }) => (
                     <tr key={label} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: '0.6rem 0', fontWeight: 700 }}>{label}</td>
                       <td style={{ textAlign: 'right', padding: '0.6rem 0', color: currentConfig.color, fontWeight: 800 }}>
