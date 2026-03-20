@@ -204,9 +204,10 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
 
       {/* 1.5 Goal / Recovery / Race Countdown Row */}
       {(() => {
-        const annualTarget = sportType === 'Run'
+        const _sportType = stats.sport_type || 'All';
+        const annualTarget = _sportType === 'Run'
           ? (stats.athlete_metrics?.run_annual_distance_target || stats.athlete_metrics?.annual_distance_target || 500)
-          : sportType === 'Ride'
+          : _sportType === 'Ride'
           ? (stats.athlete_metrics?.ride_annual_distance_target || stats.athlete_metrics?.annual_distance_target || 2000)
           : (stats.athlete_metrics?.annual_distance_target || 800);
         const weeklyTarget = annualTarget / 52;
