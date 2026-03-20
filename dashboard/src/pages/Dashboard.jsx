@@ -232,7 +232,7 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           : null;
 
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
             {/* Widget A: Weekly Goal Progress */}
             <motion.div variants={item} className="platform-card" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -286,58 +286,6 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
           </div>
         );
       })()}
-
-      {/* 2. Smart Coach Advice (Immediate Context) */}
-      {stats.smart_coach && (
-        <motion.div
-          variants={item}
-          className={`platform-card ${stats.smart_coach.advice.includes('ATTENTION') ? 'coach-alert-pulse' : ''}`}
-          style={{
-            padding: '1.25rem',
-            marginBottom: '2.5rem',
-            background: stats.smart_coach.advice.includes('ATTENTION') ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255,255,255,0.02)',
-            border: stats.smart_coach.advice.includes('ATTENTION') ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(255,255,255,0.05)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          {stats.smart_coach.advice.includes('ATTENTION') && (
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#ef4444' }} />
-          )}
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              background: stats.smart_coach.advice.includes('ATTENTION') ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : 'linear-gradient(135deg, var(--accent-cyan), #bd00ff)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              boxShadow: stats.smart_coach.advice.includes('ATTENTION') ? '0 0 20px rgba(239, 68, 68, 0.3)' : '0 0 20px rgba(6, 182, 212, 0.3)'
-            }}>
-              {stats.smart_coach.advice.includes('ATTENTION') ? <AlertCircle size={20} /> : <Zap size={20} />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <h4 style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, letterSpacing: '1px' }}>SMART COACH ADVICE</h4>
-                <span className={`badge ${stats.smart_coach.status.toLowerCase()}`} style={{ fontSize: '0.65rem' }}>
-                  {stats.smart_coach.status.toUpperCase()}
-                </span>
-              </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, marginTop: '4px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                {stats.smart_coach.advice.split(' | ')[0]}
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>EFFICIENCY</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
-                {stats.smart_coach.efficiency}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* 2. Recent Form Comparison Row */}
       {stats.recent_form && (
@@ -540,109 +488,190 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         </motion.div>
       </div>
 
-      {/* 2.1 Most Recent Activities (New P0 Widget) */}
-      <motion.div variants={item} className="platform-card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
-        <div className="card-header">
-          <h3 className="card-title" style={{ fontSize: '0.95rem' }}>
-            <Activity size={22} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> MOST RECENT ACTIVITIES
-          </h3>
-          <button
-            onClick={() => setActiveTab && setActiveTab('Activities')}
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--glass-border)',
-              padding: '6px 16px',
-              borderRadius: '10px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            More
-          </button>
-        </div>
-        <div className="table-scroll-container" style={{ marginTop: '-1rem' }}>
-          <table className="activity-table">
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '12px' }}>DATE</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>NAME / LOCATION</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>TYPE</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>DISTANCE / CLIMB</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>{stats.primary_metric?.toUpperCase()} / TIME</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>HR / CAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.recent_activities?.slice(0, 5).map((act, idx) => (
-                <tr
-                  key={act.run_id || idx}
-                  onClick={() => {
-                    if (setActiveTab) {
-                      if (setInitialSearch) setInitialSearch(act.name);
-                      setActiveTab('Activities');
-                    }
-                  }}
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }}
-                >
-                  <td style={{ fontSize: '0.75rem', opacity: 0.6, padding: '12px' }}>
-                    {new Date(act.start_date_local).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </td>
-                  <td style={{ fontWeight: 700, padding: '12px' }}>
-                    <div>{act.name}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400 }}>{act.location_city || act.location_country || '—'}</div>
-                  </td>
-                  <td style={{ padding: '12px' }}><span className={`badge ${act.type.toLowerCase()}`}>{act.type.toUpperCase()}</span></td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontWeight: 800 }}>{(act.distance / 1000).toFixed(2)} KM</div>
-                    {act.elevation_gain > 0 && (
-                      <div style={{ fontSize: '0.7rem', opacity: 0.5, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <TrendingUp size={10} /> {Math.round(act.elevation_gain)}m
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontWeight: 600 }}>{act.gap_pace ? act.gap_pace : '-'}</div>
-                    <div style={{ fontSize: '0.7rem', opacity: 0.4 }}>{act.moving_time_display}</div>
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {act.average_heartrate > 0 && (
-                          <div style={{ fontSize: '0.75rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                            <Heart size={10} fill="#ef4444" /> {Math.round(act.average_heartrate)}
-                          </div>
-                        )}
-                        {act.average_cadence > 0 && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                            <Footprints size={10} /> {Math.round(act.average_cadence < 120 && act.type.toLowerCase().includes('run') ? act.average_cadence * 2 : act.average_cadence)}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {act.calories > 0 && (
-                          <div style={{ fontSize: '0.75rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                            <Flame size={10} fill="#f59e0b" /> {act.calories}
-                          </div>
-                        )}
-                        {act.average_watts > 0 && (
-                          <div style={{ fontSize: '0.75rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                            <Zap size={10} fill="#8b5cf6" /> {Math.round(act.average_watts)}W
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
+      {/* Combined: Recent Activities + Smart Coach sidebar */}
+      <div style={{ display: 'grid', gridTemplateColumns: stats.smart_coach ? 'minmax(0, 2fr) minmax(0, 1fr)' : '1fr', gap: '2rem', marginBottom: '2.5rem', alignItems: 'start' }}>
+        {/* LEFT (2fr): Most Recent Activities */}
+        <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '0.95rem' }}>
+              <Activity size={22} color="var(--accent-cyan)" style={{ flexShrink: 0 }} /> MOST RECENT ACTIVITIES
+            </h3>
+            <button
+              onClick={() => setActiveTab && setActiveTab('Activities')}
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--glass-border)',
+                padding: '6px 16px',
+                borderRadius: '10px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              More
+            </button>
+          </div>
+          <div className="table-scroll-container" style={{ marginTop: '-1rem' }}>
+            <table className="activity-table">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '12px' }}>DATE</th>
+                  <th style={{ textAlign: 'left', padding: '12px' }}>NAME / LOCATION</th>
+                  <th style={{ textAlign: 'left', padding: '12px' }}>TYPE</th>
+                  <th style={{ textAlign: 'left', padding: '12px' }}>DISTANCE / CLIMB</th>
+                  <th style={{ textAlign: 'left', padding: '12px' }}>{stats.primary_metric?.toUpperCase()} / TIME</th>
+                  <th style={{ textAlign: 'left', padding: '12px' }}>HR / CAL</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
+              </thead>
+              <tbody>
+                {stats.recent_activities?.slice(0, 5).map((act, idx) => (
+                  <tr
+                    key={act.run_id || idx}
+                    onClick={() => {
+                      if (setActiveTab) {
+                        if (setInitialSearch) setInitialSearch(act.name);
+                        setActiveTab('Activities');
+                      }
+                    }}
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }}
+                  >
+                    <td style={{ fontSize: '0.75rem', opacity: 0.6, padding: '12px' }}>
+                      {new Date(act.start_date_local).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td style={{ fontWeight: 700, padding: '12px' }}>
+                      <div>{act.name}</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.4, fontWeight: 400 }}>{act.location_city || act.location_country || '—'}</div>
+                    </td>
+                    <td style={{ padding: '12px' }}><span className={`badge ${act.type.toLowerCase()}`}>{act.type.toUpperCase()}</span></td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ fontWeight: 800 }}>{(act.distance / 1000).toFixed(2)} KM</div>
+                      {act.elevation_gain > 0 && (
+                        <div style={{ fontSize: '0.7rem', opacity: 0.5, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <TrendingUp size={10} /> {Math.round(act.elevation_gain)}m
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ fontWeight: 600 }}>{act.gap_pace ? act.gap_pace : '-'}</div>
+                      <div style={{ fontSize: '0.7rem', opacity: 0.4 }}>{act.moving_time_display}</div>
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {act.average_heartrate > 0 && (
+                            <div style={{ fontSize: '0.75rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <Heart size={10} fill="#ef4444" /> {Math.round(act.average_heartrate)}
+                            </div>
+                          )}
+                          {act.average_cadence > 0 && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <Footprints size={10} /> {Math.round(act.average_cadence < 120 && act.type.toLowerCase().includes('run') ? act.average_cadence * 2 : act.average_cadence)}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {act.calories > 0 && (
+                            <div style={{ fontSize: '0.75rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <Flame size={10} fill="#f59e0b" /> {act.calories}
+                            </div>
+                          )}
+                          {act.average_watts > 0 && (
+                            <div style={{ fontSize: '0.75rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <Zap size={10} fill="#8b5cf6" /> {Math.round(act.average_watts)}W
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* RIGHT (1fr): Smart Coach + Streaks stacked — only if smart_coach exists */}
+        {stats.smart_coach && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Smart Coach card */}
+            <motion.div
+              variants={item}
+              className={`platform-card ${stats.smart_coach.advice.includes('ATTENTION') ? 'coach-alert-pulse' : ''}`}
+              style={{
+                padding: '1.25rem',
+                background: stats.smart_coach.advice.includes('ATTENTION') ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255,255,255,0.02)',
+                border: stats.smart_coach.advice.includes('ATTENTION') ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(255,255,255,0.05)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {stats.smart_coach.advice.includes('ATTENTION') && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#ef4444' }} />
+              )}
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: stats.smart_coach.advice.includes('ATTENTION') ? 'linear-gradient(135deg, #ef4444, #f59e0b)' : 'linear-gradient(135deg, var(--accent-cyan), #bd00ff)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  boxShadow: stats.smart_coach.advice.includes('ATTENTION') ? '0 0 20px rgba(239, 68, 68, 0.3)' : '0 0 20px rgba(6, 182, 212, 0.3)'
+                }}>
+                  {stats.smart_coach.advice.includes('ATTENTION') ? <AlertCircle size={20} /> : <Zap size={20} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.75rem', opacity: 0.8, letterSpacing: '1px' }}>SMART COACH ADVICE</h4>
+                    <span className={`badge ${stats.smart_coach.status.toLowerCase()}`} style={{ fontSize: '0.65rem' }}>
+                      {stats.smart_coach.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, marginTop: '4px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    {stats.smart_coach.advice.split(' | ')[0]}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>EFFICIENCY</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent-cyan)' }}>
+                    {stats.smart_coach.efficiency}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Streak card */}
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px', opacity: 0.5, marginBottom: '1rem' }}>ACTIVITY STREAK</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px' }}>CURRENT</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, color: accent }}>{stats.streaks?.current || 0}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>DAYS</div>
+                </div>
+                <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px' }}>BEST</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.streaks?.day || 0}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>DAYS</div>
+                </div>
+                <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.5, marginBottom: '4px' }}>YEAR</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900 }}>{stats.this_year?.count || 0}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.4 }}>SESSIONS</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
 
       {/* 4. Athlete Insights (Patterns & Profile) */}
       <h4 style={{ fontSize: '0.7rem', opacity: 0.4, letterSpacing: '2px', marginBottom: '1.25rem' }}>ATHLETE PROFILE & PATTERN ANALYSIS</h4>
