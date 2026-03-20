@@ -484,7 +484,7 @@ const Segments = ({ sportType }) => {
                       ))}
                     </tbody>
                   </table>
-                ) : (
+                ) : modalMode === 'charts' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     <div className="platform-card" style={{ padding: '1.5rem', height: '300px' }}>
                         <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.7 }}>TIME PERFORMANCE HISTORY</div>
@@ -513,7 +513,7 @@ const Segments = ({ sportType }) => {
                                 <XAxis type="number" dataKey="hr" name="Heart Rate" stroke="rgba(255,255,255,0.3)" fontSize={10} label={{ value: 'Avg Heart Rate', position: 'insideBottom', offset: -5, fill: 'white', opacity: 0.4 }} />
                                 <YAxis type="number" dataKey="time" name="Time" stroke="rgba(255,255,255,0.3)" fontSize={10} tickFormatter={(v) => formatDuration(v)} label={{ value: 'Time (s)', angle: -90, position: 'insideLeft', fill: 'white', opacity: 0.4 }} />
                                 <ZAxis type="number" range={[60, 400]} />
-                                <Tooltip 
+                                <Tooltip
                                     cursor={{ strokeDasharray: '3 3' }}
                                     contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
                                     formatter={(v, name) => name === 'Time' ? [formatDuration(v), name] : [v, name]}
@@ -521,11 +521,68 @@ const Segments = ({ sportType }) => {
                                 <Scatter data={segmentEfforts.map(e => ({
                                     hr: e.average_heartrate || 0,
                                     time: parseToSecs(e.moving_time)
-                                })).filter(e => e.hr > 0)} fill="var(--accent-red)" />
+                                })).filter(e => e.hr > 0)} fill="#ef4444" />
                             </ScatterChart>
                         </ResponsiveContainer>
                     </div>
                   </div>
+                ) : (
+                  (() => {
+                    const byMonth = segmentEfforts.reduce((acc, e) => {
+                      const month = e.start_date_local.slice(0, 7);
+                      if (!acc[month]) acc[month] = [];
+                      acc[month].push(e);
+                      return acc;
+                    }, {});
+                    const monthRows = Object.entries(byMonth)
+                      .map(([month, efforts]) => {
+                        const best = efforts.reduce((a, b) => parseToSecs(a.moving_time) < parseToSecs(b.moving_time) ? a : b);
+                        return { month, count: efforts.length, bestTime: best.moving_time, bestDate: best.start_date_local.split(' ')[0] };
+                      })
+                      .sort((a, b) => parseToSecs(a.bestTime) - parseToSecs(b.bestTime));
+                    const chartData = Object.entries(byMonth)
+                      .map(([month, efforts]) => ({
+                        month,
+                        count: efforts.length,
+                        best: parseToSecs(efforts.reduce((a, b) => parseToSecs(a.moving_time) < parseToSecs(b.moving_time) ? a : b).moving_time)
+                      }))
+                      .sort((a, b) => a.month.localeCompare(b.month));
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        <div className="platform-card" style={{ padding: '1.5rem', height: '300px' }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.7 }}>MONTHLY ATTEMPTS</div>
+                          <ResponsiveContainer width="100%" height="80%">
+                            <BarChart data={chartData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                              <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" fontSize={10} />
+                              <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} />
+                              <Tooltip contentStyle={{ background: '#0a1628', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} formatter={(v) => [v, 'Attempts']} />
+                              <Bar dataKey="count" fill="var(--accent-cyan)" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="platform-card" style={{ padding: '1.5rem' }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: '1.5rem', opacity: 0.7 }}>BEST TIME PER MONTH (RANKED)</div>
+                          <table className="activities-table">
+                            <thead>
+                              <tr><th>RANK</th><th>MONTH</th><th>BEST TIME</th><th>BEST DATE</th><th>ATTEMPTS</th></tr>
+                            </thead>
+                            <tbody>
+                              {monthRows.map((row, idx) => (
+                                <tr key={row.month}>
+                                  <td style={{ fontWeight: 900, opacity: 0.6 }}>#{idx + 1}</td>
+                                  <td style={{ fontWeight: 700, color: idx === 0 ? 'var(--accent-cyan)' : 'white' }}>{row.month}</td>
+                                  <td style={{ color: 'var(--accent-cyan)', fontWeight: 800 }}>{formatDuration(row.bestTime)}</td>
+                                  <td style={{ opacity: 0.7 }}>{row.bestDate}</td>
+                                  <td>{row.count}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()
                 )}
               </div>
             </motion.div>

@@ -38,12 +38,13 @@ const Gear = ({ stats, sportType }) => {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`gear-tab-btn platform-card ${activeTab === tab ? 'active' : ''}`}
-            style={{ 
+            style={{
               cursor: 'pointer',
               color: 'white',
               fontWeight: 800,
               fontSize: '0.8rem',
               letterSpacing: '1px',
+              padding: '0.5rem 1rem',
               border: activeTab === tab ? `1px solid ${themeColor}` : '1px solid transparent',
               background: activeTab === tab ? `${themeColor}33` : 'var(--bg-card)'
             }}

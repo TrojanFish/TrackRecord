@@ -261,22 +261,13 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
         maxHeight: 'calc(100% - 150px)'
       }}>
          {/* Title & Stats Bubble */}
-         <div style={{ background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <div>
-              <h2 style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', color: themeColor, margin: 0 }}>
-                {sportType && sportType !== 'All' ? sportType.toUpperCase() : ''} ROUTE EXPLORER
-              </h2>
-              <div style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '2px' }}>
-                {filteredCount} shown · {activities.length} total
-              </div>
+         <div style={{ background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)', padding: '12px 20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
+            <h2 style={{ fontSize: '0.8rem', fontWeight: 900, letterSpacing: '2px', color: themeColor, margin: 0 }}>
+              {sportType && sportType !== 'All' ? sportType.toUpperCase() : ''} ROUTE EXPLORER
+            </h2>
+            <div style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '2px' }}>
+              {filteredCount} shown · {activities.length} total
             </div>
-            <button
-              onClick={() => setSidebarOpen(o => !o)}
-              style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer', padding: '6px', display: 'flex', flexShrink: 0 }}
-              title="Toggle sidebar"
-            >
-              <ChevronLeft size={14} />
-            </button>
          </div>
 
          {/* Coloring Modes */}
@@ -387,21 +378,30 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
          </div>
       </div>
 
-      {/* Sidebar re-open button when collapsed */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          style={{
-            position: 'absolute', top: '30px', left: '30px', zIndex: 2001,
-            background: 'rgba(10, 22, 40, 0.85)', backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',
-            color: themeColor, cursor: 'pointer', padding: '10px 14px',
-            fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px'
-          }}
-        >
-          <ChevronRight size={14} /> PANEL
-        </button>
-      )}
+      {/* Sidebar toggle button — always visible, transitions with sidebar */}
+      <button
+        onClick={() => setSidebarOpen(o => !o)}
+        style={{
+          position: 'absolute',
+          top: '30px',
+          left: sidebarOpen ? '302px' : '20px',
+          transition: 'left 0.3s ease',
+          zIndex: 2002,
+          background: 'rgba(10, 22, 40, 0.85)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '8px',
+          color: 'white',
+          cursor: 'pointer',
+          padding: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        title={sidebarOpen ? 'Collapse panel' : 'Expand panel'}
+      >
+        {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+      </button>
 
       {/* Advanced Filters (Floating Right) */}
       <div className="map-controls-floating" style={{ top: '30px', right: '30px', padding: '15px 20px' }}>
