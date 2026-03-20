@@ -5,7 +5,7 @@ services:
     ports:
       - "8081:8000"
     volumes:
-      - ./run_page/settings.yaml:/app/config.yaml # 将本地设置挂载为容器内的默认配置
+      - ./run_page/settings.yaml:/app/run_page/settings.yaml # athlete metrics, HR zones, gear limits
       - ./data:/app/data
       - ./run_page/static/photos:/app/run_page/static/photos
       - ./run_page/static/trophy_icons:/app/run_page/static/trophy_icons
