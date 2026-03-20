@@ -167,8 +167,8 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
   };
 
   const selectStyle = {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: '#0a1628',
+    border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: '8px',
     color: 'white',
     fontSize: '0.7rem',
@@ -178,6 +178,7 @@ const Heatmap = ({ activities, availableYears, sportType }) => {
     outline: 'none',
     appearance: 'none',
     WebkitAppearance: 'none',
+    colorScheme: 'dark',
   };
 
   const iconBtnStyle = {
