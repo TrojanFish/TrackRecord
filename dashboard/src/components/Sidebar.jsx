@@ -16,8 +16,6 @@ import {
   Wrench,
   Milestone as RouteIcon,
   Flag,
-  Globe,
-  Repeat,
   Github,
   Search,
   Bell,
@@ -64,6 +62,7 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
         { id: 'Eddington', icon: Award, label: 'EDDINGTON' },
         { id: 'Segments', icon: RouteIcon, label: 'SEGMENTS' },
         { id: 'Challenges', icon: Medal, label: 'CHALLENGES' },
+        { id: 'Milestones', icon: Flag, label: 'MILESTONES' },
       ]
     },
     {
@@ -72,9 +71,6 @@ const Sidebar = ({ activeTab, setActiveTab, isExpanded, setIsExpanded, isMobileO
         { id: 'Photos', icon: Image, label: 'PHOTOS' },
         { id: 'Gear', icon: Wrench, label: 'GEAR' },
         { id: 'Calendar', icon: Calendar, label: 'CALENDAR' },
-        { id: 'Milestones', icon: Flag, label: 'MILESTONES' },
-        { id: 'WorldMap', icon: Globe, label: 'WORLD MAP' },
-        { id: 'RepeatRoutes', icon: Repeat, label: 'REPEAT ROUTES' },
       ]
     }
   ];

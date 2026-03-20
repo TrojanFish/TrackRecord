@@ -1345,7 +1345,7 @@ def _compute_seasonal_performance(conn, active_types: list) -> list:
         f"GROUP BY mo ORDER BY mo",
         tuple(active_types),
     )
-    months = {r["mo"]: r for r in cur.fetchall()}
+    months = {r["mo"]: dict(r) for r in cur.fetchall()}
     quarter_map = {1: "Q1 Winter", 2: "Q1 Winter", 3: "Q2 Spring",
                    4: "Q2 Spring", 5: "Q2 Spring", 6: "Q3 Summer",
                    7: "Q3 Summer", 8: "Q3 Summer", 9: "Q4 Autumn",
