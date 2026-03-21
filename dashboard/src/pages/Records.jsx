@@ -472,7 +472,7 @@ const Records = ({ stats, setActiveTab, setInitialSearch, sportType }) => {
 
           <h2 className="category-title" style={{ marginBottom: '2rem' }}>Performance Progress Tracking</h2>
           {Object.keys(stats.records_trends || {}).length > 0 ? (
-            <div className="platform-grid">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
               {(Object.entries(stats.records_trends || {})).map(([name, data]) => (
                 <div key={name} className="platform-card interactive-card" style={{ padding: '2rem' }}>
                   <h3 style={{ fontSize: '0.95rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>

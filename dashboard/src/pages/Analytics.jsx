@@ -124,84 +124,124 @@ const Analytics = ({ stats, sportType }) => {
         </div>
       </div>
 
-      {/* Yearly Stats Comparison Table */}
-      {stats.yearly_full && stats.yearly_full.length > 0 && (
-        <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <h3 className="card-title" style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-            <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> YEARLY PERFORMANCE SUMMARY
-          </h3>
+      {/* Yearly Summary + Monthly Progression side-by-side */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '2rem', marginBottom: '2rem' }}>
+        {stats.yearly_full && stats.yearly_full.length > 0 && (
+          <div className="platform-card" style={{ padding: '2rem' }}>
+            <h3 className="card-title" style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+              <TrendingUp size={20} color={themeColor} style={{ flexShrink: 0 }} /> YEARLY PERFORMANCE SUMMARY
+            </h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="analytics-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>YEAR</th>
+                    <th>ACTS</th>
+                    <th>DIST (KM)</th>
+                    <th>ELEV (M)</th>
+                    <th>HRS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.yearly_full.map(yr => (
+                    <tr key={yr.year}>
+                      <td style={{ fontWeight: 900, fontSize: '0.95rem', color: themeColor }}>{yr.year}</td>
+                      <td>{yr.count}</td>
+                      <td>
+                        <b style={{ color: themeColor }}>{yr.distance}</b>
+                        {yr.dist_delta !== null && (
+                          <span style={{ marginLeft: '5px', fontSize: '0.65rem', color: yr.dist_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                            {yr.dist_delta >= 0 ? '↑' : '↓'}{Math.abs(yr.dist_delta)}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {yr.elevation.toLocaleString()}
+                        {yr.elev_delta !== null && (
+                          <span style={{ marginLeft: '5px', fontSize: '0.65rem', color: yr.elev_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                            {yr.elev_delta >= 0 ? '↑' : '↓'}{Math.abs(yr.elev_delta).toLocaleString()}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {yr.hours}h
+                        {yr.hours_delta !== null && (
+                          <span style={{ marginLeft: '5px', fontSize: '0.65rem', color: yr.hours_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                            {yr.hours_delta >= 0 ? '↑' : '↓'}{Math.abs(yr.hours_delta)}h
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        <div className="platform-card" style={{ padding: '2rem' }}>
+          <div className="card-header">
+            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+              <Layers size={20} color="#f59e0b" style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} MONTHLY PROGRESSION
+            </h3>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="analytics-table" style={{ width: '100%' }}>
               <thead>
                 <tr>
-                  <th>YEAR</th>
-                  <th>ACTIVITIES</th>
-                  <th>DISTANCE (KM)</th>
-                  <th>ELEVATION (M)</th>
-                  <th>HOURS</th>
+                  <th>MONTH</th>
+                  <th>THIS YEAR</th>
+                  <th>LAST YEAR</th>
+                  <th>VARIANCE</th>
                 </tr>
               </thead>
               <tbody>
-                {stats.yearly_full.map(yr => (
-                  <tr key={yr.year}>
-                    <td style={{ fontWeight: 900, fontSize: '0.95rem', color: themeColor }}>{yr.year}</td>
-                    <td>{yr.count}</td>
-                    <td>
-                      <b style={{ color: themeColor }}>{yr.distance}</b>
-                      {yr.dist_delta !== null && (
-                        <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: yr.dist_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
-                          {yr.dist_delta >= 0 ? '↑' : '↓'} {Math.abs(yr.dist_delta)}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {yr.elevation.toLocaleString()}
-                      {yr.elev_delta !== null && (
-                        <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: yr.elev_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
-                          {yr.elev_delta >= 0 ? '↑' : '↓'} {Math.abs(yr.elev_delta).toLocaleString()}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {yr.hours}h
-                      {yr.hours_delta !== null && (
-                        <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: yr.hours_delta >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
-                          {yr.hours_delta >= 0 ? '↑' : '↓'} {Math.abs(yr.hours_delta)}h
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {stats.period_comparison?.slice(0, new Date().getMonth() + 1).reverse().map((m) => {
+                  const diff = m.this_year - m.last_year;
+                  const percent = m.last_year > 0 ? ((diff / m.last_year) * 100).toFixed(1) : '100+';
+                  return (
+                    <tr key={m.month}>
+                      <td style={{ fontWeight: 800 }}>{m.month.toUpperCase()}</td>
+                      <td><b style={{ color: themeColor }}>{m.this_year}</b></td>
+                      <td style={{ opacity: 0.8 }}>{m.last_year}</td>
+                      <td style={{ color: diff >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          {diff >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                          {Math.abs(diff).toFixed(1)} ({percent}%)
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
         <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '2px', opacity: 0.4, whiteSpace: 'nowrap' }}>BEHAVIORAL PATTERNS</span>
         <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '2rem' }}>
         {/* Weekday Analysis */}
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
             <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
-              <Calendar size={20} color={themeColor} style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} WEEKDAY ANALYSIS
+              <Calendar size={20} color={themeColor} style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} WEEKDAY
             </h3>
           </div>
-          <div style={{ height: '250px', width: '100%' }}>
+          <div style={{ height: '230px', width: '100%' }}>
             <ResponsiveContainer>
-              <BarChart data={stats.weekday_preference?.map(d => ({ 
-                ...d, 
-                name: d.day || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.weekday] 
+              <BarChart data={stats.weekday_preference?.map(d => ({
+                ...d,
+                name: d.day || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.weekday]
               }))}>
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis hide />
-                <Tooltip 
+                <Tooltip
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px' }} 
+                  contentStyle={{ background: '#0a1628', border: 'none', borderRadius: '8px' }}
                 />
                 <Bar dataKey="count" fill={themeColor} radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -213,14 +253,14 @@ const Analytics = ({ stats, sportType }) => {
         <div className="platform-card" style={{ padding: '2rem' }}>
           <div className="card-header">
             <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
-              <Activity size={20} color={secondaryColor} style={{ flexShrink: 0 }} /> PRIME TIME PREFERENCE
+              <Activity size={20} color={secondaryColor} style={{ flexShrink: 0 }} /> PRIME TIME
             </h3>
           </div>
-          <div style={{ height: '250px', width: '100%' }}>
+          <div style={{ height: '230px', width: '100%' }}>
             <ResponsiveContainer>
-              <AreaChart data={stats.time_preference?.map(t => ({ 
-                ...t, 
-                label: `${t.slot < 10 ? '0' : ''}${t.slot}:00` 
+              <AreaChart data={stats.time_preference?.map(t => ({
+                ...t,
+                label: `${t.slot < 10 ? '0' : ''}${t.slot}:00`
               }))}>
                 <XAxis dataKey="label" stroke="rgba(255,255,255,0.3)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis hide />
@@ -230,6 +270,52 @@ const Analytics = ({ stats, sportType }) => {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Training Time Distribution (3rd column) */}
+        {(() => {
+          const tp = stats.time_preference || [];
+          const morning = tp.filter(t => t.slot >= 5 && t.slot < 12).reduce((s, t) => s + t.count, 0);
+          const afternoon = tp.filter(t => t.slot >= 12 && t.slot < 17).reduce((s, t) => s + t.count, 0);
+          const evening = tp.filter(t => t.slot >= 17 && t.slot < 22).reduce((s, t) => s + t.count, 0);
+          const night = tp.filter(t => t.slot < 5 || t.slot >= 22).reduce((s, t) => s + t.count, 0);
+          const total = morning + afternoon + evening + night || 1;
+          const blocks = [
+            { label: 'Morning', range: '5–12h', count: morning, color: '#f59e0b', icon: '🌅' },
+            { label: 'Afternoon', range: '12–17h', count: afternoon, color: '#ff8533', icon: '☀️' },
+            { label: 'Evening', range: '17–22h', count: evening, color: '#8b5cf6', icon: '🌆' },
+            { label: 'Night', range: '22–5h', count: night, color: '#06b6d4', icon: '🌙' },
+          ];
+          const dominant = blocks.reduce((a, b) => a.count > b.count ? a : b);
+          return (
+            <div className="platform-card" style={{ padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
+                  <Filter size={20} color={themeColor} style={{ flexShrink: 0 }} /> TIME DISTRIBUTION
+                </h3>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.5 }}>
+                  {dominant.icon} <b style={{ color: dominant.color }}>{dominant.label}</b>
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                {blocks.map(b => {
+                  const pct = Math.round((b.count / total) * 100);
+                  return (
+                    <div key={b.label} style={{ textAlign: 'center', padding: '0.75rem 0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', borderTop: `3px solid ${b.color}` }}>
+                      <div style={{ fontSize: '1.1rem', marginBottom: '2px' }}>{b.icon}</div>
+                      <div style={{ fontSize: '0.6rem', fontWeight: 800, opacity: 0.7, marginBottom: '2px' }}>{b.label}</div>
+                      <div style={{ fontSize: '0.5rem', opacity: 0.4, marginBottom: '5px' }}>{b.range}</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: b.color, lineHeight: 1 }}>{pct}%</div>
+                      <div style={{ fontSize: '0.55rem', opacity: 0.5, marginTop: '2px' }}>{b.count} sessions</div>
+                      <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '6px' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: b.color, borderRadius: '2px', transition: 'width 0.8s' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
@@ -314,91 +400,7 @@ const Analytics = ({ stats, sportType }) => {
         </div>
       </div>
 
-      {/* Morning vs Evening Comparison */}
-      {(() => {
-        const tp = stats.time_preference || [];
-        const morning = tp.filter(t => t.slot >= 5 && t.slot < 12).reduce((s, t) => s + t.count, 0);
-        const afternoon = tp.filter(t => t.slot >= 12 && t.slot < 17).reduce((s, t) => s + t.count, 0);
-        const evening = tp.filter(t => t.slot >= 17 && t.slot < 22).reduce((s, t) => s + t.count, 0);
-        const night = tp.filter(t => t.slot < 5 || t.slot >= 22).reduce((s, t) => s + t.count, 0);
-        const total = morning + afternoon + evening + night || 1;
-        const blocks = [
-          { label: 'Morning', range: '5–12h', count: morning, color: '#f59e0b', icon: '🌅' },
-          { label: 'Afternoon', range: '12–17h', count: afternoon, color: '#ff8533', icon: '☀️' },
-          { label: 'Evening', range: '17–22h', count: evening, color: '#8b5cf6', icon: '🌆' },
-          { label: 'Night', range: '22–5h', count: night, color: '#06b6d4', icon: '🌙' },
-        ];
-        const dominant = blocks.reduce((a, b) => a.count > b.count ? a : b);
-        return (
-          <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-            <div className="card-header">
-              <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
-                <Filter size={20} color={themeColor} style={{ flexShrink: 0 }} /> TRAINING TIME DISTRIBUTION
-              </h3>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.5 }}>
-                You prefer <b style={{ color: dominant.color }}>{dominant.label}</b> {dominant.icon}
-              </span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
-              {blocks.map(b => {
-                const pct = Math.round((b.count / total) * 100);
-                return (
-                  <div key={b.label} style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', borderTop: `3px solid ${b.color}` }}>
-                    <div style={{ fontSize: '1.3rem', marginBottom: '4px' }}>{b.icon}</div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.7, marginBottom: '4px' }}>{b.label}</div>
-                    <div style={{ fontSize: '0.55rem', opacity: 0.4, marginBottom: '8px' }}>{b.range}</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: b.color, lineHeight: 1 }}>{pct}%</div>
-                    <div style={{ fontSize: '0.6rem', opacity: 0.5, marginTop: '4px' }}>{b.count} sessions</div>
-                    <div style={{ height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '8px' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: b.color, borderRadius: '2px', transition: 'width 0.8s' }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
 
-      {/* Monthly Performance Table */}
-      <div className="platform-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-          <div className="card-header">
-            <h3 className="card-title" style={{ fontSize: '0.95rem', margin: 0 }}>
-              <Layers size={20} color="#f59e0b" style={{ flexShrink: 0 }} /> {sportType.toUpperCase()} MONTHLY PROGRESSION
-            </h3>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-              <table className="analytics-table" style={{ width: '100%' }}>
-                  <thead>
-                      <tr>
-                          <th>MONTH</th>
-                          <th>THIS YEAR (KM)</th>
-                          <th>LAST YEAR (KM)</th>
-                          <th>VARIANCE</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                      {stats.period_comparison?.slice(0, new Date().getMonth() + 1).reverse().map((m, idx) => {
-                          const diff = m.this_year - m.last_year;
-                          const percent = m.last_year > 0 ? ((diff / m.last_year) * 100).toFixed(1) : '100+';
-                          return (
-                              <tr key={m.month}>
-                                  <td style={{ fontWeight: 800 }}>{m.month.toUpperCase()}</td>
-                                  <td><b style={{ color: themeColor }}>{m.this_year}</b></td>
-                                   <td style={{ opacity: 0.8 }}>{m.last_year}</td>
-                                  <td style={{ color: diff >= 0 ? '#10b981' : '#ef4444', fontWeight: 700 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                          {diff >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                                          {Math.abs(diff).toFixed(1)} km ({percent}%)
-                                      </div>
-                                  </td>
-                              </tr>
-                          );
-                      })}
-                  </tbody>
-              </table>
-          </div>
-      </div>
 
       {/* 12-Week Consistency + RPE Trend */}
       {(() => {

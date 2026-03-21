@@ -208,61 +208,46 @@ const Dashboard = ({ stats, setActiveTab, renderHeatmap, setInitialSearch }) => 
         </motion.div>
       </div>
 
-      {/* Fun Stats Paragraph */}
+      {/* Fun Stats + Carbon Row (side-by-side) */}
       {stats.total_distance > 0 && (() => {
         const earthTrips = (stats.total_distance / 40075).toFixed(3);
         const moonPct = ((stats.total_distance / 384400) * 100).toFixed(4);
         const everestTimes = ((stats.bio_stats?.total_elevation_m || 0) / 8849).toFixed(1);
         const pizzaSlices = Math.round((stats.bio_stats?.total_calories || 0) / 270);
-        const totalHours = Math.round((stats.total_distance / 12));
-        return (
-          <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem 1.75rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.015)', borderLeft: `4px solid ${accent}` }}>
-            <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5, letterSpacing: '1px', marginBottom: '0.6rem' }}>YOUR LIFETIME JOURNEY IN NUMBERS</div>
-            <p style={{ fontSize: '0.85rem', lineHeight: 1.9, margin: 0, opacity: 0.85 }}>
-              You have covered <kbd style={{ background: `${accent}22`, color: accent, padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{stats.total_distance?.toFixed(0)} km</kbd> across <kbd style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{stats.total_count}</kbd> activities.
-              {' '}That's <kbd style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{earthTrips}×</kbd> around the Earth
-              , <kbd style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{moonPct}%</kbd> of the way to the Moon
-              {everestTimes > 0 && <>, and you've climbed the equivalent of <kbd style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{everestTimes}× Mt. Everest</kbd></>}.
-              {pizzaSlices > 0 && <>{' '}You've burned roughly <kbd style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{pizzaSlices.toLocaleString()}</kbd> pizza slices worth of calories.</>}
-            </p>
-          </motion.div>
-        );
-      })()}
-
-      {/* Carbon Saved Widget */}
-      {stats.total_distance > 0 && (() => {
-        // Average car emission: 0.21 kg CO2 per km; running/cycling = 0
         const co2SavedKg = Math.round(stats.total_distance * 0.21);
-        const treesEquiv = Math.round(co2SavedKg / 21.77); // avg tree absorbs ~21.77 kg CO2/year
-        const carsOffRoad = (co2SavedKg / 4600).toFixed(2); // avg car emits ~4600 kg CO2/year
+        const treesEquiv = Math.round(co2SavedKg / 21.77);
+        const carsOffRoad = (co2SavedKg / 4600).toFixed(2);
         return (
-          <motion.div variants={item} className="platform-card" style={{
-            padding: '1.25rem 1.75rem', marginBottom: '1.5rem',
-            background: 'rgba(16,185,129,0.04)', borderLeft: '4px solid #10b981'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px' }}>🌱 CARBON FOOTPRINT SAVED</div>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#10b981', lineHeight: 1 }}>{co2SavedKg.toLocaleString()}</div>
-                <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '2px' }}>kg CO₂ offset vs. car</div>
-              </div>
-              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 0.6fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem 1.75rem', background: 'rgba(255,255,255,0.015)', borderLeft: `4px solid ${accent}` }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5, letterSpacing: '1px', marginBottom: '0.6rem' }}>YOUR LIFETIME JOURNEY IN NUMBERS</div>
+              <p style={{ fontSize: '0.85rem', lineHeight: 1.9, margin: 0, opacity: 0.85 }}>
+                You have covered <kbd style={{ background: `${accent}22`, color: accent, padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{stats.total_distance?.toFixed(0)} km</kbd> across <kbd style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{stats.total_count}</kbd> activities.
+                {' '}That's <kbd style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{earthTrips}×</kbd> around the Earth
+                , <kbd style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{moonPct}%</kbd> of the way to the Moon
+                {everestTimes > 0 && <>, climbing <kbd style={{ background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{everestTimes}× Mt. Everest</kbd></>}.
+                {pizzaSlices > 0 && <>{' '}Burned <kbd style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24', padding: '1px 7px', borderRadius: '5px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>{pizzaSlices.toLocaleString()}</kbd> pizza slices of calories.</>}
+              </p>
+            </motion.div>
+            <motion.div variants={item} className="platform-card" style={{ padding: '1.25rem 1.75rem', background: 'rgba(16,185,129,0.04)', borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.6, letterSpacing: '1px', marginBottom: '0.75rem' }}>🌱 CARBON FOOTPRINT SAVED</div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#10b981', lineHeight: 1 }}>{co2SavedKg.toLocaleString()}</div>
+              <div style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '2px', marginBottom: '0.75rem' }}>kg CO₂ offset vs. car</div>
+              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#34d399' }}>{treesEquiv.toLocaleString()}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>trees / year equiv.</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#34d399' }}>{treesEquiv.toLocaleString()}</div>
+                  <div style={{ fontSize: '0.55rem', opacity: 0.5 }}>trees / year</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#6ee7b7' }}>{carsOffRoad}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>cars off road / year</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#6ee7b7' }}>{carsOffRoad}</div>
+                  <div style={{ fontSize: '0.55rem', opacity: 0.5 }}>cars off road</div>
                 </div>
               </div>
-              <div style={{ flex: 1, minWidth: '120px', fontSize: '0.7rem', opacity: 0.5, lineHeight: 1.6 }}>
-                Based on avg. car emission of 210g CO₂/km across {stats.total_distance?.toFixed(0)} km.
+              <div style={{ marginTop: '0.75rem', fontSize: '0.6rem', opacity: 0.4, lineHeight: 1.5 }}>
+                Avg. 210g CO₂/km · {stats.total_distance?.toFixed(0)} km total
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         );
       })()}
 

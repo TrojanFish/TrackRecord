@@ -355,7 +355,7 @@ const Rewind = ({ stats: appStats, sportType }) => {
       )}
 
       {/* 2-Column Responsive Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(600px, 1fr))', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 480px), 1fr))', gap: '2rem' }}>
         
         {/* Row 1: Gear (Bar/Pie) | Longest Activity (Map) */}
         <motion.div variants={item} className="platform-card" style={{ padding: '2rem' }}>
