@@ -110,9 +110,28 @@ def handle_garmin_secret(L, get_cred, run_sync_script):
     email = get_cred("garmin_email", "  Email")
     password = get_cred("garmin_password", "  Password", password=True)
     is_cn = Prompt.ask(f"  {L('is_garmin_cn')}", choices=["y", "n"], default="y") == "y"
+    
     cmd = [sys.executable, "run_page/tools/get_garmin_secret.py", email, password]
     if is_cn: cmd.append("--is-cn")
-    return run_sync_script(cmd)
+    
+    try:
+        from run_page.auth import load_creds, save_creds
+        # Run and capture output
+        console.print(f"  [dim]正在获取授权... (Fetching secret...)[/dim]")
+        output = subprocess.check_output(cmd, text=True).strip()
+        # Find the base64 string (it should be the last line)
+        secret_string = output.splitlines()[-1]
+        
+        if secret_string:
+            creds = load_creds()
+            cred_key = "garmin_secret_cn" if is_cn else "garmin_secret_global"
+            creds[cred_key] = secret_string
+            save_creds(creds)
+            console.print(f"  [green]✅ 授权获取并已保存！ (Secret saved!)[/green]")
+            return True
+    except Exception as e:
+        console.print(f"  [red]❌ 获取授权失败: {e}[/red]")
+    return False
 
 def handle_nike(L, get_cred, run_sync_script):
     console.print(f"\n[bold red]👟  {L('nike_name')} {L('sync_text')}[/bold red]")
