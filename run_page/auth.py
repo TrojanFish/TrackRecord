@@ -30,6 +30,11 @@ def get_credential(key, prompt_text=None, password=False, headless=False):
     # 2. Try credentials.json
     creds = load_creds()
     val = creds.get(key, "")
+    
+    # 2.1 Validation: Ignore common incorrect inputs like command lines or template variables
+    if val and (val.startswith("python ") or "${" in val):
+        val = ""
+
     if val or headless or prompt_text is None:
         return val
     
@@ -37,6 +42,13 @@ def get_credential(key, prompt_text=None, password=False, headless=False):
     if Prompt:
         val = Prompt.ask(prompt_text, default=val, password=password)
         if val:
+            # Re-validate user input from prompt
+            if val.startswith("python ") or "${" in val:
+                console = None
+                try: from rich.console import Console; console = Console()
+                except: pass
+                if console: console.print("[red]❌ 输入格式错误，请输入 Base64 密钥字符串而非命令！[/red]")
+                return get_credential(key, prompt_text, password, headless)
             creds[key] = val
             save_creds(creds)
     return val
