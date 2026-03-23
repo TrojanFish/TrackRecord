@@ -29,6 +29,11 @@ def handle_garmin(L, get_cred, run_sync_script, is_cn=None):
     cred_key = "garmin_secret_cn" if is_cn else "garmin_secret_global"
     secret = get_cred(cred_key, "  Secret String")
     cmd = [sys.executable, "run_page/platforms/garmin_sync.py", secret]
+    
+    file_type = Prompt.ask(f"  {L('choose_file_type') or '选择文件类型'}", choices=["gpx", "fit"], default="gpx")
+    if file_type == "fit":
+        cmd.append("--fit")
+        
     if is_cn: cmd.append("--is-cn")
     return run_sync_script(cmd)
 
