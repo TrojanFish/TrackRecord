@@ -8,10 +8,10 @@ import asyncio
 import os
 import sys
 
-from config import FIT_FOLDER, GPX_FOLDER, JSON_FILE, SQL_FILE
-from garmin_sync import Garmin, get_downloaded_ids
-from garmin_sync import download_new_activities
-from utils import make_activities_file
+from run_page.config import FIT_FOLDER, GPX_FOLDER, JSON_FILE, SQL_FILE
+from run_page.platforms.garmin_sync import Garmin, get_downloaded_ids
+from run_page.platforms.garmin_sync import download_new_activities
+from run_page.utils import make_activities_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -22,24 +22,68 @@ def L(key):
     return I18N[CUR_LANG].get(key, key)
 
 def run_sync_script(cmd):
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.path.abspath("run_page") + os.pathsep + env.get("PYTHONPATH", "")
     try:
-        # Capture output for controlled display
-        result = subprocess.run(cmd, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        env = os.environ.copy()
+        # Add run_page and its subdirs to PYTHONPATH to support legacy imports in sync scripts
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        run_page_dir = os.path.join(root_dir, "run_page")
+        platforms_dir = os.path.join(run_page_dir, "platforms")
+        tools_dir = os.path.join(run_page_dir, "tools")
         
-        if result.returncode == 0:
+        pypath = env.get("PYTHONPATH", "")
+        # Ensure unique paths and filter out empty strings
+        new_pypath_parts = [root_dir, run_page_dir, platforms_dir, tools_dir]
+        existing_pypath_parts = pypath.split(os.pathsep)
+        
+        # Add existing paths that are not already included
+        for part in existing_pypath_parts:
+            if part and part not in new_pypath_parts:
+                new_pypath_parts.append(part)
+
+        env["PYTHONPATH"] = os.pathsep.join(filter(None, new_pypath_parts))
+        
+        # Capture output for controlled display
+        # Using Popen to stream output for better user experience
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, encoding='utf-8', errors='replace', env=env)
+        
+        stdout_lines = []
+        stderr_lines = []
+
+        # Stream stdout and stderr
+        while True:
+            output = process.stdout.readline()
+            error = process.stderr.readline()
+            
+            if output:
+                console.print(output.strip())
+                stdout_lines.append(output)
+            if error:
+                console.print(f"[red]{error.strip()}[/red]")
+                stderr_lines.append(error)
+            
+            if process.poll() is not None:
+                break
+        
+        # Read any remaining output
+        for output in process.stdout.readlines():
+            console.print(output.strip())
+            stdout_lines.append(output)
+        for error in process.stderr.readlines():
+            console.print(f"[red]{error.strip()}[/red]")
+            stderr_lines.append(error)
+
+        process.wait() # Ensure the process has fully terminated
+        
+        if process.returncode == 0:
             console.print(f"\n[bold green]✅ 同步成功！ (Sync Success)[/bold green]")
             return True
         else:
-            console.print(f"\n[bold red]❌ 同步失败 (Sync Failed) - 错误代码: {result.returncode}[/bold red]")
-            stderr_content = result.stderr or ""
-            lines = stderr_content.strip().split('\n')
-            last_lines = lines[-20:]
-            console.print(f"[red]最后 20 行错误详情 (Error details):[/red]")
-            for line in last_lines:
-                if line.strip():
-                    console.print(f"  [dim]{line}[/dim]")
+            console.print(f"\n[bold red]❌ 同步失败 (Sync Failed) - 错误代码: {process.returncode}[/bold red]")
+            if stderr_lines:
+                console.print(f"[red]最后 20 行错误详情 (Error details):[/red]")
+                for line in stderr_lines[-20:]:
+                    if line.strip():
+                        console.print(f"  [dim]{line.strip()}[/dim]")
             return False
     except Exception as e:
         console.print(f"\n[bold red]❌ 执行过程中发生异常 (Exception): {e}[/bold red]")

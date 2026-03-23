@@ -18,9 +18,9 @@ from lxml import etree
 import aiofiles
 import garth
 import httpx
-from config import FOLDER_DICT, JSON_FILE, SQL_FILE
-from garmin_device_adaptor import process_garmin_data
-from utils import make_activities_file
+from run_page.config import FOLDER_DICT, JSON_FILE, SQL_FILE
+from run_page.tools.garmin_device_adaptor import process_garmin_data
+from run_page.utils import make_activities_file
 
 # logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
