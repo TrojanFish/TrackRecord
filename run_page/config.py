@@ -27,6 +27,7 @@ UTC_TIMEZONE = "UTC"
 # Web API Settings (Newly refactored)
 API_PORT = int(os.environ.get("API_PORT", 8000))
 FRONTEND_PORT = int(os.environ.get("FRONTEND_PORT", 3000))
+DEFAULT_LANGUAGE = os.environ.get("DEFAULT_LANGUAGE", "zh")
 
 start_point = namedtuple("start_point", "lat lon")
 run_map = namedtuple("polyline", "summary_polyline")

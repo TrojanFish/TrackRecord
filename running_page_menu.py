@@ -10,10 +10,10 @@ from rich.tree import Tree
 from rich import print as rprint
 
 from run_page.ui.i18n import I18N
-from run_page.core.auth import load_creds, save_creds, get_credential as get_cred
-from run_page.core.platforms import get_platform_configs
+from run_page.auth import load_creds, save_creds, get_credential as get_cred
+from run_page.ui.configs import get_platform_configs
 import run_page.ui.handlers as handlers
-from run_page.core.config import DEFAULT_LANGUAGE
+from run_page.config import DEFAULT_LANGUAGE
 
 console = Console()
 CUR_LANG = load_creds().get("language", DEFAULT_LANGUAGE)
